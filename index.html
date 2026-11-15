@@ -150,7 +150,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 
   <div class="bar">
     <input id="search" class="search" type="search" placeholder="O que deseja hoje?" aria-label="Buscar no cardápio">
-    <div class="tabs" role="tablist">
+    <div class="tabs" id="tabs" role="tablist">
       <button class="tab active" data-cat="all">Tudo</button>
       <button class="tab" data-cat="hamburgueres">Burguers</button>
       <button class="tab" data-cat="bebidas">Bebidas</button>
@@ -249,11 +249,14 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 </div>
 
 <script>
-const CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
-const OPEN_H = 19, CLOSE_H = 23; // horário de funcionamento (Brasília). Mude só aqui.
+const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do painel)
+let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
+let OPEN_H = 19, CLOSE_H = 23, FORCE = 'auto', STORE = 'Avalanches'; // valores padrão; o painel online sobrescreve
 const hh = h => String(h).padStart(2, '0') + ':00';
-document.getElementById('hoursText').textContent = 'Seg a Dom: ' + hh(OPEN_H) + ' às ' + hh(CLOSE_H);
-document.getElementById('bannerHour').textContent = hh(OPEN_H);
+function applyHours() {
+  document.getElementById('hoursText').textContent = 'Seg a Dom: ' + hh(OPEN_H) + ' às ' + hh(CLOSE_H);
+  document.getElementById('bannerHour').textContent = hh(OPEN_H);
+}
 
 const DB = [
 {"id":"i_cq","cat":"hamburgueres","name":"Cachorro Quente","desc":"Pão, salsicha, mortadela, mussarela, batata, milho, molho","price":8.0, "image":"cachoro quente na chapa.jpeg"},
@@ -272,9 +275,51 @@ const DB = [
 {"id":"a_bacon","cat":"adicionais","name":"Bacon","price":4.0},
 {"id":"a_ovo","cat":"adicionais","name":"Ovo","price":3.0}
 ];
-const ITEMS = DB.filter(i => i.cat !== 'adicionais');
-const ADDONS = DB.filter(i => i.cat === 'adicionais');
-const CATS = { hamburgueres: 'Burguers', bebidas: 'Bebidas' };
+let ITEMS = DB.filter(i => i.cat !== 'adicionais');
+let ADDONS = DB.filter(i => i.cat === 'adicionais');
+let CATS = { hamburgueres: 'Burguers', bebidas: 'Bebidas' }, EXTRA = ['hamburgueres'];
+function buildTabs() {
+  cat = 'all';
+  document.getElementById('tabs').innerHTML = '<button class="tab active" data-cat="all">Tudo</button>' +
+    Object.keys(CATS).map(c => `<button class="tab" data-cat="${esc(c)}">${esc(CATS[c])}</button>`).join('');
+}
+let PHOTOS = {};
+const imgSrc = it => !it.image ? 'logo.jpeg' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || 'logo.jpeg') : encodeURI(it.image);
+async function loadCloud() {
+  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
+  const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+  let txt;
+  try {
+    const r = await fetch(base + '/cardapio/config', { cache: 'no-store' }); if (!r.ok) throw 0;
+    txt = (await r.json()).fields.json.stringValue;
+    try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
+  } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
+  applyData(JSON.parse(txt)); return base;
+}
+function loadPhotos(base) {
+  let cache = {}; try { cache = JSON.parse(localStorage.getItem('avl_photos') || '{}'); } catch (e) {}
+  ITEMS.forEach(it => {
+    if (!(it.image || '').startsWith('cloud:')) return;
+    const v = it.image.slice(6), c = cache[it.id];
+    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll('[data-pid="' + it.id + '"]').forEach(i => i.src = d); };
+    if (c && c.v === v) return show(c.d);
+    fetch(`${base}/fotos/${it.id}`).then(r => r.json()).then(j => {
+      const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
+      try { localStorage.setItem('avl_photos', JSON.stringify(cache)); } catch (e) {}
+    }).catch(() => {});
+  });
+}
+function applyData(d) {
+  const l = d.loja || {};
+  CONFIG = { phone: String(l.phone || CONFIG.phone), fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey: l.pixKey || CONFIG.pixKey };
+  OPEN_H = Number.isFinite(+l.open) ? +l.open : OPEN_H; CLOSE_H = Number.isFinite(+l.close) ? +l.close : CLOSE_H;
+  FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
+  document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
+  CATS = {}; EXTRA = [];
+  (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
+  ITEMS = (d.items || []).filter(i => i.ativo !== false);
+  ADDONS = d.addons || [];
+}
 
 const el = id => document.getElementById(id);
 const fmt = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
@@ -293,7 +338,7 @@ function showToast(m) {
 /* Horário de funcionamento (fuso de Brasília) */
 function checkOpen() {
   const h = +new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()) % 24;
-  IS_OPEN = h >= OPEN_H && h < CLOSE_H;
+  IS_OPEN = FORCE === 'aberto' ? true : FORCE === 'fechado' ? false : OPEN_H < CLOSE_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
   const b = el('storeStatus');
   b.className = 'status ' + (IS_OPEN ? 'open' : 'shut');
   b.querySelector('span').textContent = IS_OPEN ? 'Aberto agora' : 'Fechado';
@@ -303,7 +348,7 @@ function checkOpen() {
 
 /* Cardápio */
 function card(it) {
-  return `<button class="card" data-id="${it.id}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${fmt(it.price)}</div></div><div class="thumb"><img src="${encodeURI(it.image)}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${it.id}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
+  return `<button class="card" data-id="${it.id}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${fmt(it.price)}</div></div><div class="thumb"><img data-pid="${esc(it.id)}" src="${imgSrc(it)}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${it.id}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
 }
 function render() {
   const q = el('search').value.trim().toLowerCase();
@@ -325,21 +370,22 @@ el('menuList').onclick = e => {
   const c = e.target.closest('.card'); if (c) openProd(ITEMS.find(i => i.id === c.dataset.id));
 };
 el('search').oninput = render;
-document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+el('tabs').onclick = e => {
+  const t = e.target.closest('.tab'); if (!t) return;
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active'); cat = t.dataset.cat; render();
-});
+};
 
 /* Produto */
 function openProd(it) {
   currentProd = it; selectedAddons = []; qty = 1;
   el('modalTitle').textContent = it.name; el('modalDesc').textContent = it.desc;
-  el('modalImg').src = encodeURI(it.image); el('modalImg').alt = it.name;
+  el('modalImg').src = imgSrc(it); el('modalImg').alt = it.name;
   el('modalImg').onerror = function () { this.onerror = null; this.src = 'logo.jpeg'; };
   el('note').value = ''; el('qtyInput').textContent = 1;
   const adds = el('addonsList'); adds.innerHTML = '';
-  el('addonsSection').hidden = it.cat !== 'hamburgueres';
-  if (it.cat === 'hamburgueres') ADDONS.forEach(a => {
+  el('addonsSection').hidden = !EXTRA.includes(it.cat);
+  if (EXTRA.includes(it.cat)) ADDONS.forEach(a => {
     const l = document.createElement('label'); l.className = 'addon';
     l.innerHTML = `<span>${esc(a.name)} (+${fmt(a.price)})</span><input type="checkbox">`;
     l.querySelector('input').onchange = e => {
@@ -556,7 +602,7 @@ el('confirmBtn').onclick = () => {
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (!validate()) return;
   const name = el('clientName').value.trim(), addr = el('clientAddress').value.trim(), num = el('houseNumber').value.trim();
-  let txt = `*🍔 NOVO PEDIDO - AVALANCHES*\n----------------------------\n👤 *Cliente:* ${name}\n📍 *Endereço:* ${addr}, ${num}\n${COORDS ? '🗺️ *Localização exata:* ' + mapsLink(COORDS) + '\n' : ''}💳 *Pagamento:* ${PAYMENT.toUpperCase()}\n`;
+  let txt = `*🍔 NOVO PEDIDO - ${STORE.toUpperCase()}*\n----------------------------\n👤 *Cliente:* ${name}\n📍 *Endereço:* ${addr}, ${num}\n${COORDS ? '🗺️ *Localização exata:* ' + mapsLink(COORDS) + '\n' : ''}💳 *Pagamento:* ${PAYMENT.toUpperCase()}\n`;
   if (PAYMENT === 'dinheiro') { const g = parseFloat(el('cashGiven').value); txt += (NOCHG || !g) ? '💵 *Troco:* não precisa\n' : `💵 *Troco para:* ${fmt(g)} (levar ${fmt(g - cartTotal())} de troco)\n`; }
   txt += `----------------------------\n\n`;
   let sub = 0;
@@ -583,8 +629,12 @@ document.addEventListener('keydown', e => {
   else closeCart();
 });
 
-checkOpen(); setInterval(checkOpen, 60000);
-render(); updateCart();
+(async () => {
+  let base; try { base = await loadCloud(); } catch (e) {}
+  buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
+  if (base) loadPhotos(base);
+  render(); updateCart();
+})();
 </script>
 </body>
 </html>
