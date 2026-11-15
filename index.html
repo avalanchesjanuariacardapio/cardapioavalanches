@@ -223,9 +223,14 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
     <button class="pay" data-pay="cartao">💳 Cartão</button>
     <div class="err" id="e_pay"></div>
 
+    <div class="h3">Cupom de desconto</div>
+    <div style="display:flex;gap:8px"><input id="couponIn" class="field" placeholder="Digite seu cupom" autocapitalize="characters" autocomplete="off" style="margin:0"><button id="couponBtn" class="btn ghost" style="width:auto;margin:0;padding:0 18px">Aplicar</button></div>
+    <div class="err" id="couponMsg"></div>
+
     <div class="h3">Resumo</div>
     <div class="sum">
       <div><span>Subtotal</span><span id="subtotalText">R$ 0,00</span></div>
+      <div id="discRow" style="display:none"><span>Desconto <small id="discCode"></small></span><span id="discText" style="color:#3ddc84"></span></div>
       <div><span>Taxa de entrega</span><span id="feeText">R$ 4,99</span></div>
       <div class="tot"><span>Total</span><span id="totalText">R$ 0,00</span></div>
     </div>
@@ -294,7 +299,7 @@ async function loadCloud() {
     txt = (await r.json()).fields.json.stringValue;
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
   } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
-  applyData(JSON.parse(txt)); return base;
+  CLOUD_BASE = base; applyData(JSON.parse(txt)); return base;
 }
 function loadPhotos(base) {
   let cache = {}; try { cache = JSON.parse(localStorage.getItem('avl_photos') || '{}'); } catch (e) {}
@@ -422,9 +427,14 @@ function updateCart() {
   el('cartbar').classList.toggle('show', count > 0);
   el('cartCount').textContent = count + (count > 1 ? ' itens' : ' item');
   el('cartSubtotal').textContent = fmt(sub);
+  if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
   el('subtotalText').textContent = fmt(sub);
-  el('feeText').textContent = fmt(CONFIG.fee); el('heroFee').textContent = fmt(CONFIG.fee);
-  el('totalText').textContent = fmt(sub + CONFIG.fee);
+  const dsc = discount(sub);
+  el('discRow').style.display = COUPON ? 'flex' : 'none';
+  el('discCode').textContent = COUPON ? '(' + COUPON.code + ')' : '';
+  el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) : '';
+  el('feeText').textContent = fmt(feeNow()); el('heroFee').textContent = fmt(CONFIG.fee);
+  el('totalText').textContent = fmt(cartTotal());
   renderCash();
   save();
   if (el('cartPage').classList.contains('open')) renderCartItems();
@@ -471,7 +481,11 @@ function quickAdd(it, btn) {
 
 /* Troco inteligente */
 let NOCHG = false, OTHER = false;
-const cartTotal = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0) + CONFIG.fee;
+let COUPON = null, CLOUD_BASE = '', ORDER = null;
+const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);
+const discount = sub => !COUPON ? 0 : COUPON.tipo === 'pct' ? Math.round(sub * Math.min(COUPON.valor, 100)) / 100 : COUPON.tipo === 'fixo' ? Math.min(COUPON.valor, sub) : 0;
+const feeNow = () => COUPON && COUPON.tipo === 'frete' ? 0 : CONFIG.fee;
+const cartTotal = () => { const sb = cartSub(); return Math.max(0, sb - discount(sb)) + feeNow(); };
 function renderCash() {
   const box = el('cashChange'); box.hidden = PAYMENT !== 'dinheiro';
   if (box.hidden) return;
@@ -570,6 +584,33 @@ window.getLocation = () => {
 };
 addEventListener('load', () => setTimeout(() => loadMap(() => {}), 2500));
 
+/* Cupom */
+const cm = (t, ok) => { const m = el('couponMsg'); m.textContent = t; m.style.color = ok ? '#3ddc84' : ''; };
+el('couponBtn').onclick = async () => {
+  const code = el('couponIn').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!code) return cm('Digite o código do cupom.');
+  if (!Object.keys(CART).length) return cm('Adicione itens antes de aplicar o cupom.');
+  if (!CLOUD_BASE) return cm('Cupons indisponíveis no momento.');
+  let c;
+  try {
+    const r = await fetch(`${CLOUD_BASE}/cupons/${code}`, { cache: 'no-store' });
+    if (r.status === 404 || r.status === 403) return cm('Cupom inválido.');
+    if (!r.ok) throw 0;
+    c = JSON.parse((await r.json()).fields.json.stringValue);
+  } catch (e) { return cm('Não consegui validar o cupom. Tente de novo.'); }
+  c.valor = +c.valor || 0; c.min = +c.min || 0;
+  if (c.ativo === false) return cm('Este cupom não está disponível.');
+  if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return cm('Este cupom venceu.');
+  if (cartSub() < c.min) return cm('Cupom válido para pedidos a partir de ' + fmt(c.min) + '.');
+  COUPON = { ...c, code };
+  cm('Cupom ' + code + ' aplicado!', true); updateCart();
+};
+function postOrder(o) {
+  if (!CLOUD_BASE || !o) return;
+  fetch(`${CLOUD_BASE}/pedidos?documentId=${o.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify(o) }, status: { stringValue: 'novo' }, t: { integerValue: String(Date.now()) } } }) }).catch(() => {});
+}
+
 /* Envio do pedido */
 function fail(inputId, errId, msg) { el(errId).textContent = msg; if (inputId) el(inputId).classList.add('bad'); return false; }
 function validate() {
@@ -583,7 +624,7 @@ function validate() {
   ];
   let first = null;
   checks.forEach(c => { if (c[0]) { fail(c[1], c[2], c[3]); first = first || el(c[2]); } });
-  const total = Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0) + CONFIG.fee;
+  const total = cartTotal();
   const given = parseFloat(el('cashGiven').value);
   if (PAYMENT === 'dinheiro' && !NOCHG && !el('cashGiven').value) { fail(null, 'e_cash', 'Informe se precisa de troco.'); first = first || el('e_cash'); }
   else if (PAYMENT === 'dinheiro' && !NOCHG && !(given >= total)) {
@@ -593,8 +634,9 @@ function validate() {
   return !first;
 }
 function sendWa() {
+  postOrder(ORDER);
   window.open(`https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, '_blank');
-  CART = {}; updateCart(); el('pixModal').classList.remove('open'); closeCart();
+  CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
   showToast('Pedido enviado! Finalize no WhatsApp.');
 }
 el('confirmBtn').onclick = () => {
@@ -610,7 +652,11 @@ el('confirmBtn').onclick = () => {
     const it = CART[k], t = unit(it) * it.qty; sub += t;
     txt += `*${it.qty}x ${it.name}*\n${it.addons.map(a => ` + ${a.name}`).join('\n')}${it.addons.length ? '\n' : ''}${it.note ? ` _Obs: ${it.note}_\n` : ''}💰 ${fmt(t)}\n\n`;
   }
-  txt += `----------------------------\n📦 *Entrega:* ${fmt(CONFIG.fee)}\n💰 *TOTAL:* ${fmt(sub + CONFIG.fee)}`;
+  const dsc = discount(sub), oid = 'P' + Date.now().toString(36).toUpperCase(), g2 = parseFloat(el('cashGiven').value);
+  txt += `----------------------------\n` + (COUPON ? `🏷️ *Cupom ${COUPON.code}:* ${COUPON.tipo === 'frete' ? 'frete grátis' : '-' + fmt(dsc)}\n` : '') + `📦 *Entrega:* ${fmt(feeNow())}\n💰 *TOTAL:* ${fmt(cartTotal())}\n🧾 *Pedido #${oid.slice(-5)}*`;
+  ORDER = { id: oid, nome: name, end: addr, num, loc: COORDS ? mapsLink(COORDS) : '', pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN,
+    cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
+    itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '' })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
   if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); }
   else sendWa();
