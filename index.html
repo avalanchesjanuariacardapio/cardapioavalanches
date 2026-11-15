@@ -144,7 +144,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span>Seg a Dom: 19:00 às 23:59</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span></div>
+    <div class="facts"><span>Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das 19:00.</div>
 
@@ -200,8 +200,9 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
     <div id="cartItems"></div>
 
     <div class="h3">Entrega</div>
-    <button onclick="getLocation()" class="btn geo" style="margin-top:0">📍 Usar minha localização</button>
+    <button id="geoBtn" onclick="getLocation()" class="btn geo" style="margin-top:0">📍 Usar minha localização</button>
     <div class="map"><div id="map" style="height:100%"></div></div>
+    <div class="calc" id="locInfo" hidden></div>
     <input id="clientAddress" class="field" placeholder="Rua e Bairro *" autocomplete="street-address">
     <div class="err" id="e_addr"></div>
     <input id="houseNumber" class="field" placeholder="Número da casa e Referência *">
@@ -249,7 +250,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 
 <script>
 const CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
-const OPEN_H = 19, CLOSE_H = 24; // 19:00 às 23:59 (horário de Brasília)
+const OPEN_H = 19, CLOSE_H = 23; // 19:00 às 23:00 (horário de Brasília)
 
 const DB = [
 {"id":"i_cq","cat":"hamburgueres","name":"Cachorro Quente","desc":"Pão, salsicha, mortadela, mussarela, batata, milho, molho","price":8.0, "image":"cachoro quente na chapa.jpeg"},
@@ -460,33 +461,65 @@ document.querySelectorAll('.pay').forEach(p => p.onclick = () => {
   el('e_pay').textContent = ''; renderCash();
 });
 
-/* Mapa e localização */
-function initMap(lat = -15.487, lon = -44.367) {
-  if (map) { map.setView([lat, lon], 17); marker.setLatLng([lat, lon]); return; }
-  map = L.map('map').setView([lat, lon], 17);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-  marker = L.marker([lat, lon], { draggable: true }).addTo(map);
-  marker.on('dragend', () => { const p = marker.getLatLng(); reverse(p.lat, p.lng); });
+/* Mapa e localização (rápida: posição aproximada em segundos, depois refina com GPS) */
+let COORDS = null, circle = null;
+const mapsLink = c => `https://www.google.com/maps?q=${c.lat.toFixed(6)},${c.lon.toFixed(6)}`;
+function setCoords(lat, lon, acc) {
+  COORDS = { lat, lon };
+  const i = el('locInfo'); i.hidden = false;
+  i.textContent = (acc ? `📍 Localização marcada (precisão de cerca de ${Math.round(acc)} m). ` : '📍 Localização marcada. ') + 'Se precisar, arraste o pino para o ponto exato.';
+}
+function initMap(lat = -15.487, lon = -44.367, acc) {
+  if (!map) {
+    map = L.map('map').setView([lat, lon], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+    marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+    marker.on('dragend', () => { const p = marker.getLatLng(); setCoords(p.lat, p.lng); if (circle) { map.removeLayer(circle); circle = null; } reverse(p.lat, p.lng); });
+  } else { map.setView([lat, lon], 17); marker.setLatLng([lat, lon]); }
+  if (circle) { map.removeLayer(circle); circle = null; }
+  if (acc) circle = L.circle([lat, lon], { radius: acc, color: '#ff6a00', weight: 1, fillOpacity: .12 }).addTo(map);
+  map.invalidateSize();
 }
 function reverse(lat, lon) {
-  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 7000);
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&zoom=18&addressdetails=1&accept-language=pt-BR`, { signal: ac.signal })
     .then(r => r.json()).then(d => {
-      if (d.display_name) {
-        const p = d.display_name.split(',');
-        el('clientAddress').value = p[0] + ', ' + (p[1] || '').trim();
-        el('clientAddress').classList.remove('bad'); el('e_addr').textContent = '';
-        showToast('Endereço preenchido');
-      }
-    }).catch(() => showToast('Não foi possível buscar o endereço. Digite manualmente.'));
+      const a = d.address || {};
+      const rua = a.road || a.pedestrian || a.residential || a.footway || '';
+      const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.village || '';
+      const txt = [rua, bairro].filter(Boolean).join(', ') || (d.display_name || '').split(',').slice(0, 2).join(',').trim();
+      if (!txt) throw 0;
+      el('clientAddress').value = txt; el('clientAddress').classList.remove('bad'); el('e_addr').textContent = '';
+      if (a.house_number && !el('houseNumber').value) el('houseNumber').value = a.house_number;
+      showToast('Endereço preenchido');
+    }).catch(() => showToast('Localização salva. Digite a rua e o bairro.')).finally(() => clearTimeout(tm));
 }
 window.getLocation = () => {
   if (!navigator.geolocation) return showToast('Seu navegador não suporta localização.');
-  showToast('Aguardando permissão...');
-  navigator.geolocation.getCurrentPosition(pos => {
-    loadMap(() => initMap(pos.coords.latitude, pos.coords.longitude));
-    reverse(pos.coords.latitude, pos.coords.longitude);
-  }, () => showToast('Ative o GPS e permita a localização.'), { enableHighAccuracy: true, timeout: 15000 });
+  if (!isSecureContext) return showToast('A localização só funciona em site com HTTPS (cadeado).');
+  const btn = el('geoBtn'); if (btn.dataset.busy) return;
+  btn.dataset.busy = 1; btn.textContent = '⏳ Buscando sua localização...';
+  let best = null, done = false, w, tm;
+  const stop = () => { done = true; navigator.geolocation.clearWatch(w); clearTimeout(tm); delete btn.dataset.busy; btn.textContent = '📍 Atualizar minha localização'; };
+  const finish = () => { if (done) return; stop(); if (best) reverse(best.latitude, best.longitude); };
+  const apply = p => {
+    if (done) return;
+    const c = p.coords; if (best && c.accuracy >= best.accuracy) return;
+    best = c; setCoords(c.latitude, c.longitude, c.accuracy);
+    loadMap(() => initMap(c.latitude, c.longitude, c.accuracy));
+    if (c.accuracy <= 25) finish();
+  };
+  const err = e => {
+    if (done) return;
+    if (best) return finish();
+    stop(); btn.textContent = '📍 Usar minha localização';
+    showToast(e.code === 1 ? 'Permissão negada. Libere a localização nas configurações do navegador.' : 'Não consegui pegar o GPS. Ative a localização e tente de novo.');
+  };
+  navigator.geolocation.getCurrentPosition(apply, () => {}, { enableHighAccuracy: false, maximumAge: 60000, timeout: 4000 });
+  w = navigator.geolocation.watchPosition(apply, err, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 });
+  tm = setTimeout(finish, 10000);
 };
+addEventListener('load', () => setTimeout(() => loadMap(() => {}), 2500));
 
 /* Envio do pedido */
 function fail(inputId, errId, msg) { el(errId).textContent = msg; if (inputId) el(inputId).classList.add('bad'); return false; }
@@ -520,7 +553,7 @@ el('confirmBtn').onclick = () => {
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (!validate()) return;
   const name = el('clientName').value.trim(), addr = el('clientAddress').value.trim(), num = el('houseNumber').value.trim();
-  let txt = `*🍔 NOVO PEDIDO - AVALANCHES*\n----------------------------\n👤 *Cliente:* ${name}\n📍 *Endereço:* ${addr}, ${num}\n💳 *Pagamento:* ${PAYMENT.toUpperCase()}\n`;
+  let txt = `*🍔 NOVO PEDIDO - AVALANCHES*\n----------------------------\n👤 *Cliente:* ${name}\n📍 *Endereço:* ${addr}, ${num}\n${COORDS ? '🗺️ *Localização exata:* ' + mapsLink(COORDS) + '\n' : ''}💳 *Pagamento:* ${PAYMENT.toUpperCase()}\n`;
   if (PAYMENT === 'dinheiro') { const g = parseFloat(el('cashGiven').value); txt += (NOCHG || !g) ? '💵 *Troco:* não precisa\n' : `💵 *Troco para:* ${fmt(g)} (levar ${fmt(g - cartTotal())} de troco)\n`; }
   txt += `----------------------------\n\n`;
   let sub = 0;
