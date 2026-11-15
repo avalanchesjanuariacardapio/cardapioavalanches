@@ -144,9 +144,9 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span>Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span></div>
+    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span></div>
   </header>
-  <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das 19:00.</div>
+  <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
 
   <div class="bar">
     <input id="search" class="search" type="search" placeholder="O que deseja hoje?" aria-label="Buscar no cardápio">
@@ -250,7 +250,10 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 
 <script>
 const CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
-const OPEN_H = 19, CLOSE_H = 23; // 19:00 às 23:00 (horário de Brasília)
+const OPEN_H = 19, CLOSE_H = 23; // horário de funcionamento (Brasília). Mude só aqui.
+const hh = h => String(h).padStart(2, '0') + ':00';
+document.getElementById('hoursText').textContent = 'Seg a Dom: ' + hh(OPEN_H) + ' às ' + hh(CLOSE_H);
+document.getElementById('bannerHour').textContent = hh(OPEN_H);
 
 const DB = [
 {"id":"i_cq","cat":"hamburgueres","name":"Cachorro Quente","desc":"Pão, salsicha, mortadela, mussarela, batata, milho, molho","price":8.0, "image":"cachoro quente na chapa.jpeg"},
@@ -562,7 +565,7 @@ el('confirmBtn').onclick = () => {
     txt += `*${it.qty}x ${it.name}*\n${it.addons.map(a => ` + ${a.name}`).join('\n')}${it.addons.length ? '\n' : ''}${it.note ? ` _Obs: ${it.note}_\n` : ''}💰 ${fmt(t)}\n\n`;
   }
   txt += `----------------------------\n📦 *Entrega:* ${fmt(CONFIG.fee)}\n💰 *TOTAL:* ${fmt(sub + CONFIG.fee)}`;
-  WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das 19h)\n\n' + txt;
+  WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
   if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); }
   else sendWa();
 };
