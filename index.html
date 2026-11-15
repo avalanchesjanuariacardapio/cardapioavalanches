@@ -136,15 +136,15 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 
 <main class="app">
   <header>
-    <div class="cover"><img src="Avalanche.jpeg" alt="" onerror="this.remove()"></div>
+    <div class="cover"><img id="coverImg" data-pid="_capa" src="Avalanche.jpeg" alt="" onerror="this.style.display='none'"></div>
     <div class="id">
-      <img src="logo.jpeg" class="logo" alt="Logo Avalanches">
+      <img id="logoImg" data-pid="_perfil" src="logo.jpeg" class="logo" alt="Logo" onerror="this.onerror=null;this.src='logo.jpeg'">
       <div>
         <h1>Avalanches</h1>
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span></div>
+    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Entrega em <b id="etaText"></b></span></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
 
@@ -209,6 +209,8 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
     <div class="err" id="e_num"></div>
     <input id="clientName" class="field" placeholder="Seu Nome *" autocomplete="name">
     <div class="err" id="e_name"></div>
+    <input id="clientPhone" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
+    <div class="err" id="e_phone"></div>
 
     <div class="h3">Pagamento</div>
     <button class="pay" data-pay="dinheiro">💵 Dinheiro</button>
@@ -288,7 +290,8 @@ function buildTabs() {
   document.getElementById('tabs').innerHTML = '<button class="tab active" data-cat="all">Tudo</button>' +
     Object.keys(CATS).map(c => `<button class="tab" data-cat="${esc(c)}">${esc(CATS[c])}</button>`).join('');
 }
-let PHOTOS = {};
+let PHOTOS = {}, LOJAIMGS = [], PRAZO = 40;
+function showEta() { el('etaText').textContent = PRAZO + '–' + (PRAZO + 10) + ' min'; el('etaChip').style.display = ''; }
 const imgSrc = it => !it.image ? 'logo.jpeg' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || 'logo.jpeg') : encodeURI(it.image);
 async function loadCloud() {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
@@ -299,14 +302,16 @@ async function loadCloud() {
     txt = (await r.json()).fields.json.stringValue;
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
   } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
-  CLOUD_BASE = base; applyData(JSON.parse(txt)); return base;
+  CLOUD_BASE = base; applyData(JSON.parse(txt));
+  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const f = (await r2.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; } } catch (e) {}
+  showEta(); return base;
 }
 function loadPhotos(base) {
   let cache = {}; try { cache = JSON.parse(localStorage.getItem('avl_photos') || '{}'); } catch (e) {}
-  ITEMS.forEach(it => {
+  [...ITEMS, ...LOJAIMGS].forEach(it => {
     if (!(it.image || '').startsWith('cloud:')) return;
     const v = it.image.slice(6), c = cache[it.id];
-    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll('[data-pid="' + it.id + '"]').forEach(i => i.src = d); };
+    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll('[data-pid="' + it.id + '"]').forEach(i => { i.src = d; i.style.display = ''; }); };
     if (c && c.v === v) return show(c.d);
     fetch(`${base}/fotos/${it.id}`).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
@@ -320,6 +325,11 @@ function applyData(d) {
   OPEN_H = Number.isFinite(+l.open) ? +l.open : OPEN_H; CLOSE_H = Number.isFinite(+l.close) ? +l.close : CLOSE_H;
   FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
+  LOJAIMGS = [];
+  [['perfil', 'logoImg'], ['capa', 'coverImg']].forEach(([k, id]) => {
+    const v = l[k]; if (!v) return; LOJAIMGS.push({ id: '_' + k, image: v });
+    if (!v.startsWith('cloud:')) { const i = document.getElementById(id); i.src = encodeURI(v); i.style.display = ''; }
+  });
   CATS = {}; EXTRA = [];
   (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
   ITEMS = (d.items || []).filter(i => i.ativo !== false);
@@ -612,14 +622,17 @@ function postOrder(o) {
 }
 
 /* Envio do pedido */
+const phoneDigits = () => { let n = el('clientPhone').value.replace(/\D/g, ''); if (n.startsWith('55') && n.length > 11) n = n.slice(2); return n; };
+const phoneOk = () => /^\d{10,11}$/.test(phoneDigits());
 function fail(inputId, errId, msg) { el(errId).textContent = msg; if (inputId) el(inputId).classList.add('bad'); return false; }
 function validate() {
-  ['clientAddress', 'houseNumber', 'clientName', 'cashGiven'].forEach(i => el(i).classList.remove('bad'));
-  ['e_addr', 'e_num', 'e_name', 'e_pay', 'e_cash'].forEach(i => el(i).textContent = '');
+  ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).classList.remove('bad'));
+  ['e_addr', 'e_num', 'e_name', 'e_phone', 'e_pay', 'e_cash'].forEach(i => el(i).textContent = '');
   const checks = [
     [!el('clientAddress').value.trim(), 'clientAddress', 'e_addr', 'Informe rua e bairro.'],
     [!el('houseNumber').value.trim(), 'houseNumber', 'e_num', 'Informe o número e uma referência.'],
     [!el('clientName').value.trim(), 'clientName', 'e_name', 'Informe seu nome.'],
+    [!phoneOk(), 'clientPhone', 'e_phone', 'Informe seu WhatsApp com DDD (ex.: 34 99999-9999).'],
     [!PAYMENT, null, 'e_pay', 'Escolha a forma de pagamento.']
   ];
   let first = null;
@@ -644,17 +657,19 @@ el('confirmBtn').onclick = () => {
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (!validate()) return;
   const name = el('clientName').value.trim(), addr = el('clientAddress').value.trim(), num = el('houseNumber').value.trim();
-  let txt = `*🍔 NOVO PEDIDO - ${STORE.toUpperCase()}*\n----------------------------\n👤 *Cliente:* ${name}\n📍 *Endereço:* ${addr}, ${num}\n${COORDS ? '🗺️ *Localização exata:* ' + mapsLink(COORDS) + '\n' : ''}💳 *Pagamento:* ${PAYMENT.toUpperCase()}\n`;
-  if (PAYMENT === 'dinheiro') { const g = parseFloat(el('cashGiven').value); txt += (NOCHG || !g) ? '💵 *Troco:* não precisa\n' : `💵 *Troco para:* ${fmt(g)} (levar ${fmt(g - cartTotal())} de troco)\n`; }
-  txt += `----------------------------\n\n`;
-  let sub = 0;
+  const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), ph = phoneDigits(), g2 = parseFloat(el('cashGiven').value);
+  const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
+  const LN = '━━━━━━━━━━━━━━━━━━', payName = { dinheiro: 'Dinheiro', pix: 'PIX', cartao: 'Cartão' }[PAYMENT] || PAYMENT;
+  const when = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  let txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*\n🧾 *Pedido #${oid.slice(-5)}* · ${when}\n${LN}\n👤 *CLIENTE*\n${name}\n📱 ${phTxt}\n${LN}\n📍 *ENTREGA*\n${addr}, ${num}\n${COORDS ? '🗺️ ' + mapsLink(COORDS) + '\n' : ''}⏱️ Previsão: ${PRAZO} min\n${LN}\n🛒 *ITENS*\n`;
   for (const k in CART) {
-    const it = CART[k], t = unit(it) * it.qty; sub += t;
-    txt += `*${it.qty}x ${it.name}*\n${it.addons.map(a => ` + ${a.name}`).join('\n')}${it.addons.length ? '\n' : ''}${it.note ? ` _Obs: ${it.note}_\n` : ''}💰 ${fmt(t)}\n\n`;
+    const it = CART[k];
+    txt += `▪️ *${it.qty}x ${it.name}* — ${fmt(unit(it) * it.qty)}\n` + it.addons.map(a => `    ➕ ${a.name}\n`).join('') + (it.note ? `    📝 _${it.note}_\n` : '');
   }
-  const dsc = discount(sub), oid = 'P' + Date.now().toString(36).toUpperCase(), g2 = parseFloat(el('cashGiven').value);
-  txt += `----------------------------\n` + (COUPON ? `🏷️ *Cupom ${COUPON.code}:* ${COUPON.tipo === 'frete' ? 'frete grátis' : '-' + fmt(dsc)}\n` : '') + `📦 *Entrega:* ${fmt(feeNow())}\n💰 *TOTAL:* ${fmt(cartTotal())}\n🧾 *Pedido #${oid.slice(-5)}*`;
-  ORDER = { id: oid, nome: name, end: addr, num, loc: COORDS ? mapsLink(COORDS) : '', pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN,
+  txt += `${LN}\n💳 *PAGAMENTO:* ${payName}\n`;
+  if (PAYMENT === 'dinheiro') txt += (NOCHG || !g2) ? '💵 Sem troco\n' : `💵 Troco para ${fmt(g2)} (levar ${fmt(g2 - cartTotal())})\n`;
+  txt += `${LN}\nSubtotal: ${fmt(sb)}\n` + (COUPON ? `🏷️ Cupom ${COUPON.code}: ${COUPON.tipo === 'frete' ? 'frete grátis' : '−' + fmt(dsc)}\n` : '') + `Entrega: ${fmt(feeNow())}\n💰 *TOTAL: ${fmt(cartTotal())}*`;
+  ORDER = { id: oid, nome: name, fone: '55' + ph, end: addr, num, loc: COORDS ? mapsLink(COORDS) : '', pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN, prazo: PRAZO,
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '' })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
@@ -667,7 +682,7 @@ window.copyPix = () => {
   if (navigator.clipboard) navigator.clipboard.writeText(CONFIG.pixKey).then(done, () => showToast('Copie a chave manualmente.'));
   else showToast('Copie a chave manualmente.');
 };
-['clientAddress', 'houseNumber', 'clientName', 'cashGiven'].forEach(i => el(i).addEventListener('input', () => el(i).classList.remove('bad')));
+['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).addEventListener('input', () => el(i).classList.remove('bad')));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (el('pixModal').classList.contains('open')) el('pixModal').classList.remove('open');

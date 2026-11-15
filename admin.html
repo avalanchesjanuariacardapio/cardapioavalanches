@@ -39,7 +39,7 @@ select option{color:#111}
 .pic img{width:100%;height:100%;object-fit:cover}
 .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--o);color:#111;font-weight:700;padding:11px 18px;border-radius:12px;z-index:99}
 .step{display:flex;gap:10px;margin:8px 0;color:var(--m)}.step i{font-style:normal;background:var(--o);color:#111;border-radius:50%;width:22px;height:22px;flex:none;text-align:center;font-weight:800;font-size:13px}
-.pbar{position:fixed;left:0;right:0;bottom:calc(78px + env(safe-area-inset-bottom));padding:0 16px;z-index:20}.pbar .btn{max-width:608px;margin:0 auto;display:block;box-shadow:0 8px 24px rgba(0,0,0,.6)}.btn:disabled{opacity:.5}.wrap{padding-bottom:170px!important}.nav button{font-size:10.5px;padding:10px 0}.nav b{font-size:19px}.bd{position:absolute;top:4px;right:16%;background:var(--bad);color:#fff;border-radius:99px;min-width:18px;height:18px;font-size:11px;line-height:18px;padding:0 4px}.neu{border-color:var(--o);box-shadow:0 0 0 1px var(--o)}.chp{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}</style></head><body>
+.pbar{position:fixed;left:0;right:0;bottom:calc(78px + env(safe-area-inset-bottom));padding:0 16px;z-index:20}.pbar .btn{max-width:608px;margin:0 auto;display:block;box-shadow:0 8px 24px rgba(0,0,0,.6)}.btn:disabled{opacity:.5}.wrap{padding-bottom:170px!important}.nav button{font-size:10.5px;padding:10px 0}.nav b{font-size:19px}.bd{position:absolute;top:4px;right:16%;background:var(--bad);color:#fff;border-radius:99px;min-width:18px;height:18px;font-size:11px;line-height:18px;padding:0 4px}.neu{border-color:var(--o);box-shadow:0 0 0 1px var(--o)}.chp{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.oh{display:flex;align-items:center;gap:10px;cursor:pointer}.oh .n{flex:1;min-width:0}.oh small{display:block;color:var(--o2)}.clk{font-weight:800;font-variant-numeric:tabular-nums;padding:6px 10px;border-radius:10px;color:#fff;font-size:15px;background:#2a6}.clk.late{animation:bl 1s infinite}@keyframes bl{50%{opacity:.45}}.chev{color:var(--m);font-size:12px}</style></head><body>
 <div class="wrap"><h1 id="ttl">Painel do Cardápio</h1><p class="sub">Altere o que quiser. Depois de mexer, toque em <b>Publicar mudanças</b> para atualizar o site na hora.</p><div id="main"></div></div>
 <nav class="nav"><div id="nav"></div></nav>
 <div class="pbar" id="pubbar"></div><div class="back" id="back"><div class="sheet" id="sheet"></div></div>
@@ -63,7 +63,7 @@ const $=id=>document.getElementById(id),uid=p=>p+Date.now().toString(36)+Math.ra
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ps=it=>{const u=it.image||'';return u.startsWith('data:')?u:u.startsWith('cloud:')?(PH[it.id]||''):encodeURI(u)};
 const brl=v=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
-let tab='pedidos',draft=null,dirty=!!localStorage.getItem('avl_dirty'),user=null,PH={},ORD=[],NEWC=0,CUP=[],cd=null,unsub=null;
+let tab='pedidos',draft=null,dirty=!!localStorage.getItem('avl_dirty'),user=null,PH={},ORD=[],NEWC=0,CUP=[],cd=null,unsub=null,PRAZO=40,OPENO=new Set();
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast('Memória cheia: use fotos menores')}dirty=true;try{localStorage.setItem('avl_dirty','1')}catch(e){}nav()}
 const TABS=[['pedidos','🔔','Pedidos'],['menu','🍔','Cardápio'],['cup','🏷️','Cupons'],['add','➕','Extras'],['loja','🏪','Loja'],['pub','🚀','Publicar']];
@@ -73,7 +73,7 @@ function hours(k){return `<select data-f="${k}">${[...Array(24).keys()].map(h=>`
 function row(it){return `<div class="row ${it.ativo===false?'off':''}"><div class="th" style="background-image:url('${ps(it).replace(/'/g,'%27')}')"></div><div class="n"><b>${esc(it.name)}</b><small>${brl(it.price)}${it.ativo===false?' · esgotado':''}</small></div><input type="checkbox" class="sw" data-tog="${it.id}" ${it.ativo!==false?'checked':''} title="Disponível"><button class="btn ic" data-a="up" data-v="${it.id}">↑</button><button class="btn ic" data-a="down" data-v="${it.id}">↓</button><button class="btn" data-a="edit" data-v="${it.id}">Editar</button></div>`}
 function view(){
  nav();let h='';
- if(tab=='loja')h=`<div class="card"><h3>Dados da loja</h3>${fld('Nome da loja','nome')}${fld('WhatsApp dos pedidos (com 55 + DDD)','phone','tel')}<div class="two">${fld('Taxa de entrega (R$)','fee','number','step="0.01" min="0"')}<label>Chave PIX<input data-f="pixKey" value="${esc(D.loja.pixKey)}"></label></div></div>
+ if(tab=='loja')h=profCard()+`<div class="card"><h3>Dados da loja</h3>${fld('Nome da loja','nome')}${fld('WhatsApp dos pedidos (com 55 + DDD)','phone','tel')}<div class="two">${fld('Taxa de entrega (R$)','fee','number','step="0.01" min="0"')}<label>Chave PIX<input data-f="pixKey" value="${esc(D.loja.pixKey)}"></label></div></div>
  <div class="card"><h3>Horário de funcionamento</h3><div class="two"><label>Abre às${hours('open')}</label><label>Fecha às${hours('close')}</label></div>
  <label>Situação da loja<select data-f="modo"><option value="auto" ${D.loja.modo=='auto'?'selected':''}>Automática (pelo horário)</option><option value="aberto" ${D.loja.modo=='aberto'?'selected':''}>Forçar ABERTA agora</option><option value="fechado" ${D.loja.modo=='fechado'?'selected':''}>Forçar FECHADA (hoje não abro)</option></select></label></div>`;
  if(tab=='menu'){h=`<button class="btn pri full" style="margin:0 0 14px" data-a="new">＋ Novo item</button><div class="card"><h3>Categorias</h3>${D.cats.map((c,i)=>`<div class="row"><div class="n"><input data-c="${i}" data-p="name" value="${esc(c.name)}" style="margin:0"><label class="chk" style="margin:6px 0 0"><input type="checkbox" data-c="${i}" data-p="extras" ${c.extras?'checked':''}>Oferecer adicionais</label></div><button class="btn ic danger" data-a="delcat" data-v="${i}">✕</button></div>`).join('')}<button class="btn full" data-a="addcat">＋ Nova categoria</button></div>`;
@@ -81,8 +81,8 @@ function view(){
  if(tab=='add')h=`<div class="card"><h3>Adicionais</h3><p class="sub">Aparecem nas categorias com “Oferecer adicionais” marcado.</p>${D.addons.map((a,i)=>`<div class="row"><div class="n"><input data-d="${i}" data-p="name" value="${esc(a.name)}" style="margin:0"></div><input data-d="${i}" data-p="price" type="number" step="0.5" min="0" value="${a.price}" style="width:90px;margin:0"><button class="btn ic danger" data-a="deladd" data-v="${i}">✕</button></div>`).join('')}<button class="btn full" data-a="addadd">＋ Novo adicional</button></div>`;
  if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>🚀 Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub">${esc(user&&user.email||'')}</p><button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`;
  if(tab=='pedidos')h=pedidosView();if(tab=='cup')h=cupView();
- $('main').innerHTML=h}
-function sheet(){const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Novo item':'Editar item'}</h3><div class="pic" id="pv">${d.image?`<img src="${esc(ps(d))}" onerror="this.remove()">`:'Sem foto'}</div><label class="btn full" style="text-align:center;color:var(--t);margin:0 0 12px">📷 Trocar foto<input type="file" accept="image/*" id="ph" hidden></label>
+ $('main').innerHTML=h;tick()}
+function sheet(){const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Novo item':'Editar item'}</h3><div class="pic" id="pv">${d.image?`<img src="${esc(ps(d))}" onerror="this.remove()">`:'Sem foto'}</div><label class="btn full" style="text-align:center;color:var(--t);margin:0 0 12px">📷 Trocar foto<input type="file" accept="image/*" id="ph" hidden></label>${d.image?'<button class="btn full" data-a="reframe" style="margin:0 0 12px">🔍 Ajustar enquadramento</button>':''}
  <label>Nome<input id="s_n" value="${esc(d.name)}"></label><label>Descrição<textarea id="s_d" rows="2">${esc(d.desc)}</textarea></label>
  <div class="two"><label>Preço (R$)<input id="s_p" type="number" step="0.5" min="0" value="${d.price}"></label><label>Categoria<select id="s_c">${D.cats.map(c=>`<option value="${c.id}" ${c.id==d.cat?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label></div>
  <label class="chk"><input type="checkbox" id="s_a" ${d.ativo!==false?'checked':''}>Disponível no cardápio</label>
@@ -103,7 +103,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='delcat'){const c=D.cats[v];if(D.items.some(i=>i.cat==c.id))return toast('Mova ou exclua os itens dessa categoria antes');if(confirm('Excluir categoria?')){D.cats.splice(v,1);save();view()}}
  else if(a=='addadd'){D.addons.push({id:uid('a_'),name:'Novo adicional',price:0});save();view()}
  else if(a=='deladd'){D.addons.splice(v,1);save();view()}
- else if(a=='st'){if(b.dataset.s!='cancelado'||confirm('Cancelar este pedido?'))updateDoc(doc(db,'pedidos',v),{status:b.dataset.s}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='tgl'){OPENO.has(v)?OPENO.delete(v):OPENO.add(v);view()}
+ else if(a=='ext'){const o=ORD.find(x=>x.id==v);updateDoc(doc(db,'pedidos',v),{extra:Math.max(-30,Math.min(120,(o.extra||0)+(+b.dataset.n)))}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='pz'){PRAZO=Math.max(10,Math.min(180,PRAZO+(+v)));setDoc(doc(db,'cardapio','ao_vivo'),{prazo:PRAZO}).catch(x=>toast('Erro: '+(x.code||x.message)));view()}
+ else if(a=='reframe'){const u=ps(draft);if(!u)return toast('Sem foto para ajustar');crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`})}
+ else if(a=='rfc')crop(ps({id:'_capa',image:lp('capa')}),2,900,false,r=>{D.loja.capa=r;save();view()});
+ else if(a=='rfp')crop(ps({id:'_perfil',image:lp('perfil')}),1,360,true,r=>{D.loja.perfil=r;save();view()});
+ else if(a=='st'){if(b.dataset.s!='cancelado'||confirm('Cancelar este pedido?')){if(b.dataset.s=='entrega')dispatchMsg(v);updateDoc(doc(db,'pedidos',v),{status:b.dataset.s}).catch(x=>toast('Erro: '+(x.code||x.message)))}}
  else if(a=='newc'){cd={_new:true,code:'',tipo:'pct',valor:10,min:0,ate:'',ativo:true};csheet()}
  else if(a=='editc'){cd={...CUP.find(c=>c.code==v)};csheet()}
  else if(a=='tpl'){cread();Object.assign(cd,TPL[v][1]);if(!cd.code)cd.code=gen();csheet()}
@@ -124,24 +130,51 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)));view()}
  else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent='👁 '+cdesc(cd)}});
 document.addEventListener('change',e=>{const t=e.target;
- if(t.id=='ph'&&t.files[0])shrink(t.files[0],u=>{draft.image=u;$('pv').innerHTML=`<img src="${u}">`});
+ if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
+ if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
  if(t.id=='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.items||!j.cats||!j.loja)throw 0;D=j;D.addons=D.addons||[];save();view();toast('Cardápio carregado')}catch(x){toast('Arquivo inválido')}};r.readAsText(t.files[0])}});
 $('back').onclick=e=>{if(e.target==$('back'))$('back').classList.remove('open')};
 const ST={novo:'🆕 Novo',preparo:'👨‍🍳 Preparando',entrega:'🛵 Saiu para entrega',entregue:'✅ Entregue',cancelado:'❌ Cancelado'};
-const NEXT={novo:['preparo','Aceitar e preparar'],preparo:['entrega','Saiu para entrega'],entrega:['entregue','Marcar como entregue']};
-const san=o=>({nome:String(o.nome||'').slice(0,80),end:String(o.end||'').slice(0,160),num:String(o.num||'').slice(0,100),loc:/^https:\/\//.test(o.loc)?String(o.loc):'',pag:String(o.pag||'').slice(0,20),troco:+o.troco||0,ant:!!o.ant,cupom:String(o.cupom||'').slice(0,20),desc:+o.desc||0,total:+o.total||0,itens:(Array.isArray(o.itens)?o.itens:[]).slice(0,40).map(i=>({q:+i.q||1,n:String(i.n||'').slice(0,80),ex:Array.isArray(i.ex)?i.ex.map(x=>String(x).slice(0,40)):[],obs:String(i.obs||'').slice(0,200)}))});
-function oc(o){const d=o.o,h=new Date(+o.t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),n=NEXT[o.status],live=!!n;
- return `<div class="card${o.status=='novo'?' neu':''}"><div style="display:flex;justify-content:space-between"><b>#${esc(o.id.slice(-5))} · ${esc(d.nome)}</b><span>${h}</span></div><div class="sub" style="margin:2px 0 8px">${ST[o.status]||esc(o.status)}${d.ant?' · ⏰ antecipado':''}</div>
- ${d.itens.map(i=>`<div>${i.q}x <b>${esc(i.n)}</b>${i.ex.length?' + '+esc(i.ex.join(', ')):''}${i.obs?`<br><small>Obs: ${esc(i.obs)}</small>`:''}</div>`).join('')}
- <div class="sub" style="margin-top:8px">📍 ${esc(d.end)}, ${esc(d.num)} ${d.loc?`<a href="${esc(d.loc)}" target="_blank" rel="noopener" style="color:var(--o2)">ver no mapa</a>`:''}<br>💳 ${esc(d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?`<br>🏷️ Cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div>
+const NEXT={novo:['preparo','Aceitar e preparar'],preparo:['entrega','🛵 Despachar e avisar o cliente'],entrega:['entregue','Marcar como entregue']};
+const san=o=>({nome:String(o.nome||'').slice(0,80),fone:String(o.fone||'').replace(/\D/g,'').slice(0,15),prazo:+o.prazo||0,end:String(o.end||'').slice(0,160),num:String(o.num||'').slice(0,100),loc:/^https:\/\//.test(o.loc)?String(o.loc):'',pag:String(o.pag||'').slice(0,20),troco:+o.troco||0,ant:!!o.ant,cupom:String(o.cupom||'').slice(0,20),desc:+o.desc||0,total:+o.total||0,itens:(Array.isArray(o.itens)?o.itens:[]).slice(0,40).map(i=>({q:+i.q||1,n:String(i.n||'').slice(0,80),ex:Array.isArray(i.ex)?i.ex.map(x=>String(x).slice(0,40)):[],obs:String(i.obs||'').slice(0,200)}))});
+const dl=o=>+o.t+((o.o.prazo||PRAZO)+(o.extra||0))*6e4;
+const waNum=d=>{const n=String(d.fone||'').replace(/\D/g,'');return n.length<10?'':(n.length<=11?'55'+n:n)};
+function oc(o){const d=o.o,id=esc(o.id),open=OPENO.has(o.id),n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
+ const head=`<div class="oh" data-a="tgl" data-v="${id}"><div class="n"><b>#${esc(o.id.slice(-5))} · ${esc(d.nome)}</b><small>${ST[o.status]||esc(o.status)}${d.ant?' · ⏰ antecipado':''} · ${brl(d.total)}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}<span class="chev">${open?'▲':'▼'}</span></div>`;
+ if(!open)return `<div class="card${o.status=='novo'?' neu':''}">${head}</div>`;
+ const w=waNum(d);
+ return `<div class="card${o.status=='novo'?' neu':''}">${head}<div style="margin-top:10px">${d.itens.map(i=>`<div>${i.q}x <b>${esc(i.n)}</b>${i.ex.length?' + '+esc(i.ex.join(', ')):''}${i.obs?`<br><small>Obs: ${esc(i.obs)}</small>`:''}</div>`).join('')}
+ <div class="sub" style="margin-top:8px">👤 ${esc(d.nome)}${w?` · <a href="https://wa.me/${w}" target="_blank" rel="noopener" style="color:var(--o2)">chamar no WhatsApp</a>`:''}<br>📍 ${esc(d.end)}, ${esc(d.num)} ${d.loc?`<a href="${esc(d.loc)}" target="_blank" rel="noopener" style="color:var(--o2)">ver no mapa</a>`:''}<br>💳 ${esc(d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?`<br>🏷️ Cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}${o.extra?`<br>⏱ Prazo ajustado: ${o.extra>0?'+':''}${o.extra} min`:''}</div>
  <div style="font-size:18px;font-weight:800;margin:8px 0">${brl(d.total)}</div>
- ${live?`<button class="btn pri full" data-a="st" data-v="${esc(o.id)}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${esc(o.id)}" data-s="cancelado">Cancelar pedido</button>`:''}</div>`}
-function pedidosView(){const act=ORD.filter(o=>NEXT[o.status]),done=ORD.filter(o=>!NEXT[o.status]);
- return (act.map(oc).join('')||'<div class="card"><p class="sub">Nenhum pedido em andamento. Quando chegar um, o painel avisa com som e vibração (com o painel aberto).</p></div>')+(done.length?'<h3 style="margin:18px 0 8px">Finalizados</h3>'+done.slice(0,15).map(oc).join(''):'')}
+ ${n?`<div class="chp"><button class="btn" data-a="ext" data-v="${id}" data-n="-5">−5 min</button><button class="btn" data-a="ext" data-v="${id}" data-n="5">+5 min</button><button class="btn" data-a="ext" data-v="${id}" data-n="10">+10 min</button></div><button class="btn pri full" data-a="st" data-v="${id}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${id}" data-s="cancelado">Cancelar pedido</button>`:''}</div></div>`}
+function pedidosView(){const act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b)),done=ORD.filter(o=>!NEXT[o.status]);
+ return `<div class="card" style="display:flex;align-items:center;gap:10px"><div class="n" style="flex:1"><b>⏱ Tempo de entrega</b><small class="sub" style="display:block">Aparece para os clientes e no relógio</small></div><button class="btn ic" data-a="pz" data-v="-5">−</button><b style="min-width:58px;text-align:center">${PRAZO} min</b><button class="btn ic" data-a="pz" data-v="5">+</button></div>`+(act.map(oc).join('')||'<div class="card"><p class="sub">Nenhum pedido em andamento. Quando chegar um, o painel avisa com som e vibração (com o painel aberto).</p></div>')+(done.length?'<h3 style="margin:18px 0 8px">Finalizados</h3>'+done.slice(0,15).map(oc).join(''):'')}
+function dispatchMsg(id){const o=ORD.find(x=>x.id==id);if(!o)return;const n=waNum(o.o);if(!n){toast('Esse pedido não tem telefone do cliente');return}
+ window.open('https://wa.me/'+n+'?text='+encodeURIComponent(`Olá, ${o.o.nome}! 🛵\n\nSeu pedido *#${id.slice(-5)}* saiu para entrega e chega em instantes.\n\nObrigado pela preferência! 🍔\n— ${D.loja.nome}`),'_blank')}
+function tick(){document.querySelectorAll('[data-dl]').forEach(e=>{const r=+e.dataset.dl-Date.now(),tot=+e.dataset.tot,a=Math.abs(r),m=Math.floor(a/6e4),sc=Math.floor(a%6e4/1e3);e.textContent=(r<0?'−':'')+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');e.style.background='hsl('+Math.round(Math.max(0,Math.min(1,r/tot/.5))*120)+' 70% 36%)';e.classList.toggle('late',r<0)})}
+setInterval(tick,1000);
+function readF(f,cb){const r=new FileReader();r.onload=()=>cb(r.result);r.readAsDataURL(f)}
+function crop(src,ar,outW,round,cb){
+ const ov=document.createElement('div');ov.className='back open';ov.style.zIndex=80;
+ ov.innerHTML=`<div class="sheet"><h3>Ajustar enquadramento</h3><p class="sub">Arraste a foto para posicionar e use o zoom.</p><div id="cv" style="position:relative;width:${round?'70%':'100%'};margin:0 auto 12px;aspect-ratio:${ar};overflow:hidden;border-radius:${round?'50%':'14px'};background:#000;touch-action:none;cursor:grab"><img id="ci" style="position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none"></div><label>Zoom<input id="cz" type="range" min="1" max="4" step="0.01" value="1"></label><button class="btn pri full" id="cok">Usar esta foto</button><button class="btn full" id="cno">Cancelar</button></div>`;
+ document.body.appendChild(ov);
+ const cv=ov.querySelector('#cv'),im=ov.querySelector('#ci'),z=ov.querySelector('#cz');let nw,nh,fw,fh,b,sc,x=0,y=0,drag=null;
+ const draw=()=>{x=Math.min(0,Math.max(fw-nw*sc,x));y=Math.min(0,Math.max(fh-nh*sc,y));im.style.width=nw*sc+'px';im.style.height=nh*sc+'px';im.style.transform=`translate(${x}px,${y}px)`};
+ im.onload=()=>{nw=im.naturalWidth;nh=im.naturalHeight;fw=cv.clientWidth;fh=cv.clientHeight;b=Math.max(fw/nw,fh/nh);sc=b;x=(fw-nw*sc)/2;y=(fh-nh*sc)/2;draw()};
+ im.onerror=()=>{ov.remove();toast('Não consegui abrir a foto')};im.src=src;
+ z.oninput=()=>{const cx=(fw/2-x)/sc,cy=(fh/2-y)/sc;sc=b*z.value;x=fw/2-cx*sc;y=fh/2-cy*sc;draw()};
+ cv.onpointerdown=e=>{drag={px:e.clientX,py:e.clientY,x,y};cv.setPointerCapture(e.pointerId)};
+ cv.onpointermove=e=>{if(!drag)return;x=drag.x+e.clientX-drag.px;y=drag.y+e.clientY-drag.py;draw()};
+ cv.onpointerup=cv.onpointercancel=()=>{drag=null};
+ ov.querySelector('#cno').onclick=()=>ov.remove();
+ ov.querySelector('#cok').onclick=()=>{const c=document.createElement('canvas');c.width=outW;c.height=Math.round(outW/ar);c.getContext('2d').drawImage(im,-x/sc,-y/sc,fw/sc,fh/sc,0,0,c.width,c.height);ov.remove();cb(c.toDataURL('image/jpeg',.74))}}
+const lp=k=>D.loja[k]||(k=='perfil'?'logo.jpeg':'Avalanche.jpeg');
+const bgi=k=>ps({id:'_'+k,image:lp(k)}).replace(/'/g,'%27');
+function profCard(){return `<div class="card"><h3>Perfil da loja</h3><div style="position:relative;margin-bottom:48px"><div class="pic" style="height:130px;margin:0;background-image:url('${bgi('capa')}')"></div><div style="position:absolute;left:16px;bottom:-40px;width:84px;height:84px;border-radius:50%;border:3px solid var(--o);background:#222 center/cover url('${bgi('perfil')}')"></div></div><div class="two"><label class="btn" style="text-align:center;margin:0;color:var(--t)">🖼 Trocar capa<input type="file" accept="image/*" id="cp" hidden></label><label class="btn" style="text-align:center;margin:0;color:var(--t)">👤 Trocar perfil<input type="file" accept="image/*" id="pf" hidden></label></div><div class="two" style="margin-top:8px"><button class="btn" data-a="rfc">Ajustar capa</button><button class="btn" data-a="rfp">Ajustar perfil</button></div></div>`}
 function alertNew(){try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,.25,.5].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.3,a.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.2);o.start(a.currentTime+t);o.stop(a.currentTime+t+.22)})}catch(e){}navigator.vibrate&&navigator.vibrate([300,150,300]);toast('🔔 Novo pedido!')}
 function listen(){if(unsub)return;let first=true;
  unsub=onSnapshot(query(collection(db,'pedidos'),orderBy('t','desc'),limit(60)),snap=>{
-  ORD=snap.docs.map(x=>{const v=x.data();try{return {id:x.id,t:v.t,status:String(v.status),o:san(JSON.parse(v.json))}}catch(e){return null}}).filter(Boolean);
+  ORD=snap.docs.map(x=>{const v=x.data();try{return {id:x.id,t:v.t,status:String(v.status),extra:+v.extra||0,o:san(JSON.parse(v.json))}}catch(e){return null}}).filter(Boolean);
   NEWC=ORD.filter(o=>o.status=='novo').length;
   if(!first&&snap.docChanges().some(c=>c.type=='added'))alertNew();
   first=false;nav();if(tab=='pedidos'||tab=='cup')view()},e=>toast('Erro nos pedidos: '+(e.code||e.message)))}
@@ -167,12 +200,14 @@ function csave(){cread();const code=cd.code;
 function cupView(){const hoje=ymd(0);return '<button class="btn pri full" style="margin:0 0 14px" data-a="newc">＋ Novo cupom</button>'+(CUP.length?`<div class="card">${CUP.map(c=>{const venc=c.ate&&c.ate<hoje,u=ORD.filter(o=>o.o.cupom==c.code).length;return `<div class="row ${c.ativo===false||venc?'off':''}"><div class="n"><b>${esc(c.code)}</b><small>${esc(cdesc(c))}${venc?' · VENCIDO':''}${u?' · usado '+u+'x':''}</small></div><input type="checkbox" class="sw" data-ctog="${esc(c.code)}" ${c.ativo!==false?'checked':''}><button class="btn" data-a="editc" data-v="${esc(c.code)}">Editar</button></div>`}).join('')}</div>`:'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
 async function pull(){
  if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[]}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
+ try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists())PRAZO=+x.data().prazo||40}catch(e){}
  try{const x=await getDocs(collection(db,'cupons'));CUP=x.docs.map(y=>{try{return {code:y.id,...JSON.parse(y.data().json)}}catch(e){return null}}).filter(Boolean)}catch(e){}
- await Promise.all(D.items.filter(i=>(i.image||'').startsWith('cloud:')&&!PH[i.id]).map(async i=>{try{const x=await getDoc(doc(db,'fotos',i.id));if(x.exists())PH[i.id]=x.data().d}catch(e){}}))}
+ await Promise.all([...D.items,{id:'_perfil',image:D.loja.perfil},{id:'_capa',image:D.loja.capa}].filter(i=>(i.image||'').startsWith('cloud:')&&!PH[i.id]).map(async i=>{try{const x=await getDoc(doc(db,'fotos',i.id));if(x.exists())PH[i.id]=x.data().d}catch(e){}}))}
 async function publish(){
  const b=document.querySelector('[data-a=publish]');if(b){b.disabled=true;b.textContent='Publicando…'}
  try{const out=JSON.parse(JSON.stringify(D));
   for(let i=0;i<D.items.length;i++){const it=D.items[i];if((it.image||'').startsWith('data:')){const v=Date.now().toString(36)+i;await setDoc(doc(db,'fotos',it.id),{d:it.image,v});PH[it.id]=it.image;it.image='cloud:'+v;out.items[i].image=it.image}}
+  for(const k of ['perfil','capa']){const v0=D.loja[k];if((v0||'').startsWith('data:')){const v=Date.now().toString(36)+k;await setDoc(doc(db,'fotos','_'+k),{d:v0,v});PH['_'+k]=v0;D.loja[k]='cloud:'+v;out.loja[k]=D.loja[k]}}
   await setDoc(doc(db,'cardapio','config'),{json:JSON.stringify(out)});
   dirty=false;localStorage.removeItem('avl_dirty');try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}toast('Publicado! Já está no ar.')
  }catch(e){toast('Erro ao publicar: '+(e.code||e.message))}
