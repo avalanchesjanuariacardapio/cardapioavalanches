@@ -333,6 +333,7 @@ function applyData(d) {
   CATS = {}; EXTRA = [];
   (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
   ITEMS = (d.items || []).filter(i => i.ativo !== false);
+  { const ci = Object.keys(CATS); ITEMS.sort((a, b) => ci.indexOf(a.cat) - ci.indexOf(b.cat)); }
   ADDONS = d.addons || [];
 }
 
