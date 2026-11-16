@@ -179,6 +179,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='catpromo'){const q=prompt('Desconto em % para TODOS os itens desta categoria (0 remove as promoções):','10');if(q===null)return;const n=+String(q).replace(',','.');if(!(n>=0&&n<=95))return toast('Digite um valor de 0 a 95');let ate='';if(n>0){const d=prompt('Por quantos dias? (0 = sem prazo)','7');if(d===null)return;ate=+d>0?ymd(+d-1):''}D.items.forEach(i=>{if(i.cat==v){if(n>0)i.promo={tipo:'pct',valor:n,ate};else delete i.promo}});save();view();toast(n>0?'Promoção aplicada':'Promoções removidas')}
  else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.4,960,false,r=>{D.loja.poster=r;save();view()});
  else if(a=='dpo'){if(confirm('Remover o poster do cardápio?')){delete D.loja.poster;delete D.loja.posterItem;save();view()}}
+ else if(a=='pod'){$('po_a').value=v=='-1'?'':ymd(+v);$('po_e').checked=true;poSave()}
  else if(a=='publish')publish();
  else if(a=='login')signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value).catch(()=>toast('E-mail ou senha incorretos'));
  else if(a=='out')signOut(auth);
@@ -192,7 +193,8 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)));t.closest('.row').classList.toggle('off',!t.checked)}
  else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent='👁 '+cdesc(cd)}
  else if(t.id&&(t.id.startsWith('pr_')||t.id=='s_p')&&draft)promoPrev()
- else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save()}});
+ else if(t.id&&t.id.startsWith('po_')&&D.loja.posterItem)poSave()
+ else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save();view()}});
 document.addEventListener('change',e=>{const t=e.target;
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
  if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.4,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
@@ -209,7 +211,7 @@ function ocard(o){const d=o.o,n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
  const T=[['ativos','Ativos',act.length],['novo','Novos',by('novo').length],['preparo','Preparo',by('preparo').length],['entrega','Entrega',by('entrega').length],['fim','Finalizados',0]];
  const list=OS=='ativos'?act:OS=='fim'?ORD.filter(o=>!NEXT[o.status]).slice(0,30):by(OS).sort((a,b)=>dl(a)-dl(b));
- return `<div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 12px"><div class="n" style="flex:1"><b>⏱ Tempo de entrega</b></div><button class="btn ic" data-a="pz" data-v="-5">−</button><b style="min-width:56px;text-align:center">${PRAZO} min</b><button class="btn ic" data-a="pz" data-v="5">+</button></div><div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
+ return `<div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 12px"><div class="n" style="flex:1"><b>⏱ Tempo de preparo</b><small class="sub" style="display:block">Aparece no site para os clientes</small></div><button class="btn ic" data-a="pz" data-v="-5">−</button><b style="min-width:56px;text-align:center">${PRAZO} min</b><button class="btn ic" data-a="pz" data-v="5">+</button></div><div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
 function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=true;nov();const d=o.o,n=NEXT[o.status],w=waNum(d),e=esc(o.id),tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
  $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?' · ⏰ antecipado':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
  <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>📝 ${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
@@ -308,7 +310,20 @@ function promoPrev(){const e=$('pr_pv');if(!e)return;const p=parseFloat($('s_p')
 function posterCard(){const L=D.loja,has=!!L.poster,u=has?ps({id:'_poster',image:L.poster}).replace(/'/g,'%27'):'';
  return `<div class="card"><h3>🖼 Poster do cardápio</h3><p class="sub" style="margin:-6px 0 10px">Aparece no topo do cardápio, sem nome, só quando você adiciona. Ideal: foto horizontal.</p><div class="pic" style="aspect-ratio:12/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
  <div class="two"><label class="btn" style="text-align:center;margin:0;color:var(--t)">${has?'Trocar poster':'＋ Adicionar poster'}<input type="file" accept="image/*" id="po" hidden></label>${has?'<button class="btn" data-a="rpo">Ajustar enquadramento</button>':''}</div>
- ${has?`<label style="margin-top:12px">Ao tocar no poster, abrir o item:<select data-pi>${D.items.map(i=>`<option value="${esc(i.id)}" ${L.posterItem==i.id?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label><button class="btn full danger" data-a="dpo">Remover poster</button>`:''}</div>`}
+ ${has?`<label style="margin-top:12px">Ao tocar no poster, abrir o item:<select data-pi>${D.items.map(i=>`<option value="${esc(i.id)}" ${L.posterItem==i.id?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>${poPromo()}<button class="btn full danger" data-a="dpo">Remover poster</button>`:''}</div>`}
+function poPromo(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return '';const pr=it.promo;
+ return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--l)"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="po_e" ${pr?'checked':''}>🔥 Desconto neste item (preço normal ${brl(it.price)})</label>
+ <div class="two"><label>Tipo<select id="po_t"><option value="pct" ${!pr||pr.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${pr&&pr.tipo=='fixo'?'selected':''}>Preço promocional (R$)</option></select></label><label>Valor<input id="po_v" type="number" min="0" step="0.5" value="${pr?pr.valor:''}"></label></div>
+ <label>Válido até (vazio = sem prazo)<input id="po_a" type="date" value="${esc(pr&&pr.ate||'')}"></label>
+ <div class="chp"><button class="btn" data-a="pod" data-v="0">Só hoje</button><button class="btn" data-a="pod" data-v="6">7 dias</button><button class="btn" data-a="pod" data-v="29">30 dias</button><button class="btn" data-a="pod" data-v="-1">Sem prazo</button></div><p class="sub" id="po_pv">${pr?'👁 '+esc(pTxt(it)):''}</p></div>`}
+function poSave(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return;const e=$('po_pv');
+ if($('po_e').checked){const t=$('po_t').value,v=parseFloat($('po_v').value);
+  if(!(v>0)){delete it.promo;e.textContent='Informe o valor do desconto';save();return}
+  if(t=='pct'&&v>95){e.textContent='Desconto máximo: 95%';return}
+  if(t=='fixo'&&v>=it.price){e.textContent='O preço promocional precisa ser menor que '+brl(it.price);return}
+  it.promo={tipo:t,valor:v,ate:$('po_a').value||''};e.textContent='👁 '+pTxt(it)}
+ else{delete it.promo;e.textContent=''}
+ save()}
 let lastTab='';
 const TT={pedidos:'Pedidos',menu:'Cardápio',cup:'Cupons',add:'Extras',loja:'Minha loja',pub:'Publicar'};
 const SUB={pedidos:'Acompanhe e despache em tempo real',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
