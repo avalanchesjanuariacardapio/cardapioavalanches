@@ -81,8 +81,8 @@ input,select,textarea{font-size:16px}html{-webkit-text-size-adjust:100%}body{ove
 .blk{padding:12px 0;border-top:1px solid var(--l)}.blk>b{display:block;margin-bottom:6px;font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.07em}
 .it{padding:3px 0}.it small{display:block;color:var(--o2)}.tot{font-size:20px;font-weight:800;margin-top:6px}
 a.btn{color:var(--t);text-decoration:none}.big{min-height:56px;font-size:16px}
-#nov{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-#nov.on{display:flex;animation:fd .2s}#nov.on .sheet{animation:up .34s var(--e)}
+#nov{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));z-index:70;display:none;justify-content:center;pointer-events:none}
+#nov.on{display:flex;animation:fd .2s}#nov .nv{pointer-events:auto;width:100%;max-width:560px;background:linear-gradient(180deg,#25252c,#1a1a1f);border:1px solid rgba(255,106,0,.55);border-radius:20px;padding:14px;box-shadow:0 18px 40px -12px #000}#nov .nvh{display:flex;align-items:flex-start;gap:10px}#nov .nvh .n{flex:1;min-width:0}#nov .nvh b{display:block;font-weight:750}#nov .nvh small{display:block;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#nov .nvb{display:flex;gap:8px;margin-top:12px}#nov .nvb .btn{flex:1;margin:0}
 @keyframes shk{0%,100%{transform:rotate(0)}15%{transform:rotate(14deg)}30%{transform:rotate(-12deg)}45%{transform:rotate(8deg)}60%{transform:rotate(-6deg)}}
 html,body{overscroll-behavior-y:none}body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}input,textarea,select{-webkit-user-select:text;user-select:text}
 [data-sort]{position:relative}
@@ -223,11 +223,7 @@ function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=t
  ${n?`<div class="chp"><button class="btn" data-a="ext" data-v="${e}" data-n="-5">−5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="5">+5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="10">+10 min</button>${o.extra?`<span class="sub" style="align-self:center">ajuste: ${o.extra>0?'+':''}${o.extra} min</span>`:''}</div><button class="btn pri full big" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${e}" data-s="cancelado">Cancelar pedido</button>`:''}<button class="btn full" data-a="scancel">Fechar</button>`;
  $('back').classList.add('open');tick()}
 function nov(){const n=ORD.filter(o=>o.status=='novo'),el=$('nov');if(!n.length||NOVHIDE){el.classList.remove('on');return}const o=n[0],d=o.o,e=esc(o.id);
- el.innerHTML=`<div class="sheet"><div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">${n.length>1?n.length+' novos pedidos':'Novo pedido'}</h3><small>#${esc(o.id.slice(-5))} · ${esc(d.nome)}${d.ant?' · ⏰ antecipado':''}</small></div></div>
- <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>📝 ${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
- <div class="blk"><b>Entrega</b><div>${esc(d.end)}, ${esc(d.num)}</div></div>
- <div class="blk"><b>Pagamento</b><div>${esc(d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div></div>
- <button class="btn pri full big" data-a="st" data-v="${e}" data-s="preparo">Aceitar e preparar</button><button class="btn full" data-a="ord" data-v="${e}">Ver detalhes</button><button class="btn full" data-a="nh">Agora não</button></div>`;el.classList.add('on')}
+ el.innerHTML=`<div class="nv"><div class="nvh"><div class="n"><b>${n.length>1?n.length+' novos pedidos':'Novo pedido'} · #${esc(o.id.slice(-5))}</b><small>${esc(d.nome)} · ${brl(d.total)}</small><small>${esc(d.itens.map(i=>i.q+'x '+i.n).join(', '))}</small></div><button class="btn ic" data-a="nh" aria-label="Agora não" style="margin:0">✕</button></div><div class="nvb"><button class="btn pri" data-a="st" data-v="${e}" data-s="preparo">Aceitar</button><button class="btn" data-a="ord" data-v="${e}">Detalhes</button></div></div>`;el.classList.add('on')}
 function addH(){
  const cs=D.cats.map((c,i)=>`<div class="row"><div class="n"><b>${esc(c.name)}</b></div><input type="checkbox" class="sw" data-c="${i}" data-p="extras" ${c.extras?'checked':''} aria-label="Oferecer adicionais em ${esc(c.name)}"></div>`).join('');
  const as=D.addons.map((a,i)=>`<div class="row ${a.ativo===false?'off':''}" data-sid="${esc(a.id)}">${GRIP}<div class="n" style="display:flex;align-items:center;gap:8px"><input data-d="${i}" data-p="name" value="${esc(a.name)}" placeholder="Nome do adicional" aria-label="Nome" style="margin:0;flex:1;min-width:0"><span class="sub" style="margin:0;flex:none">R$</span><input data-d="${i}" data-p="price" type="number" step="0.5" min="0" value="${a.price}" aria-label="Preço" style="width:78px;flex:none;margin:0"></div><div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:none"><input type="checkbox" class="sw" data-atog="${i}" ${a.ativo!==false?'checked':''} aria-label="Disponível"><button class="btn ic danger" data-a="deladd" data-v="${i}" aria-label="Excluir">✕</button></div></div>`).join('');
@@ -287,7 +283,7 @@ function ring(){const a=audio();if(!a)return;const comp=a.createDynamicsCompress
  for(let i=0;i<10;i++){const o=a.createOscillator(),g=a.createGain(),st=t0+i*.2;o.type='square';o.frequency.value=i%2?1100:1700;o.connect(g);g.connect(comp);
   g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(1,st+.01);g.gain.setValueAtTime(1,st+.14);g.gain.linearRampToValueAtTime(0,st+.18);o.start(st);o.stop(st+.19)}
  navigator.vibrate&&navigator.vibrate([400,150,400,150,400])}
-function alertNew(){NOVHIDE=false;ring();toast('Novo pedido!')}
+function alertNew(){NOVHIDE=false;ring()}
 function sysNote(t,b,tag,force){
  if(!('Notification' in window)||Notification.permission!='granted')return;
  if(!force&&document.visibilityState=='visible')return;
