@@ -13,6 +13,8 @@
 :root{--o:#ff6a00;--o2:#ffa04d;--bg:#0b0b0c;--glass:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--text:#f6f2ee;--muted:#a59f98;--ok:#3ddc84;--bad:#ff5a4f;--font:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
+.closed .qadd{background:#4a4a4e;color:#c9c9cc}
+.btn.off{background:#3a3a3d!important;color:#a9a9ad!important;box-shadow:none}
 button,a,.card,.tab{touch-action:manipulation}
 .cartbar{will-change:transform}
 .page,.sheet,.sheet-back{overscroll-behavior:contain}
@@ -373,6 +375,7 @@ function showToast(m) {
 }
 
 /* Horário de funcionamento (fuso de Brasília) */
+function closedMsg() { showToast(FORCE === 'fechado' ? 'Estamos fechados no momento.' : 'Estamos fechados agora. Abrimos às ' + hh(OPEN_H) + '.'); }
 function checkOpen() {
   const h = +new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()) % 24;
   IS_OPEN = FORCE === 'aberto' ? true : FORCE === 'fechado' ? false : OPEN_H < CLOSE_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
@@ -380,6 +383,9 @@ function checkOpen() {
   b.className = 'status ' + (IS_OPEN ? 'open' : 'shut');
   b.querySelector('span').textContent = IS_OPEN ? 'Aberto agora' : 'Fechado';
   document.body.classList.toggle('closed', !IS_OPEN);
+  const cb = el('confirmBtn'); cb.classList.toggle('off', !IS_OPEN);
+  cb.textContent = IS_OPEN ? 'Enviar pedido para o WhatsApp' : (FORCE === 'fechado' ? 'Fechado no momento' : 'Fechado • abrimos às ' + hh(OPEN_H));
+  el('addCart').classList.toggle('off', !IS_OPEN);
   if (currentProd) updateModalPrice();
 }
 
@@ -438,13 +444,13 @@ function closeModal() { el('modal').classList.remove('open'); }
 function updateModalPrice() {
   const t = (ePrice(currentProd) + selectedAddons.reduce((a, b) => a + b.price, 0)) * qty;
   el('modalPrice').textContent = t.toFixed(2).replace('.', ',');
-  el('addCart').innerHTML = '<span>Adicionar</span><span>' + fmt(t) + '</span>';
+  el('addCart').innerHTML = IS_OPEN ? '<span>Adicionar</span><span>' + fmt(t) + '</span>' : '<span>Fechado</span><span>' + (FORCE === 'fechado' ? 'no momento' : 'abrimos às ' + hh(OPEN_H)) + '</span>';
 }
 window.changeQty = v => { qty = Math.max(1, qty + v); el('qtyInput').textContent = qty; updateModalPrice(); };
 window.closeModal = closeModal;
 el('modal').onclick = e => { if (e.target === el('modal')) closeModal(); };
 el('addCart').onclick = () => {
-  
+  if (!IS_OPEN) return closedMsg();
   const note = el('note').value.trim();
   const id = currentProd.id + selectedAddons.map(a => a.id).join('') + (note ? '|' + note : '');
   if (CART[id]) CART[id].qty += qty;
@@ -504,6 +510,7 @@ function fly(x, y) {
   d.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.35)`, opacity: .5 }], { duration: 650, easing: 'cubic-bezier(.45,-.15,.7,.6)' }).onfinish = () => d.remove();
 }
 function quickAdd(it, btn) {
+  if (!IS_OPEN) return closedMsg();
   if (CART[it.id]) CART[it.id].qty++;
   else CART[it.id] = { name: it.name, price: ePrice(it), qty: 1, addons: [], note: '' };
   updateCart(); showToast(it.name + ' adicionado');
@@ -577,7 +584,7 @@ function sendWa() {
   showToast('Pedido enviado! Finalize no WhatsApp.');
 }
 el('confirmBtn').onclick = () => {
-  
+  if (!IS_OPEN) return closedMsg();
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (!validate()) return;
   const name = el('clientName').value.trim(), addr = el('clientAddress').value.trim(), num = el('houseNumber').value.trim();
