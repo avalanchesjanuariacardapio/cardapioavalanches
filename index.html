@@ -49,6 +49,8 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:2px 0 2px 4px}
 .name{font-weight:800;font-size:16.5px}
 .desc{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.poster{display:none;width:calc(100% - 36px);margin:8px 18px 14px;padding:0;border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;aspect-ratio:12/5;background:#1b1b1b;box-shadow:0 14px 34px -16px #000;cursor:pointer;transition:transform .18s}.poster:active{transform:scale(.985)}.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.was{color:#8d8780;font-weight:600;font-size:13px;margin-right:4px}.pbadge{position:absolute;top:6px;left:6px;z-index:2;background:linear-gradient(135deg,#ffb066,#ff6a00);color:#1a0d00;font-weight:800;font-size:11px;padding:3px 8px;border-radius:99px}
 .price{font-weight:800;color:var(--o2);font-size:16px;margin-top:auto;padding-top:6px}
 .thumb{width:108px;height:108px;border-radius:16px;overflow:hidden;flex:none;background:#1b1b1b;position:relative}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -147,6 +149,8 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
     <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Entrega em <b id="etaText"></b></span></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
+
+  <button type="button" class="poster" id="poster" aria-label="Ver promoção"><img id="posterImg" data-pid="_poster" alt="" decoding="async" onerror="this.style.display='none'"></button>
 
   <div class="bar">
     <input id="search" class="search" type="search" placeholder="O que deseja hoje?" aria-label="Buscar no cardápio">
@@ -319,6 +323,13 @@ function loadPhotos(base) {
     }).catch(() => {});
   });
 }
+function setPoster(l) {
+  const box = document.getElementById('poster');
+  const it = l.poster && l.posterItem ? ITEMS.find(i => i.id === l.posterItem) : null;
+  box.style.display = it ? 'block' : 'none';
+  box.onclick = it ? () => openProd(it) : null;
+  if (it) box.setAttribute('aria-label', 'Ver ' + it.name);
+}
 function applyData(d) {
   const l = d.loja || {};
   CONFIG = { phone: String(l.phone || CONFIG.phone), fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey: l.pixKey || CONFIG.pixKey };
@@ -326,7 +337,7 @@ function applyData(d) {
   FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
   LOJAIMGS = [];
-  [['perfil', 'logoImg'], ['capa', 'coverImg']].forEach(([k, id]) => {
+  [['perfil', 'logoImg'], ['capa', 'coverImg'], ['poster', 'posterImg']].forEach(([k, id]) => {
     const v = l[k]; if (!v) return; LOJAIMGS.push({ id: '_' + k, image: v });
     if (!v.startsWith('cloud:')) { const i = document.getElementById(id); i.src = encodeURI(v); i.style.display = ''; }
   });
@@ -335,12 +346,15 @@ function applyData(d) {
   ITEMS = (d.items || []).filter(i => i.ativo !== false);
   { const ci = Object.keys(CATS); ITEMS.sort((a, b) => ci.indexOf(a.cat) - ci.indexOf(b.cat)); }
   ADDONS = d.addons || [];
+  setPoster(l);
 }
 
 const el = id => document.getElementById(id);
 const fmt = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const unit = it => it.price + it.addons.reduce((a, b) => a + b.price, 0);
+const promoOn = it => !!(it.promo && +it.promo.valor > 0 && (!it.promo.ate || new Date().toLocaleDateString('sv-SE') <= it.promo.ate));
+const ePrice = it => !promoOn(it) ? it.price : it.promo.tipo === 'fixo' ? Math.min(+it.promo.valor, it.price) : Math.round(it.price * (100 - Math.min(+it.promo.valor, 100))) / 100;
 
 let CART = {}, PAYMENT = '', WA_MSG = '', currentProd = null, selectedAddons = [], qty = 1, IS_OPEN = true, map, marker, cat = 'all';
 try { CART = JSON.parse(localStorage.getItem('avl_cart') || '{}'); } catch (e) { CART = {}; }
@@ -364,7 +378,7 @@ function checkOpen() {
 
 /* Cardápio */
 function card(it) {
-  return `<button class="card" data-id="${it.id}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${fmt(it.price)}</div></div><div class="thumb"><img data-pid="${esc(it.id)}" src="${imgSrc(it)}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${it.id}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
+  return `<button class="card" data-id="${it.id}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${imgSrc(it)}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${it.id}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
 }
 function render() {
   const q = el('search').value.trim().toLowerCase();
@@ -415,7 +429,7 @@ function openProd(it) {
 }
 function closeModal() { el('modal').classList.remove('open'); }
 function updateModalPrice() {
-  const t = (currentProd.price + selectedAddons.reduce((a, b) => a + b.price, 0)) * qty;
+  const t = (ePrice(currentProd) + selectedAddons.reduce((a, b) => a + b.price, 0)) * qty;
   el('modalPrice').textContent = t.toFixed(2).replace('.', ',');
   el('addCart').innerHTML = '<span>Adicionar</span><span>' + fmt(t) + '</span>';
 }
@@ -427,7 +441,7 @@ el('addCart').onclick = () => {
   const note = el('note').value.trim();
   const id = currentProd.id + selectedAddons.map(a => a.id).join('') + (note ? '|' + note : '');
   if (CART[id]) CART[id].qty += qty;
-  else CART[id] = { name: currentProd.name, price: currentProd.price, qty, addons: [...selectedAddons], note };
+  else CART[id] = { name: currentProd.name, price: ePrice(currentProd), qty, addons: [...selectedAddons], note };
   const r = el('addCart').getBoundingClientRect(); closeModal(); updateCart(); showToast('Adicionado à sacola'); fly(r.left + r.width / 2, r.top + r.height / 2);
 };
 
@@ -485,7 +499,7 @@ function fly(x, y) {
 }
 function quickAdd(it, btn) {
   if (CART[it.id]) CART[it.id].qty++;
-  else CART[it.id] = { name: it.name, price: it.price, qty: 1, addons: [], note: '' };
+  else CART[it.id] = { name: it.name, price: ePrice(it), qty: 1, addons: [], note: '' };
   updateCart(); showToast(it.name + ' adicionado');
   const r = btn.getBoundingClientRect(); fly(r.left + r.width / 2, r.top + r.height / 2);
 }
