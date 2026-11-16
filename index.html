@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0c">
+<meta name="theme-color" content="#0b0b0c"><meta name="color-scheme" content="dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Cardápio digital da Avalanches. Escolha seu lanche e envie o pedido pelo WhatsApp.">
 <title>Avalanches — Cardápio Digital</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,13 +19,13 @@ button,a,.card,.tab{touch-action:manipulation}
 .cartbar{will-change:transform}
 .page,.sheet,.sheet-back{overscroll-behavior:contain}
 html.locked{overflow:hidden;overscroll-behavior:none}body.locked{position:fixed;left:0;right:0;overflow:hidden}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;background:#0b0b0c;color-scheme:dark}
 body{margin:0;background:#050505;color:var(--text);font:400 15px/1.45 var(--font);overflow-x:hidden}
 button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 :focus-visible{outline:2px solid var(--o2);outline-offset:2px}
 .app{max-width:600px;margin:0 auto;background:var(--bg);min-height:100vh;padding-bottom:calc(120px + env(safe-area-inset-bottom));position:relative;overflow:hidden}
 .app::before{content:"";position:absolute;left:0;right:0;top:0;height:560px;background:radial-gradient(420px 420px at 100% 28%,rgba(255,106,0,.17),transparent 70%);pointer-events:none}
-.cover{height:clamp(96px,27vw,132px);background:radial-gradient(circle at 80% 20%,rgba(255,106,0,.55),transparent 55%),linear-gradient(135deg,#1c1c1c,#050505);position:relative;overflow:hidden}
+.cover{height:calc(clamp(96px,27vw,132px) + env(safe-area-inset-top,0px));background:radial-gradient(circle at 80% 20%,rgba(255,106,0,.55),transparent 55%),linear-gradient(135deg,#1c1c1c,#050505);position:relative;overflow:hidden}
 .cover img{width:100%;height:100%;object-fit:cover;display:block;animation:zoom 1.6s ease-out both}
 .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--bg))}
 .id{display:flex;gap:14px;align-items:flex-end;padding:0 18px;margin-top:-48px;position:relative;z-index:1}
@@ -83,6 +83,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .addon input:checked::after{transform:rotate(45deg) scale(1)}
 .field{width:100%;padding:13px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:4px;color:var(--text)}
 .field:focus{border-color:var(--o);outline:0}
+textarea.field{resize:none}
 .field.bad{border-color:var(--bad)}
 .err{color:var(--bad);font-size:12px;min-height:16px;margin-bottom:6px}
 .row{display:flex;gap:12px;align-items:center;margin-top:16px}
@@ -704,6 +705,66 @@ document.addEventListener('keydown', e => {
     if ((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1)) e.preventDefault();
   }, { passive: false });
   sync();
+})();
+</script>
+<script>
+/* Botão Voltar do celular: fecha item/sacola/Pix em vez de sair do cardápio */
+(function () {
+  var LAY = ['pixModal', 'modal', 'cartPage'], pushed = 0, skip = 0, st;
+  function g(i) { return document.getElementById(i); }
+  function opened() { return LAY.filter(function (i) { return g(i).classList.contains('open'); }); }
+  function sync() {
+    if (skip) return;
+    var d = opened().length;
+    while (pushed < d) { pushed++; history.pushState({ avl: pushed }, ''); }
+    if (pushed > d) {
+      var n = pushed - d; pushed = d; skip = 1; history.go(-n);
+      clearTimeout(st); st = setTimeout(function () { if (skip) { skip = 0; sync(); } }, 1000);
+    }
+  }
+  window.addEventListener('popstate', function () {
+    if (skip) { skip = 0; clearTimeout(st); sync(); return; }
+    var o = opened();
+    if (!o.length) { pushed = 0; return; }
+    pushed = Math.max(0, pushed - 1);
+    if (o[0] === 'pixModal') g('pixModal').classList.remove('open');
+    else if (o[0] === 'modal') closeModal();
+    else closeCart();
+  });
+  var mo = new MutationObserver(sync);
+  LAY.forEach(function (i) { mo.observe(g(i), { attributes: true, attributeFilter: ['class'] }); });
+})();
+
+/* Barra de status acompanha o cardápio: cor da capa no topo, cor do fundo ao rolar, escurece com telas abertas */
+(function () {
+  var m = document.querySelector('meta[name="theme-color"]'), BASE = [11, 11, 12], top = BASE, cur = '';
+  function g(i) { return document.getElementById(i); }
+  function hex(c) { return '#' + c.map(function (v) { v = Math.round(v); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+  function set(c) { var h = hex(c); if (h !== cur) { cur = h; m.setAttribute('content', h); } }
+  function upd() {
+    if (g('pixModal').classList.contains('open')) return set([0, 0, 0]);
+    if (g('modal').classList.contains('open')) return set([3, 3, 3]);
+    if (g('cartPage').classList.contains('open')) return set([5, 5, 5]);
+    var c = g('coverImg'), h = (c && c.parentNode.offsetHeight) || 120, t = Math.min(1, (window.pageYOffset || 0) / h);
+    set(top.map(function (v, i) { return v + (BASE[i] - v) * t; }));
+  }
+  function sample() {
+    var i = g('coverImg');
+    if (!i || !i.naturalWidth || i.style.display === 'none') return;
+    try {
+      var cv = document.createElement('canvas'); cv.width = 24; cv.height = 4;
+      var x = cv.getContext('2d');
+      x.drawImage(i, 0, 0, i.naturalWidth, Math.max(1, i.naturalHeight * 0.06), 0, 0, 24, 4);
+      var d = x.getImageData(0, 0, 24, 4).data, r = 0, gg = 0, b = 0, n = d.length / 4;
+      for (var k = 0; k < d.length; k += 4) { r += d[k]; gg += d[k + 1]; b += d[k + 2]; }
+      top = [r / n, gg / n, b / n]; upd();
+    } catch (e) {}
+  }
+  var ci = g('coverImg'); ci.addEventListener('load', sample); if (ci.complete) sample();
+  window.addEventListener('scroll', upd, { passive: true });
+  var mo = new MutationObserver(upd);
+  ['pixModal', 'modal', 'cartPage'].forEach(function (i) { mo.observe(g(i), { attributes: true, attributeFilter: ['class'] }); });
+  upd();
 })();
 </script>
 </body>
