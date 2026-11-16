@@ -77,7 +77,10 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .big{font:800 22px var(--font);margin:12px 0 4px;color:var(--o2)}
 .lbl{background:var(--glass);margin:16px -18px 0;padding:12px 18px;font-weight:800}
 .addon{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
-.addon input{width:22px;height:22px;accent-color:var(--o)}
+.addon input{-webkit-appearance:none;appearance:none;display:grid;place-content:center;flex:none;width:26px;height:26px;margin:0;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:transparent;cursor:pointer;transition:background .15s,border-color .15s}
+.addon input::after{content:"";width:6px;height:11px;margin-top:-2px;border:solid #111;border-width:0 3px 3px 0;transform:rotate(45deg) scale(0);transition:transform .15s}
+.addon input:checked{background:var(--o);border-color:var(--o)}
+.addon input:checked::after{transform:rotate(45deg) scale(1)}
 .field{width:100%;padding:13px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:4px;color:var(--text)}
 .field:focus{border-color:var(--o);outline:0}
 .field.bad{border-color:var(--bad)}
@@ -261,6 +264,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 
 <script>
 const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do painel)
+const FS_BASE = 'https://firestore.googleapis.com/v1/projects/' + FB_PROJECT + '/databases/(default)/documents';
 let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
 let OPEN_H = 19, CLOSE_H = 23, FORCE = 'auto', STORE = 'Avalanches'; // valores padrão; o painel online sobrescreve
 const hh = h => String(h).padStart(2, '0') + ':00';
@@ -341,7 +345,7 @@ function setPoster(l) {
 }
 function applyData(d) {
   const l = d.loja || {};
-  CONFIG = { phone: String(l.phone || CONFIG.phone), fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey: l.pixKey || CONFIG.pixKey };
+  CONFIG = { phone: String(l.phone || CONFIG.phone).replace(/\D/g, '') || CONFIG.phone, fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey: l.pixKey || CONFIG.pixKey };
   OPEN_H = Number.isFinite(+l.open) ? +l.open : OPEN_H; CLOSE_H = Number.isFinite(+l.close) ? +l.close : CLOSE_H;
   FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
@@ -354,7 +358,7 @@ function applyData(d) {
   (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
   ITEMS = (d.items || []).filter(i => i.ativo !== false);
   { const ci = Object.keys(CATS); ITEMS.sort((a, b) => ci.indexOf(a.cat) - ci.indexOf(b.cat)); }
-  ADDONS = d.addons || [];
+  ADDONS = (d.addons || []).filter(a => a.ativo !== false);
   setPoster(l);
 }
 
@@ -427,8 +431,9 @@ function openProd(it) {
   el('modalImg').onerror = function () { this.onerror = null; this.src = 'logo.jpeg'; };
   el('note').value = ''; el('qtyInput').textContent = 1;
   const adds = el('addonsList'); adds.innerHTML = '';
-  el('addonsSection').hidden = !EXTRA.includes(it.cat);
-  if (EXTRA.includes(it.cat)) ADDONS.forEach(a => {
+  const showAdds = EXTRA.includes(it.cat) && ADDONS.length > 0;
+  el('addonsSection').hidden = !showAdds;
+  if (showAdds) ADDONS.forEach(a => {
     const l = document.createElement('label'); l.className = 'addon';
     l.innerHTML = `<span>${esc(a.name)} (+${fmt(a.price)})</span><input type="checkbox">`;
     l.querySelector('input').onchange = e => {
@@ -465,7 +470,7 @@ function updateCart() {
   el('cartbar').classList.toggle('show', count > 0);
   el('cartCount').textContent = count + (count > 1 ? ' itens' : ' item');
   el('cartSubtotal').textContent = fmt(sub);
-  if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
+  if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
   el('subtotalText').textContent = fmt(sub);
   const dsc = discount(sub);
   el('discRow').style.display = COUPON ? 'flex' : 'none';
@@ -577,15 +582,29 @@ function validate() {
   if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
   return !first;
 }
+function postOrder(o) {
+  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
+  try {
+    fetch(FS_BASE + '/pedidos?documentId=' + encodeURIComponent(o.id), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+      body: JSON.stringify({ fields: { t: { integerValue: String(Date.now()) }, status: { stringValue: 'novo' }, extra: { integerValue: '0' }, json: { stringValue: JSON.stringify(o) } } })
+    }).catch(() => {});
+  } catch (e) {}
+}
 function sendWa() {
-  postOrder(ORDER);
-  window.open(`https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, '_blank');
+  if (!ORDER) return;
+  const o = ORDER, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`;
+  ORDER = null;
+  postOrder(o);
+  if (!window.open(url, '_blank')) location.href = url;
+  el('couponMsg').style.color = '';
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
   showToast('Pedido enviado! Finalize no WhatsApp.');
 }
 el('confirmBtn').onclick = () => {
   if (!IS_OPEN) return closedMsg();
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
+  if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
   if (!validate()) return;
   const name = el('clientName').value.trim(), addr = el('clientAddress').value.trim(), num = el('houseNumber').value.trim();
   const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), ph = phoneDigits(), g2 = parseFloat(el('cashGiven').value);
@@ -608,6 +627,32 @@ el('confirmBtn').onclick = () => {
   else sendWa();
 };
 el('btnSendPixWa').onclick = sendWa;
+
+/* Cupom de desconto (criado no painel, guardado em cupons/CODIGO) */
+async function applyCoupon() {
+  const msg = el('couponMsg'), btn = el('couponBtn'), code = el('couponIn').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const say = (t, good) => { msg.textContent = t; msg.style.color = good ? 'var(--ok)' : ''; };
+  el('couponIn').value = code;
+  if (!code) { if (COUPON) { COUPON = null; updateCart(); say('Cupom removido.', true); } else say('Digite o código do cupom.'); return; }
+  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return say('Cupons indisponíveis no momento.');
+  if (COUPON) { COUPON = null; updateCart(); }
+  btn.disabled = true; say('Verificando…', true);
+  try {
+    const r = await fetch(FS_BASE + '/cupons/' + code, { cache: 'no-store' });
+    if (r.status === 404) return say('Cupom inválido.');
+    if (!r.ok) throw 0;
+    const c = JSON.parse((await r.json()).fields.json.stringValue);
+    if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.');
+    if (c.ativo === false) return say('Este cupom não está ativo.');
+    if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.');
+    if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.');
+    COUPON = { code, tipo: c.tipo, valor: +c.valor || 0, min: +c.min || 0, ate: c.ate || '' };
+    updateCart(); say('Cupom aplicado!', true);
+  } catch (e) { say('Não foi possível validar o cupom agora. Tente de novo.'); }
+  finally { btn.disabled = false; }
+}
+el('couponBtn').onclick = applyCoupon;
+el('couponIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); } });
 window.copyPix = () => {
   const done = () => showToast('Chave PIX copiada');
   if (navigator.clipboard) navigator.clipboard.writeText(CONFIG.pixKey).then(done, () => showToast('Copie a chave manualmente.'));
