@@ -88,6 +88,8 @@ html,body{overscroll-behavior-y:none}body{-webkit-user-select:none;user-select:n
 [data-sort]{position:relative}
 .hd{touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;width:30px;height:48px;display:flex;align-items:center;justify-content:center;color:var(--m);flex:none;margin-left:-8px}.hd svg{fill:currentColor}
 .row.drag{position:relative;z-index:20;background:#26262d;border-radius:16px;padding-left:10px;padding-right:10px;border-bottom:0;box-shadow:0 20px 44px -10px #000,0 0 0 1.5px var(--o);transition:none}
+.back,.sheet{overscroll-behavior:contain}
+html.locked{overflow:hidden;overscroll-behavior:none}body.locked{position:fixed;left:0;right:0;overflow:hidden}
 </style></head><body>
 <header class="top"><div><h1 id="ttl">Painel</h1><p class="sub" id="hs"></p></div><div id="live"></div></header><div class="wrap"><div id="main"></div></div>
 <nav class="nav"><div id="nav"></div></nav>
@@ -350,4 +352,37 @@ if(!ok){document.querySelector('nav').style.display='none';$('main').innerHTML='
 else onAuthStateChanged(auth,async u=>{user=u;if(!u){if(unsub){unsub();unsub=null}ORD=[];NEWC=0;$('nov').classList.remove('on');login();return}$('main').innerHTML='<div class="spin"></div>';await pull();listen();view()});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
+<script>
+/* Trava a rolagem do fundo enquanto houver uma tela aberta (sacola, item, Pix, painel) */
+(function () {
+  var SEL = '.page.open,.sheet-back.open,.back.open', b = document.body, h = document.documentElement, on = false, y = 0, sy = 0;
+  function sync() {
+    var any = !!document.querySelector(SEL);
+    if (any && !on) {
+      on = true; y = window.pageYOffset || h.scrollTop || 0;
+      var sw = window.innerWidth - h.clientWidth;
+      b.style.top = -y + 'px'; if (sw > 0) b.style.paddingRight = sw + 'px';
+      b.classList.add('locked'); h.classList.add('locked');
+    } else if (!any && on) {
+      on = false; b.classList.remove('locked'); h.classList.remove('locked');
+      b.style.top = ''; b.style.paddingRight = '';
+      window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+    }
+  }
+  new MutationObserver(sync).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  document.addEventListener('touchstart', function (e) { sy = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!on || e.touches.length > 1) return;
+    var n = e.target;
+    while (n && n !== b && n !== h) {
+      if (n.nodeType === 1 && n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) break;
+      n = n.parentNode;
+    }
+    if (!n || n === b || n === h) return e.preventDefault();
+    var dy = e.touches[0].clientY - sy;
+    if ((dy > 0 && n.scrollTop <= 0) || (dy < 0 && n.scrollTop + n.clientHeight >= n.scrollHeight - 1)) e.preventDefault();
+  }, { passive: false });
+  sync();
+})();
+</script>
 </body></html>
