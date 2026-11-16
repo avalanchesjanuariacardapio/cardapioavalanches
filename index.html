@@ -110,7 +110,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .chip{padding:9px 15px;border-radius:99px;border:1px solid var(--line);background:var(--glass);font-weight:700;transition:.2s}
 .chip.sel{background:var(--o);border-color:var(--o);color:#111}
 .calc{padding:12px 14px;border-radius:14px;background:rgba(255,106,0,.14);border:1px solid rgba(255,106,0,.35);font-weight:600;margin-bottom:10px}
-.map{height:200px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin:10px 0}
+.map{height:240px;isolation:isolate;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin:10px 0}
 .sum div{display:flex;justify-content:space-between;margin:6px 0;color:var(--muted)}
 .sum .tot{font:800 22px var(--font);color:var(--text);margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .pixkey{background:var(--glass);padding:14px;border-radius:14px;word-break:break-all;font-family:ui-monospace,monospace;font-size:14px;margin:14px 0;border:1px dashed rgba(255,106,0,.5)}
@@ -210,6 +210,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
     <button id="geoBtn" onclick="getLocation()" class="btn geo" style="margin-top:0">📍 Usar minha localização</button>
     <div class="map"><div id="map" style="height:100%"></div></div>
     <div class="calc" id="locInfo" hidden></div>
+    <a class="btn ghost" id="gmapsBtn" target="_blank" rel="noopener" style="text-align:center;text-decoration:none" hidden>🗺️ Conferir no Google Maps</a>
     <input id="clientAddress" class="field" placeholder="Rua e Bairro *" autocomplete="street-address">
     <div class="err" id="e_addr"></div>
     <input id="houseNumber" class="field" placeholder="Número da casa e Referência *">
@@ -493,7 +494,7 @@ el('cartItems').onclick = e => {
 };
 function openCart() {
   renderCartItems(); el('cartPage').classList.add('open');
-  setTimeout(() => loadMap(() => { initMap(); map.invalidateSize(); }), 350);
+  setTimeout(() => loadMap(() => COORDS ? initMap(COORDS.lat, COORDS.lon, ACC) : initMap()), 350);
 }
 function closeCart() { el('cartPage').classList.remove('open'); }
 el('cartbar').onclick = openCart;
@@ -544,14 +545,30 @@ el('cashChips').onclick = e => {
 };
 el('cashGiven').addEventListener('input', () => { NOCHG = false; OTHER = true; renderCash(); });
 
-/* Mapa sob demanda (carrega só ao abrir a sacola) */
+/* Mapa sob demanda: tenta 3 fontes e, se nenhuma funcionar, mostra o mapa do Google */
 function loadMap(cb) {
   if (window.L) return cb();
-  if (!loadMap.p) loadMap.p = new Promise((ok, no) => {
-    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l);
-    const sc = document.createElement('script'); sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc);
-  });
-  loadMap.p.then(cb).catch(() => { el('map').parentElement.hidden = true; });
+  if (!loadMap.p) loadMap.p = (async () => {
+    const src = [
+      ['https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css', 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'],
+      ['https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'],
+      ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js']];
+    for (const [c, j] of src) {
+      try {
+        const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = c; document.head.appendChild(l);
+        await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = j; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+        if (window.L) return;
+      } catch (e) {}
+    }
+    throw 0;
+  })();
+  loadMap.p.then(cb).catch(mapFallback);
+}
+function mapFallback() {
+  const m = el('map'); if (!m) return;
+  m.innerHTML = COORDS
+    ? `<iframe title="Mapa" style="width:100%;height:100%;border:0" src="https://maps.google.com/maps?q=${COORDS.lat},${COORDS.lon}&z=18&output=embed"></iframe>`
+    : '<div style="padding:16px;color:var(--muted)">O mapa não carregou. Toque em "Usar minha localização": o GPS continua funcionando e o pedido leva o link do Google Maps.</div>';
 }
 
 /* Pagamento */
@@ -561,38 +578,49 @@ document.querySelectorAll('.pay').forEach(p => p.onclick = () => {
   el('e_pay').textContent = ''; renderCash();
 });
 
-/* Mapa e localização (rápida: posição aproximada em segundos, depois refina com GPS) */
-let COORDS = null, circle = null;
-const mapsLink = c => `https://www.google.com/maps?q=${c.lat.toFixed(6)},${c.lon.toFixed(6)}`;
+/* Mapa e localização (GPS do aparelho + mapa de ruas/satélite + link do Google Maps) */
+let COORDS = null, ACC = null, circle = null;
+const mapsLink = c => `https://www.google.com/maps/search/?api=1&query=${c.lat.toFixed(6)},${c.lon.toFixed(6)}`;
 function setCoords(lat, lon, acc) {
-  COORDS = { lat, lon };
+  COORDS = { lat, lon }; ACC = acc || null;
   const i = el('locInfo'); i.hidden = false;
-  i.textContent = (acc ? `📍 Localização marcada (precisão de cerca de ${Math.round(acc)} m). ` : '📍 Localização marcada. ') + 'Se precisar, arraste o pino para o ponto exato.';
+  i.textContent = !acc ? '📍 Pino marcado. Se precisar, toque no mapa ou arraste o pino até a sua casa.'
+    : acc <= 100 ? `📍 Localização marcada (precisão de cerca de ${Math.round(acc)} m). Se precisar, toque no mapa ou arraste o pino.`
+    : `⚠️ Precisão baixa (cerca de ${Math.round(acc)} m). Toque no mapa ou arraste o pino até a sua casa. O ícone no canto do mapa troca para Satélite.`;
+  const g = el('gmapsBtn'); g.href = mapsLink(COORDS); g.hidden = false;
 }
-function initMap(lat = -15.487, lon = -44.367, acc) {
+function initMap(lat, lon, acc) {
+  const has = lat != null;
+  if (!has) { lat = -15.487; lon = -44.367; }
+  const z = has ? 18 : 14;
   if (!map) {
-    map = L.map('map').setView([lat, lon], 17);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+    map = L.map('map').setView([lat, lon], z);
+    const street = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 20, attribution: '© OpenStreetMap © CARTO' }).addTo(map);
+    const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Imagens © Esri' });
+    L.control.layers({ 'Mapa': street, 'Satélite': sat }, null, { position: 'topright' }).addTo(map);
     marker = L.marker([lat, lon], { draggable: true }).addTo(map);
-    marker.on('dragend', () => { const p = marker.getLatLng(); setCoords(p.lat, p.lng); if (circle) { map.removeLayer(circle); circle = null; } reverse(p.lat, p.lng); });
-  } else { map.setView([lat, lon], 17); marker.setLatLng([lat, lon]); }
+    const moved = p => { marker.setOpacity(1); setCoords(p.lat, p.lng); if (circle) { map.removeLayer(circle); circle = null; } reverse(p.lat, p.lng); };
+    marker.on('dragend', () => moved(marker.getLatLng()));
+    map.on('click', e => { marker.setLatLng(e.latlng); moved(e.latlng); });
+  } else { map.setView([lat, lon], z); marker.setLatLng([lat, lon]); }
+  marker.setOpacity(has ? 1 : 0);
   if (circle) { map.removeLayer(circle); circle = null; }
   if (acc) circle = L.circle([lat, lon], { radius: acc, color: '#ff6a00', weight: 1, fillOpacity: .12 }).addTo(map);
   map.invalidateSize();
 }
 function reverse(lat, lon) {
-  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 7000);
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 8000);
   fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&zoom=18&addressdetails=1&accept-language=pt-BR`, { signal: ac.signal })
-    .then(r => r.json()).then(d => {
+    .then(r => { if (!r.ok) throw 0; return r.json(); }).then(d => {
       const a = d.address || {};
-      const rua = a.road || a.pedestrian || a.residential || a.footway || '';
+      const rua = a.road || a.pedestrian || a.residential || a.footway || a.path || '';
       const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.village || '';
-      const txt = [rua, bairro].filter(Boolean).join(', ') || (d.display_name || '').split(',').slice(0, 2).join(',').trim();
-      if (!txt) throw 0;
-      el('clientAddress').value = txt; el('clientAddress').classList.remove('bad'); el('e_addr').textContent = '';
+      if (!rua) throw 0;
+      el('clientAddress').value = [rua, bairro].filter(Boolean).join(', ');
+      el('clientAddress').classList.remove('bad'); el('e_addr').textContent = '';
       if (a.house_number && !el('houseNumber').value) el('houseNumber').value = a.house_number;
-      showToast('Endereço preenchido');
-    }).catch(() => showToast('Localização salva. Digite a rua e o bairro.')).finally(() => clearTimeout(tm));
+      showToast('Rua preenchida. Confira se está certa.');
+    }).catch(() => showToast('Não achei o nome da rua neste ponto. Digite a rua e o bairro.')).finally(() => clearTimeout(tm));
 }
 window.getLocation = () => {
   if (!navigator.geolocation) return showToast('Seu navegador não suporta localização.');
@@ -601,13 +629,19 @@ window.getLocation = () => {
   btn.dataset.busy = 1; btn.textContent = '⏳ Buscando sua localização...';
   let best = null, done = false, w, tm;
   const stop = () => { done = true; navigator.geolocation.clearWatch(w); clearTimeout(tm); delete btn.dataset.busy; btn.textContent = '📍 Atualizar minha localização'; };
-  const finish = () => { if (done) return; stop(); if (best) reverse(best.latitude, best.longitude); };
+  const finish = () => {
+    if (done) return; stop();
+    if (!best) { btn.textContent = '📍 Usar minha localização'; return showToast('Não consegui sua posição. Ative o GPS ou toque no mapa para marcar sua casa.'); }
+    if (best.accuracy <= 150) reverse(best.latitude, best.longitude);
+    else showToast('Precisão baixa. Ajuste o pino até a sua casa.');
+  };
   const apply = p => {
     if (done) return;
     const c = p.coords; if (best && c.accuracy >= best.accuracy) return;
     best = c; setCoords(c.latitude, c.longitude, c.accuracy);
     loadMap(() => initMap(c.latitude, c.longitude, c.accuracy));
-    if (c.accuracy <= 25) finish();
+    if (c.accuracy <= 30) return finish();
+    btn.textContent = `⏳ Melhorando precisão (±${Math.round(c.accuracy)} m)...`;
   };
   const err = e => {
     if (done) return;
@@ -616,37 +650,10 @@ window.getLocation = () => {
     showToast(e.code === 1 ? 'Permissão negada. Libere a localização nas configurações do navegador.' : 'Não consegui pegar o GPS. Ative a localização e tente de novo.');
   };
   navigator.geolocation.getCurrentPosition(apply, () => {}, { enableHighAccuracy: false, maximumAge: 60000, timeout: 4000 });
-  w = navigator.geolocation.watchPosition(apply, err, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 });
-  tm = setTimeout(finish, 10000);
+  w = navigator.geolocation.watchPosition(apply, err, { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 });
+  tm = setTimeout(finish, 20000);
 };
-addEventListener('load', () => (window.requestIdleCallback || setTimeout)(() => loadMap(() => {}), 4000));
-
-/* Cupom */
-const cm = (t, ok) => { const m = el('couponMsg'); m.textContent = t; m.style.color = ok ? '#3ddc84' : ''; };
-el('couponBtn').onclick = async () => {
-  const code = el('couponIn').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!code) return cm('Digite o código do cupom.');
-  if (!Object.keys(CART).length) return cm('Adicione itens antes de aplicar o cupom.');
-  if (!CLOUD_BASE) return cm('Cupons indisponíveis no momento.');
-  let c;
-  try {
-    const r = await fetch(`${CLOUD_BASE}/cupons/${code}`, { cache: 'no-store' });
-    if (r.status === 404 || r.status === 403) return cm('Cupom inválido.');
-    if (!r.ok) throw 0;
-    c = JSON.parse((await r.json()).fields.json.stringValue);
-  } catch (e) { return cm('Não consegui validar o cupom. Tente de novo.'); }
-  c.valor = +c.valor || 0; c.min = +c.min || 0;
-  if (c.ativo === false) return cm('Este cupom não está disponível.');
-  if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return cm('Este cupom venceu.');
-  if (cartSub() < c.min) return cm('Cupom válido para pedidos a partir de ' + fmt(c.min) + '.');
-  COUPON = { ...c, code };
-  cm('Cupom ' + code + ' aplicado!', true); updateCart();
-};
-function postOrder(o) {
-  if (!CLOUD_BASE || !o) return;
-  fetch(`${CLOUD_BASE}/pedidos?documentId=${o.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify(o) }, status: { stringValue: 'novo' }, t: { integerValue: String(Date.now()) } } }) }).catch(() => {});
-}
+addEventListener('load', () => { const go = () => loadMap(() => {}); if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else setTimeout(go, 3000); });
 
 /* Envio do pedido */
 const phoneDigits = () => { let n = el('clientPhone').value.replace(/\D/g, ''); if (n.startsWith('55') && n.length > 11) n = n.slice(2); return n; };
