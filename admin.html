@@ -65,6 +65,12 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 .login{text-align:center;margin-top:8vh;padding:26px 18px}.login img{width:76px;height:76px;border-radius:22px;box-shadow:0 14px 30px -10px rgba(255,106,0,.7)}.login h2{margin:14px 0 2px;font-size:22px;letter-spacing:-.02em}.login label{text-align:left}
 a{color:var(--o2)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+input[type=checkbox].sw{appearance:none;-webkit-appearance:none;display:block;width:46px;min-width:46px;max-width:46px;height:28px;min-height:28px;margin:0;padding:0;flex:none;border-radius:99px;background:#3a3a42;border:0;position:relative;touch-action:manipulation}
+input[type=checkbox].sw:checked{background:var(--ok)}
+input[type=checkbox].sw::after{top:3px;left:3px;width:22px;height:22px}input[type=checkbox].sw:checked::after{transform:translateX(18px)}
+.mv{display:flex;flex-direction:column;gap:3px;flex:none}.mv button{width:34px;height:24px;border-radius:8px;border:1px solid var(--l);background:var(--s2);color:var(--m);font-size:10px;padding:0}
+.row .n,.row .th{cursor:pointer}
+input,select,textarea{font-size:16px}html{-webkit-text-size-adjust:100%}body{overflow-x:hidden}
 </style></head><body>
 <header class="top"><div><h1 id="ttl">Painel</h1><p class="sub" id="hs"></p></div><div id="live"></div></header><div class="wrap"><div id="main"></div></div>
 <nav class="nav"><div id="nav"></div></nav>
@@ -96,7 +102,7 @@ const TABS=[['pedidos',`<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-
 function nav(){$('pubbar').innerHTML=dirty&&tab!='pub'?'<button class="btn pri full" data-a="publish">🚀 Publicar mudanças</button>':'';document.querySelector('nav').style.display='';$('nav').innerHTML=TABS.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${tab==t[0]?'on':''}${t[0]=='pub'&&dirty?' dot':''}"><b>${t[1]}</b>${t[2]}${t[0]=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}</button>`).join('')}
 function fld(l,k,type='text',x=''){return `<label>${l}<input data-f="${k}" type="${type}" value="${esc(D.loja[k])}" ${x}></label>`}
 function hours(k){return `<select data-f="${k}">${[...Array(24).keys()].map(h=>`<option value="${h}" ${D.loja[k]==h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select>`}
-function row(it){return `<div class="row ${it.ativo===false?'off':''}"><div class="th" style="background-image:url('${ps(it).replace(/'/g,'%27')}')"></div><div class="n"><b>${esc(it.name)}</b><small>${brl(it.price)}${it.ativo===false?' · esgotado':''}</small></div><input type="checkbox" class="sw" data-tog="${it.id}" ${it.ativo!==false?'checked':''} title="Disponível"><button class="btn ic" data-a="up" data-v="${it.id}">↑</button><button class="btn ic" data-a="down" data-v="${it.id}">↓</button><button class="btn" data-a="edit" data-v="${it.id}">Editar</button></div>`}
+function row(it){return `<div class="row ${it.ativo===false?'off':''}"><div class="th" data-a="edit" data-v="${it.id}" style="background-image:url('${ps(it).replace(/'/g,'%27')}')"></div><div class="n" data-a="edit" data-v="${it.id}"><b>${esc(it.name)}</b><small>${brl(it.price)}${it.ativo===false?' · esgotado':''} · toque para editar</small></div><div class="mv"><button data-a="up" data-v="${it.id}" aria-label="Subir">▲</button><button data-a="down" data-v="${it.id}" aria-label="Descer">▼</button></div><input type="checkbox" class="sw" data-tog="${it.id}" ${it.ativo!==false?'checked':''} aria-label="Disponível"></div>`}
 function view(){
  nav();let h='';
  if(tab=='loja')h=profCard()+`<div class="card"><h3>Dados da loja</h3>${fld('Nome da loja','nome')}${fld('WhatsApp dos pedidos (com 55 + DDD)','phone','tel')}<div class="two">${fld('Taxa de entrega (R$)','fee','number','step="0.01" min="0"')}<label>Chave PIX<input data-f="pixKey" value="${esc(D.loja.pixKey)}"></label></div></div>
@@ -105,7 +111,7 @@ function view(){
  if(tab=='menu'){h=`<button class="btn pri full" style="margin:0 0 14px" data-a="new">＋ Novo item</button><div class="card"><h3>Categorias</h3>${D.cats.map((c,i)=>`<div class="row"><div class="n"><input data-c="${i}" data-p="name" value="${esc(c.name)}" style="margin:0"><label class="chk" style="margin:6px 0 0"><input type="checkbox" data-c="${i}" data-p="extras" ${c.extras?'checked':''}>Oferecer adicionais</label></div><button class="btn ic danger" data-a="delcat" data-v="${i}">✕</button></div>`).join('')}<button class="btn full" data-a="addcat">＋ Nova categoria</button></div>`;
   D.cats.forEach(c=>{const l=D.items.filter(i=>i.cat==c.id);h+=`<div class="card"><h3>${esc(c.name)}</h3>${l.map(row).join('')||'<p class="sub">Nenhum item.</p>'}</div>`})}
  if(tab=='add')h=`<div class="card"><h3>Adicionais</h3><p class="sub">Aparecem nas categorias com “Oferecer adicionais” marcado.</p>${D.addons.map((a,i)=>`<div class="row"><div class="n"><input data-d="${i}" data-p="name" value="${esc(a.name)}" style="margin:0"></div><input data-d="${i}" data-p="price" type="number" step="0.5" min="0" value="${a.price}" style="width:90px;margin:0"><button class="btn ic danger" data-a="deladd" data-v="${i}">✕</button></div>`).join('')}<button class="btn full" data-a="addadd">＋ Novo adicional</button></div>`;
- if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>🚀 Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub">${esc(user&&user.email||'')}</p><button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`;
+ if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>🚀 Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub">${esc(user&&user.email||'')}</p><button class="btn full" data-a="snd">🔔 Testar som do alerta</button><button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`;
  if(tab=='pedidos')h=pedidosView();if(tab=='cup')h=cupView();
  $('main').innerHTML=h;chrome();tick()}
 function sheet(){const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Novo item':'Editar item'}</h3><div class="pic" id="pv">${d.image?`<img src="${esc(ps(d))}" onerror="this.remove()">`:'Sem foto'}</div><label class="btn full" style="text-align:center;color:var(--t);margin:0 0 12px">📷 Trocar foto<input type="file" accept="image/*" id="ph" hidden></label>${d.image?'<button class="btn full" data-a="reframe" style="margin:0 0 12px">🔍 Ajustar enquadramento</button>':''}
@@ -143,6 +149,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='vd'){cread();cd.ate=v=='-1'?'':ymd(+v);csheet()}
  else if(a=='csave')csave();
  else if(a=='cdel'){if(confirm('Excluir este cupom?'))deleteDoc(doc(db,'cupons',cd.code)).then(()=>{CUP=CUP.filter(c=>c.code!=cd.code);$('back').classList.remove('open');view()}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='snd')ring();
  else if(a=='publish')publish();
  else if(a=='login')signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value).catch(()=>toast('E-mail ou senha incorretos'));
  else if(a=='out')signOut(auth);
@@ -152,8 +159,8 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.f){D.loja[t.dataset.f]=t.type=='number'||t.tagName=='SELECT'&&/^\d+$/.test(t.value)?+t.value:t.value;save()}
  else if(t.dataset.c!==undefined){D.cats[t.dataset.c][t.dataset.p]=t.type=='checkbox'?t.checked:t.value;save()}
  else if(t.dataset.d!==undefined){D.addons[t.dataset.d][t.dataset.p]=t.dataset.p=='price'?+t.value:t.value;save()}
- else if(t.dataset.tog){D.items.find(i=>i.id==t.dataset.tog).ativo=t.checked;save();view()}
- else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)));view()}
+ else if(t.dataset.tog){const it=D.items.find(i=>i.id==t.dataset.tog);it.ativo=t.checked;save();const r=t.closest('.row');r.classList.toggle('off',!t.checked);r.querySelector('small').textContent=brl(it.price)+(t.checked?'':' · esgotado')+' · toque para editar'}
+ else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)));t.closest('.row').classList.toggle('off',!t.checked)}
  else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent='👁 '+cdesc(cd)}});
 document.addEventListener('change',e=>{const t=e.target;
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
@@ -197,7 +204,6 @@ function crop(src,ar,outW,round,cb){
 const lp=k=>D.loja[k]||(k=='perfil'?'logo.jpeg':'Avalanche.jpeg');
 const bgi=k=>ps({id:'_'+k,image:lp(k)}).replace(/'/g,'%27');
 function profCard(){return `<div class="card"><h3>Perfil da loja</h3><div style="position:relative;margin-bottom:48px"><div class="pic" style="height:130px;margin:0;background-image:url('${bgi('capa')}')"></div><div style="position:absolute;left:16px;bottom:-40px;width:84px;height:84px;border-radius:50%;border:3px solid var(--o);background:#222 center/cover url('${bgi('perfil')}')"></div></div><div class="two"><label class="btn" style="text-align:center;margin:0;color:var(--t)">🖼 Trocar capa<input type="file" accept="image/*" id="cp" hidden></label><label class="btn" style="text-align:center;margin:0;color:var(--t)">👤 Trocar perfil<input type="file" accept="image/*" id="pf" hidden></label></div><div class="two" style="margin-top:8px"><button class="btn" data-a="rfc">Ajustar capa</button><button class="btn" data-a="rfp">Ajustar perfil</button></div></div>`}
-function alertNew(){try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,.25,.5].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.3,a.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.2);o.start(a.currentTime+t);o.stop(a.currentTime+t+.22)})}catch(e){}navigator.vibrate&&navigator.vibrate([300,150,300]);toast('🔔 Novo pedido!')}
 function listen(){if(unsub)return;let first=true;
  unsub=onSnapshot(query(collection(db,'pedidos'),orderBy('t','desc'),limit(60)),snap=>{
   ORD=snap.docs.map(x=>{const v=x.data();try{return {id:x.id,t:v.t,status:String(v.status),extra:+v.extra||0,o:san(JSON.parse(v.json))}}catch(e){return null}}).filter(Boolean);
@@ -223,13 +229,23 @@ function csave(){cread();const code=cd.code;
  if(cd._new&&CUP.some(c=>c.code==code))return toast('Esse código já existe');
  const c={code,...cj(cd)};
  setDoc(doc(db,'cupons',code),{json:JSON.stringify(cj(c))}).then(()=>{CUP=CUP.filter(x=>x.code!=code).concat(c);$('back').classList.remove('open');view();toast('Cupom salvo e já valendo')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
-function cupView(){const hoje=ymd(0);return '<button class="btn pri full" style="margin:0 0 14px" data-a="newc">＋ Novo cupom</button>'+(CUP.length?`<div class="card">${CUP.map(c=>{const venc=c.ate&&c.ate<hoje,u=ORD.filter(o=>o.o.cupom==c.code).length;return `<div class="row ${c.ativo===false||venc?'off':''}"><div class="n"><b>${esc(c.code)}</b><small>${esc(cdesc(c))}${venc?' · VENCIDO':''}${u?' · usado '+u+'x':''}</small></div><input type="checkbox" class="sw" data-ctog="${esc(c.code)}" ${c.ativo!==false?'checked':''}><button class="btn" data-a="editc" data-v="${esc(c.code)}">Editar</button></div>`}).join('')}</div>`:'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
+function cupView(){const hoje=ymd(0);return '<button class="btn pri full" style="margin:0 0 14px" data-a="newc">＋ Novo cupom</button>'+(CUP.length?`<div class="card">${CUP.map(c=>{const venc=c.ate&&c.ate<hoje,u=ORD.filter(o=>o.o.cupom==c.code).length;return `<div class="row ${c.ativo===false||venc?'off':''}"><div class="n" data-a="editc" data-v="${esc(c.code)}"><b>${esc(c.code)}</b><small>${esc(cdesc(c))}${venc?' · VENCIDO':''}${u?' · usado '+u+'x':''}</small></div><input type="checkbox" class="sw" data-ctog="${esc(c.code)}" ${c.ativo!==false?'checked':''}></div>`}).join('')}</div>`:'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
+let AC=null;
+function audio(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch(e){}return AC}
+function ring(){const a=audio();if(!a)return;const comp=a.createDynamicsCompressor();comp.connect(a.destination);const t0=a.currentTime+.05;
+ for(let i=0;i<10;i++){const o=a.createOscillator(),g=a.createGain(),st=t0+i*.2;o.type='square';o.frequency.value=i%2?1100:1700;o.connect(g);g.connect(comp);
+  g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(1,st+.01);g.gain.setValueAtTime(1,st+.14);g.gain.linearRampToValueAtTime(0,st+.18);o.start(st);o.stop(st+.19)}
+ navigator.vibrate&&navigator.vibrate([400,150,400,150,400])}
+function alertNew(){ring();toast('🔔 Novo pedido!')}
+setInterval(()=>{if(NEWC>0&&AC&&AC.state=='running')ring()},4500);
+async function wl(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
+document.addEventListener('pointerdown',()=>{audio();wl()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)wl()});
 let lastTab='';
 const TT={pedidos:'Pedidos',menu:'Cardápio',cup:'Cupons',add:'Extras',loja:'Minha loja',pub:'Publicar'};
 const SUB={pedidos:'Acompanhe e despache em tempo real',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
 function openNow(){const L=D.loja,h=new Date().getHours(),a=+L.open,c=+L.close;return L.modo=='aberto'?true:L.modo=='fechado'?false:(a<c?(h>=a&&h<c):(h>=a||h<c))}
 function chrome(){$('ttl').textContent=TT[tab]||'';$('hs').textContent=SUB[tab]||'';const o=openNow();$('live').innerHTML='<span class="pill'+(o?'':' off')+'"><i></i>'+(o?'Loja aberta':'Loja fechada')+'</span>';
- if(lastTab!=tab){lastTab=tab;const m=$('main');m.classList.remove('in');void m.offsetWidth;m.classList.add('in');window.scrollTo&&window.scrollTo(0,0)}}
+ if(lastTab!=tab){lastTab=tab;const m=$('main');m.classList.remove('in');void m.offsetWidth;m.classList.add('in');clearTimeout(window._ti);window._ti=setTimeout(()=>m.classList.remove('in'),800);window.scrollTo&&window.scrollTo(0,0)}}
 document.addEventListener('keydown',e=>{if(e.key=='Enter'&&$('pw')&&document.activeElement==$('pw')){const b=document.querySelector('[data-a=login]');b&&b.click()}});
 async function pull(){
  if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[]}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
