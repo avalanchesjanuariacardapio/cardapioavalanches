@@ -96,8 +96,7 @@ html.locked{overflow:hidden;overscroll-behavior:none}body.locked{position:fixed;
 @media(max-width:420px){.nav button{font-size:9.5px}.nav svg{width:20px;height:20px}}
 /* ===== Comanda térmica (58/80mm) ===== */
 #ticket{display:none}
-#ticket{font-family:'Courier New',ui-monospace,Menlo,monospace;color:#000;background:#fff;font-size:12px;line-height:1.3;font-weight:600;width:54mm;padding:0 1mm;margin:0;-webkit-user-select:text;user-select:text}
-#ticket.w80{width:76mm;font-size:13px}
+#ticket{font-family:'Courier New',ui-monospace,Menlo,monospace;color:#000;background:#fff;font-size:12px;line-height:1.3;font-weight:600;width:76mm;padding:0 1mm;margin:0;-webkit-user-select:text;user-select:text}
 #ticket .t-c{text-align:center}
 #ticket .t-b{font-weight:900;text-transform:uppercase}
 #ticket .t-lg{font-size:1.25em}
@@ -106,8 +105,9 @@ html.locked{overflow:hidden;overscroll-behavior:none}body.locked{position:fixed;
 #ticket .t-sep{border-top:2px dashed #000;margin:6px 0}
 #ticket .t-it{margin:0 0 6px;break-inside:avoid}
 #ticket .t-in{padding-left:3mm}
-#ticket .t-obs{margin-top:2px;padding:2px 3px;border:2px solid #000}
-#ticket .t-nm{font-size:1.1em;word-break:break-word}
+#ticket .t-sm{font-size:.9em;font-weight:600}
+#ticket .t-nm{word-break:break-word}
+#ticket .t-hd{font-size:.85em;font-weight:900;border-bottom:1px solid #000;padding-bottom:2px;margin-bottom:4px}
 @media print{
  html,body{background:#fff!important;color:#000!important;overflow:visible!important;height:auto!important;min-height:0!important}
  body.locked{position:static!important;top:auto!important;padding:0!important}
@@ -216,8 +216,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='reload'){if(confirm('Descartar mudanças não publicadas?')){dirty=false;localStorage.removeItem('avl_dirty');pull().then(view)}}
  else if(a=='reset'){if(confirm('Descartar todas as mudanças e voltar ao cardápio original?')){D=JSON.parse(JSON.stringify(DEF));save();view()}}});
 document.addEventListener('input',e=>{const t=e.target;
- if(t.dataset.paper!==undefined){try{localStorage.setItem('avl_paper',t.value=='58'?'58':'80')}catch(x){}}
- else if(t.dataset.f){D.loja[t.dataset.f]=t.type=='number'||t.tagName=='SELECT'&&/^\d+$/.test(t.value)?+t.value:t.value;save()}
+ if(t.dataset.f){D.loja[t.dataset.f]=t.type=='number'||t.tagName=='SELECT'&&/^\d+$/.test(t.value)?+t.value:t.value;save()}
  else if(t.dataset.c!==undefined){D.cats[t.dataset.c][t.dataset.p]=t.type=='checkbox'?t.checked:t.value;save()}
  else if(t.dataset.d!==undefined){D.addons[t.dataset.d][t.dataset.p]=t.dataset.p=='price'?Math.max(0,+t.value||0):t.value;save()}
  else if(t.dataset.atog!==undefined){const ad=D.addons[t.dataset.atog];if(ad){ad.ativo=t.checked;save();t.closest('.row').classList.toggle('off',!t.checked)}}
@@ -239,7 +238,7 @@ const san=o=>({nome:String(o.nome||'').slice(0,80),fone:String(o.fone||'').repla
 const dl=o=>+o.t+((o.o.prazo||PRAZO)+(o.extra||0))*6e4;
 const waNum=d=>{const n=String(d.fone||'').replace(/\D/g,'');return n.length<10?'':(n.length<=11?'55'+n:n)};
 function ocard(o){const d=o.o,n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0))*6e4,q=d.itens.reduce((a,i)=>a+i.q,0),mins=Math.max(0,Math.round((Date.now()-o.t)/6e4)),e=esc(o.id);
- return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${d.ant?' · ⏰ antecipado':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}<button class="btn full" data-a="prt" data-v="${e}">🖨 Imprimir comanda</button></div>`}
+ return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${d.ant?' · ⏰ antecipado':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}<button class="btn full" data-a="prt" data-v="${e}">🧾 Emitir nota do cliente</button></div>`}
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
  const T=[['ativos','Ativos',act.length],['novo','Novos',by('novo').length],['preparo','Preparo',by('preparo').length],['entrega','Entrega',by('entrega').length],['fim','Finalizados',0]];
  const list=OS=='ativos'?act:OS=='fim'?ORD.filter(o=>!NEXT[o.status]).slice(0,30):by(OS).sort((a,b)=>dl(a)-dl(b));
@@ -249,7 +248,7 @@ function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=t
  <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>📝 ${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
  <div class="blk"><b>Entrega</b><div>${esc(d.end)}, ${esc(d.num)}</div><div class="chp" style="margin:10px 0 0">${d.loc?`<a class="btn" href="${esc(d.loc)}" target="_blank" rel="noopener">🗺 Mapa</a>`:''}${w?`<a class="btn" href="https://wa.me/${w}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn" href="tel:+${w}">📞 Ligar</a>`:''}</div></div>
  <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div></div>
- <div class="two" style="margin:2px 0 12px"><button class="btn" data-a="prt" data-v="${e}" style="min-height:48px">🖨 Imprimir comanda</button><select data-paper aria-label="Largura do papel" style="margin:0"><option value="80" ${PAPER()=='80'?'selected':''}>Papel 80mm</option><option value="58" ${PAPER()=='58'?'selected':''}>Papel 58mm</option></select></div>
+ <button class="btn full" data-a="prt" data-v="${e}" style="margin:2px 0 12px">🧾 Emitir nota do cliente</button>
  ${n?`<div class="chp"><button class="btn" data-a="ext" data-v="${e}" data-n="-5">−5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="5">+5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="10">+10 min</button>${o.extra?`<span class="sub" style="align-self:center">ajuste: ${o.extra>0?'+':''}${o.extra} min</span>`:''}</div><button class="btn pri full big" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${e}" data-s="cancelado">Cancelar pedido</button>`:''}<button class="btn full" data-a="scancel">Fechar</button>`;
  $('back').classList.add('open');tick()}
 function nov(){const n=ORD.filter(o=>o.status=='novo'),el=$('nov');if(!n.length||NOVHIDE){el.classList.remove('on');return}const o=n[0],d=o.o,e=esc(o.id);
@@ -317,32 +316,33 @@ function alertNew(){NOVHIDE=false;ring()}
 /* ===== Relatórios e faturamento ===== */
 const mo=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const PG={dinheiro:'Dinheiro',pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito',cartao:'Cartão'};
-/* ===== Impressão de comanda (cupom não fiscal, térmica 58/80mm) ===== */
-const PAPER=()=>{try{return localStorage.getItem('avl_paper')=='58'?'58':'80'}catch(e){return '80'}};
+/* ===== Nota do cliente (80mm, padrão NFC-e, sem valor fiscal) ===== */
 const foneBR=s=>{let n=String(s||'').replace(/\D/g,'');if(n.length>11&&n.startsWith('55'))n=n.slice(2);return n.length==11?`(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`:n.length==10?`(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`:n};
 function ticketHTML(o){
- const d=o.o,U=s=>esc(String(s||'').toUpperCase()),pick=!String(d.end||'').trim(),
-  when=new Date(+o.t||Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
-  sub=Math.max(0,Math.round((d.total-d.taxa+d.desc)*100)/100),tel=foneBR(d.fone),
-  itens=d.itens.map(i=>`<div class="t-it"><div class="t-r t-b t-nm"><span>${i.q}X ${U(i.n)}</span>${i.p!=null?`<span>${brl((i.p+i.ax)*i.q)}</span>`:''}</div>${i.ex.map(x=>`<div class="t-b t-in">+ ${U(x)}</div>`).join('')}${i.obs?`<div class="t-b t-obs">OBS: ${U(i.obs)}</div>`:''}</div>`).join(''),
-  entrega=pick?`<div class="t-c t-b t-lg">*** RETIRADA ***</div><div class="t-c t-b">CLIENTE RETIRA NO BALCAO</div>`:`<div class="t-b">ENTREGA</div><div class="t-b">${U([d.end,d.num].filter(Boolean).join(', '))}</div>${d.prazo?`<div>Previsao: ${d.prazo} min</div>`:''}`,
-  troco=d.pag=='dinheiro'?(d.troco>0?`<div class="t-b">TROCO PARA: ${brl(d.troco)}</div><div class="t-b t-lg">LEVAR TROCO: ${brl(Math.max(0,d.troco-d.total))}</div>`:`<div class="t-b">SEM TROCO (VALOR EXATO)</div>`):'';
- return `<div class="t-c t-b t-lg">${U(D.loja.nome||'Comanda')}</div><div class="t-c t-b">COMANDA - NAO FISCAL</div><div class="t-sep"></div>
- <div class="t-b t-lg">PEDIDO #${U(o.id.slice(-5))}</div><div>${when}</div>${d.ant?'<div class="t-b">** PEDIDO ANTECIPADO **</div>':''}<div class="t-sep"></div>
- <div class="t-b">CLIENTE: ${U(d.nome)}</div>${tel?`<div class="t-b">TEL: ${esc(tel)}</div>`:''}<div class="t-sep"></div>
- <div class="t-b t-c">ITENS</div><div style="height:4px"></div>${itens}<div class="t-sep"></div>
- ${entrega}<div class="t-sep"></div>
+ const d=o.o,U=s=>esc(String(s||'').toUpperCase()),pick=!String(d.end||'').trim(),L=D.loja,
+  when=new Date(+o.t||Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+  sub=Math.max(0,Math.round((d.total-d.taxa+d.desc)*100)/100),tel=foneBR(d.fone),lt=foneBR(L.phone),qt=d.itens.reduce((a,i)=>a+i.q,0),
+  itens=d.itens.map((i,k)=>{const u=i.p==null?null:i.p+i.ax;return `<div class="t-it"><div class="t-nm">${String(k+1).padStart(2,'0')} ${U(i.n)}</div>${i.ex.map(x=>`<div class="t-in t-sm">+ ${esc(x)}</div>`).join('')}${i.obs?`<div class="t-in t-sm">Obs: ${esc(i.obs)}</div>`:''}<div class="t-r"><span>${i.q} UN x ${u==null?'':brl(u)}</span><span>${u==null?'':brl(u*i.q)}</span></div></div>`}).join(''),
+  pago=d.pag=='dinheiro'&&d.troco>0?d.troco:d.total,
+  pg=`<div class="t-r"><span>${U(PG[d.pag]||d.pag)}</span><span>${brl(pago)}</span></div>${d.pag=='dinheiro'&&d.troco>0?`<div class="t-r"><span>Troco</span><span>${brl(Math.max(0,d.troco-d.total))}</span></div>`:''}`;
+ return `<div class="t-c t-b t-lg">${U(L.nome||'Loja')}</div>${lt?`<div class="t-c">Tel: ${esc(lt)}</div>`:''}<div class="t-sep"></div>
+ <div class="t-c t-b">NOTA DO CLIENTE</div><div class="t-c t-sm">Documento sem valor fiscal</div><div class="t-sep"></div>
+ <div class="t-r"><span class="t-b">Pedido #${U(o.id.slice(-5))}</span><span>${when.slice(0,10)}</span></div><div class="t-r"><span></span><span>${when.slice(12)}</span></div><div class="t-sep"></div>
+ <div class="t-hd t-r"><span>ITEM / DESCRIÇÃO</span><span>VL. TOTAL</span></div>${itens}
+ <div class="t-sep"></div><div class="t-r"><span>Qtd. total de itens</span><span>${qt}</span></div>
  <div class="t-r"><span>Subtotal</span><span>${brl(sub)}</span></div>
- ${d.cupom?`<div class="t-r"><span>Cupom ${U(d.cupom)}</span><span>${d.desc>0?'-'+brl(d.desc):''}</span></div>`:''}
- ${pick?'':`<div class="t-r"><span>Taxa de entrega</span><span>${d.taxa>0?brl(d.taxa):'GRATIS'}</span></div>`}
+ ${d.cupom?`<div class="t-r"><span>Desconto (cupom ${U(d.cupom)})</span><span>${d.desc>0?'-'+brl(d.desc):'frete grátis'}</span></div>`:''}
+ ${pick?'':`<div class="t-r"><span>Taxa de entrega</span><span>${d.taxa>0?brl(d.taxa):'Grátis'}</span></div>`}
  <div class="t-r t-b t-lg" style="margin-top:3px"><span>TOTAL</span><span>${brl(d.total)}</span></div><div class="t-sep"></div>
- <div class="t-b">PAGAMENTO: ${U(PG[d.pag]||d.pag)}</div>${troco}<div class="t-sep"></div>
- <div class="t-c">Obrigado pela preferencia!</div><div class="t-c">Nao e documento fiscal</div><div style="height:14mm"></div>`}
+ <div class="t-hd t-r"><span>FORMA DE PAGAMENTO</span><span>VALOR PAGO</span></div>${pg}<div class="t-sep"></div>
+ <div class="t-b">CLIENTE</div><div>${U(d.nome)}</div>${tel?`<div>${esc(tel)}</div>`:''}
+ <div style="margin-top:3px" class="t-b">${pick?'RETIRADA NO BALCÃO':'ENTREGA'}</div>${pick?'':`<div>${U([d.end,d.num].filter(Boolean).join(', '))}</div>`}<div class="t-sep"></div>
+ <div class="t-c">Obrigado pela preferência!</div><div class="t-c">Volte sempre!</div><div style="height:14mm"></div>`}
 function printOrder(id){
  const o=ORD.find(x=>x.id==id);if(!o)return toast('Pedido não encontrado');
- const w=PAPER(),t=$('ticket');let st=$('pgsz');if(!st){st=document.createElement('style');st.id='pgsz';document.head.appendChild(st)}
- st.textContent='@page{size:'+w+'mm auto;margin:0}';
- t.className='w'+w;t.innerHTML=ticketHTML(o);
+ const t=$('ticket');let st=$('pgsz');if(!st){st=document.createElement('style');st.id='pgsz';document.head.appendChild(st)}
+ st.textContent='@page{size:80mm auto;margin:0}';
+ t.innerHTML=ticketHTML(o);
  setTimeout(()=>window.print(),80)}
 window.addEventListener('afterprint',()=>{const t=$('ticket');if(t)t.innerHTML=''});
 
