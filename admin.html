@@ -248,7 +248,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='reframe'){const u=ps(draft);if(!u)return toast('Sem foto para ajustar');crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`})}
  else if(a=='rfc')crop(ps({id:'_capa',image:lp('capa')}),2,900,false,r=>{D.loja.capa=r;save();view()});
  else if(a=='rfp')crop(ps({id:'_perfil',image:lp('perfil')}),1,360,true,r=>{D.loja.perfil=r;save();view()});
- else if(a=='st'){if(b.dataset.s!='cancelado'||confirm('Cancelar este pedido?')){if(b.dataset.s=='entrega')dispatchMsg(v);$('back').classList.remove('open');CURO=null;updateDoc(doc(db,'pedidos',v),{status:b.dataset.s}).catch(x=>toast('Erro: '+(x.code||x.message)))}}
+ else if(a=='st'){const o0=ORD.find(x=>x.id==v),s=b.dataset.s,w=s=='preparo'&&o0?chk(o0):[];
+ if((!w.length||confirm('⚠ Este pedido tem divergências:\n\n'+w.join('\n')+'\n\nValor a cobrar pelo cardápio: '+brl(V(o0).total)+'\n\nAceitar mesmo assim?'))&&(s!='cancelado'||confirm('Cancelar este pedido?'))){if(s=='entrega')dispatchMsg(v);$('back').classList.remove('open');CURO=null;
+  const ref=doc(db,'pedidos',v),f=s=='preparo'&&o0?fixOrder(o0):null,er=x=>toast('Erro: '+(x.code||x.message));
+  (f&&Math.abs(f.total-o0.o.total)>.05?updateDoc(ref,{status:s,json:JSON.stringify(f)}).catch(()=>updateDoc(ref,{status:s})):updateDoc(ref,{status:s})).catch(er)}}
  else if(a=='newc'){cd={_new:true,code:'',tipo:'pct',valor:10,min:0,ate:'',ativo:true};csheet()}
  else if(a=='editc'){cd={...CUP.find(c=>c.code==v)};csheet()}
  else if(a=='tpl'){cread();Object.assign(cd,TPL[v][1]);if(!cd.code)cd.code=gen();csheet()}
@@ -309,23 +312,39 @@ function chk(o){const d=o.o,w=[],r2=x=>Math.round(x*100)/100;let sub=0,calc=true
   const ex=Math.max(0,sub-d.desc)+d.taxa;if(Math.abs(d.total-ex)>.05)w.push('Total '+brl(d.total)+' não bate com os itens (esperado '+brl(ex)+')')}
  const fee=c&&c.tipo=='frete'?0:+D.loja.fee||0;if(String(d.end||'').trim()&&d.taxa<fee-.011)w.push('Taxa de entrega '+brl(d.taxa)+' menor que a do cardápio ('+brl(fee)+')');
  return w}
-function ocard(o){const d=o.o,n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0))*6e4,q=d.itens.reduce((a,i)=>a+i.q,0),mins=Math.max(0,Math.round((Date.now()-o.t)/6e4)),e=esc(o.id);
+/* Valor correto do pedido, recalculado aqui com o cardápio, cupons e taxa reais. O total que o navegador do cliente envia NÃO é confiável. */
+function fixOrder(o){const d=o.o,r2=x=>Math.round(x*100)/100;let sub=0;const itens=[];
+ for(const i of d.itens){if(!(Number.isInteger(i.q)&&i.q>=1&&i.q<=50))return null;
+  const it=D.items.find(x=>x.name==i.n);if(!it)return null;
+  const ads=i.ex.map(n=>D.addons.find(a=>a.name==n));if(!ads.every(Boolean))return null;
+  const p=Math.max(i.p==null?0:i.p,r2(pFin(it))),ax=Math.max(i.ax,r2(ads.reduce((a,b)=>a+(+b.price||0),0)));
+  sub+=i.q*(p+ax);itens.push({...i,p,ax})}
+ sub=r2(sub);
+ const dia=new Date(+o.t||Date.now()).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}),c=d.cupom?CUP.find(x=>x.code==d.cupom):null,
+  cok=!!c&&c.ativo!==false&&!(c.ate&&dia>c.ate)&&sub>=(+c.min||0),
+  maxd=!cok?0:c.tipo=='pct'?Math.round(sub*Math.min(+c.valor,100))/100:c.tipo=='fixo'?Math.min(+c.valor,sub):0,
+  desc=r2(Math.min(Math.max(d.desc,0),maxd)),fee=cok&&c.tipo=='frete'?0:(+D.loja.fee||0),
+  taxa=String(d.end||'').trim()?r2(Math.max(d.taxa,fee)):d.taxa;
+ return {...d,itens,desc,taxa,total:r2(Math.max(0,sub-desc)+taxa)}}
+/* Pedido em andamento: usa o valor recalculado. Pedido já encerrado: usa o que ficou gravado. */
+function V(o){return NEXT[o.status]?(fixOrder(o)||o.o):o.o}
+function ocard(o){const d=V(o),n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0))*6e4,q=d.itens.reduce((a,i)=>a+i.q,0),mins=Math.max(0,Math.round((Date.now()-o.t)/6e4)),e=esc(o.id);
  return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${d.ant?' · ⏰ antecipado':''}${chk(o).length?' · <span style="color:var(--bad);font-weight:700">⚠ conferir</span>':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}</div>`}
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
  const T=[['ativos','Ativos',act.length],['novo','Novos',by('novo').length],['preparo','Preparo',by('preparo').length],['entrega','Entrega',by('entrega').length],['fim','Finalizados',0]];
  const list=OS=='ativos'?act:OS=='fim'?ORD.filter(o=>!NEXT[o.status]).slice(0,30):by(OS).sort((a,b)=>dl(a)-dl(b));
  return `<div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
-function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=true;nov();const d=o.o,n=NEXT[o.status],w=waNum(d),e=esc(o.id),tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
+function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=true;nov();const d=V(o),n=NEXT[o.status],w=waNum(d),e=esc(o.id),tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
  $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?' · ⏰ antecipado':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
  <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>📝 ${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
  <div class="blk"><b>Entrega</b><div>${esc(d.end)}, ${esc(d.num)}</div><div class="chp" style="margin:10px 0 0">${d.loc?`<a class="btn" href="${esc(d.loc)}" target="_blank" rel="noopener">🗺 Mapa</a>`:''}${w?`<a class="btn" href="https://wa.me/${w}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn" href="tel:+${w}">📞 Ligar</a>`:''}</div></div>
- <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div></div>
+ <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div>${Math.abs(d.total-o.o.total)>.05?`<div class="it" style="color:var(--bad);font-weight:700">O cliente enviou ${brl(o.o.total)}. Cobre ${brl(d.total)}.</div>`:''}</div>
  ${(()=>{const w=chk(o);return w.length?`<div class="blk"><b style="color:var(--bad)">⚠ Conferir antes de aceitar</b>${w.map(x=>`<div class="it" style="color:var(--bad)">${esc(x)}</div>`).join('')}</div>`:''})()}
  <button class="btn full" data-a="prt" data-v="${e}" style="margin:2px 0 12px">🧾 Emitir nota</button>
  ${n?`<div class="chp"><button class="btn" data-a="ext" data-v="${e}" data-n="-5">−5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="5">+5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="10">+10 min</button>${o.extra?`<span class="sub" style="align-self:center">ajuste: ${o.extra>0?'+':''}${o.extra} min</span>`:''}</div><button class="btn pri full big" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${e}" data-s="cancelado">Cancelar pedido</button>`:''}<button class="btn full" data-a="scancel">Fechar</button>`;
  $('back').classList.add('open');tick()}
-function nov(){const n=ORD.filter(o=>o.status=='novo'),el=$('nov');if(!n.length||NOVHIDE){el.classList.remove('on');return}const o=n[0],d=o.o,e=esc(o.id);
- el.innerHTML=`<div class="nv"><div class="nvh"><div class="n"><b>${n.length>1?n.length+' novos pedidos':'Novo pedido'} · #${esc(o.id.slice(-5))}</b><small>${esc(d.nome)} · ${brl(d.total)}</small><small>${esc(d.itens.map(i=>i.q+'x '+i.n).join(', '))}</small></div><button class="btn ic" data-a="nh" aria-label="Agora não" style="margin:0">✕</button></div><div class="nvb"><button class="btn pri" data-a="st" data-v="${e}" data-s="preparo">Aceitar</button><button class="btn" data-a="ord" data-v="${e}">Detalhes</button></div></div>`;el.classList.add('on')}
+function nov(){const n=ORD.filter(o=>o.status=='novo'),el=$('nov');if(!n.length||NOVHIDE){el.classList.remove('on');return}const o=n[0],d=V(o),e=esc(o.id);
+ el.innerHTML=`<div class="nv"><div class="nvh"><div class="n"><b>${n.length>1?n.length+' novos pedidos':'Novo pedido'} · #${esc(o.id.slice(-5))}</b><small>${esc(d.nome)} · ${brl(d.total)}</small>${chk(o).length?'<small style="color:var(--bad);font-weight:700">⚠ conferir antes de aceitar</small>':''}<small>${esc(d.itens.map(i=>i.q+'x '+i.n).join(', '))}</small></div><button class="btn ic" data-a="nh" aria-label="Agora não" style="margin:0">✕</button></div><div class="nvb"><button class="btn pri" data-a="st" data-v="${e}" data-s="preparo">Aceitar</button><button class="btn" data-a="ord" data-v="${e}">Detalhes</button></div></div>`;el.classList.add('on')}
 function addH(){
  const cs=D.cats.map((c,i)=>`<div class="row"><div class="n"><b>${esc(c.name)}</b></div><input type="checkbox" class="sw" data-c="${i}" data-p="extras" ${c.extras?'checked':''} aria-label="Oferecer adicionais em ${esc(c.name)}"></div>`).join('');
  const as=D.addons.map((a,i)=>`<div class="row ${a.ativo===false?'off':''}" data-sid="${esc(a.id)}">${GRIP}<div class="n" style="display:flex;align-items:center;gap:8px"><input data-d="${i}" data-p="name" value="${esc(a.name)}" placeholder="Nome do adicional" aria-label="Nome" style="margin:0;flex:1;min-width:0"><span class="sub" style="margin:0;flex:none">R$</span><input data-d="${i}" data-p="price" type="number" step="0.5" min="0" value="${a.price}" aria-label="Preço" style="width:78px;flex:none;margin:0"></div><div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:none"><input type="checkbox" class="sw" data-atog="${i}" ${a.ativo!==false?'checked':''} aria-label="Disponível"><button class="btn ic danger" data-a="deladd" data-v="${i}" aria-label="Excluir">✕</button></div></div>`).join('');
@@ -392,7 +411,7 @@ const PG={dinheiro:'Dinheiro',pix:'Pix',credito:'Cartão de crédito',debito:'Ca
 /* ===== Nota do cliente (80mm, padrão NFC-e, sem valor fiscal) ===== */
 const foneBR=s=>{let n=String(s||'').replace(/\D/g,'');if(n.length>11&&n.startsWith('55'))n=n.slice(2);return n.length==11?`(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`:n.length==10?`(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`:n};
 function ticketHTML(o){
- const d=o.o,U=s=>esc(String(s||'').toUpperCase()),pick=!String(d.end||'').trim(),L=D.loja,
+ const d=V(o),U=s=>esc(String(s||'').toUpperCase()),pick=!String(d.end||'').trim(),L=D.loja,
   when=new Date(+o.t||Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
   sub=Math.max(0,Math.round((d.total-d.taxa+d.desc)*100)/100),tel=foneBR(d.fone),lt=foneBR(L.phone),qt=d.itens.reduce((a,i)=>a+i.q,0),
   itens=d.itens.map((i,k)=>{const u=i.p==null?null:i.p+i.ax;return `<div class="t-it"><div class="t-nm">${String(k+1).padStart(2,'0')} ${U(i.n)}</div>${i.ex.map(x=>`<div class="t-in t-sm">+ ${esc(x)}</div>`).join('')}${i.obs?`<div class="t-in t-sm">Obs: ${esc(i.obs)}</div>`:''}<div class="t-r"><span>${i.q} UN x ${u==null?'':brl(u)}</span><span>${u==null?'':brl(u*i.q)}</span></div></div>`}).join(''),
@@ -493,7 +512,7 @@ function sysNote(t,b,tag,force){
  const o={body:b,tag:tag,renotify:true,requireInteraction:true,vibrate:[300,120,300,120,300],icon:'icon-180.png',data:{url:location.href}};
  const rdy=navigator.serviceWorker?Promise.race([navigator.serviceWorker.ready,new Promise((_,j)=>setTimeout(j,1500))]):Promise.reject();
  rdy.then(r=>r.showNotification(t,o)).catch(()=>{try{new Notification(t,o)}catch(e){}})}
-function orderNote(x){const d=x.o;sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id)}
+function orderNote(x){const d=V(x);sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id)}
 function askNotif(){if(!('Notification' in window)||Notification.permission!='default')return;try{Promise.resolve(Notification.requestPermission()).then(()=>{if(tab=='loja')view()}).catch(()=>{})}catch(e){}}
 function testNote(){sysNote('Notificação de teste','Os avisos de novo pedido vão aparecer aqui.','teste',true)}
 function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">📲 Testar notificação do celular</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber avisos com o painel em segundo plano.</p>':'<button class="btn pri full" data-a="ntf">📲 Ativar notificações do celular</button>'}

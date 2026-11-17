@@ -213,13 +213,13 @@ textarea.field{resize:none}
     <div id="cartItems"></div>
 
     <div class="h3">Entrega</div>
-    <input id="clientAddress" class="field" placeholder="Rua e Bairro *" autocomplete="street-address">
+    <input id="clientAddress" maxlength="160" class="field" placeholder="Rua e Bairro *" autocomplete="street-address">
     <div class="err" id="e_addr"></div>
-    <input id="houseNumber" class="field" placeholder="Número da casa e Referência *">
+    <input id="houseNumber" maxlength="100" class="field" placeholder="Número da casa e Referência *">
     <div class="err" id="e_num"></div>
-    <input id="clientName" class="field" placeholder="Seu Nome *" autocomplete="name">
+    <input id="clientName" maxlength="80" class="field" placeholder="Seu Nome *" autocomplete="name">
     <div class="err" id="e_name"></div>
-    <input id="clientPhone" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
+    <input id="clientPhone" maxlength="20" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
     <div class="err" id="e_phone"></div>
     <div id="cliNote" style="font-size:12px;color:var(--muted);margin:0 2px 10px"></div>
 
@@ -575,7 +575,9 @@ document.querySelectorAll('.pay').forEach(p => p.onclick = () => {
 
 /* Envio do pedido */
 const phoneDigits = () => { let n = el('clientPhone').value.replace(/\D/g, ''); if (n.startsWith('55') && n.length > 11) n = n.slice(2); return n; };
-const phoneOk = () => /^\d{10,11}$/.test(phoneDigits());
+const phoneOk = () => /^[1-9][1-9](9\d{8}|\d{8})$/.test(phoneDigits());
+/* Limpa o texto digitado: sem quebra de linha nem símbolos do WhatsApp (* _ ~ `), no mesmo limite que o painel mostra */
+const clean = (s, max) => String(s).replace(/[*_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 function fail(inputId, errId, msg) { el(errId).textContent = msg; if (inputId) el(inputId).classList.add('bad'); return false; }
 function validate() {
   ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).classList.remove('bad'));
@@ -598,14 +600,17 @@ function validate() {
   if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
   return !first;
 }
-function postOrder(o) {
-  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
+async function postOrder(o) {
+  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return false;
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
   try {
-    fetch(FS_BASE + '/pedidos?documentId=' + encodeURIComponent(o.id), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+    const r = await fetch(FS_BASE + '/pedidos?documentId=' + encodeURIComponent(o.id), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
       body: JSON.stringify({ fields: { t: { integerValue: String(Date.now()) }, status: { stringValue: 'novo' }, extra: { integerValue: '0' }, json: { stringValue: JSON.stringify(o) } } })
-    }).catch(() => {});
-  } catch (e) {}
+    });
+    return r.ok;
+  } catch (e) { return false; }
+  finally { clearTimeout(to); }
 }
 /* Aviso no celular via app ntfy (https://ntfy.sh). Deixe NTFY_TOPIC vazio ('') para desligar. */
 const NTFY_TOPIC = '';
@@ -617,11 +622,18 @@ function notifyNtfy(o) {
     fetch('https://ntfy.sh/' + encodeURIComponent(NTFY_TOPIC) + '?' + q.toString(), { method: 'POST', body: msg, keepalive: true }).catch(() => {});
   } catch (e) {}
 }
-function sendWa() {
-  if (!ORDER) return;
-  const o = ORDER, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`;
+let SENDING = false;
+async function sendWa() {
+  if (!ORDER || SENDING) return;
+  SENDING = true;
+  const o = ORDER, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, btns = [el('confirmBtn'), el('btnSendPixWa')];
+  btns.forEach(b => b.disabled = true);
+  showToast('Registrando seu pedido…');
+  const ok = await postOrder(o);
+  SENDING = false; btns.forEach(b => b.disabled = false);
+  if (!ok) return showToast('Não conseguimos registrar o pedido. Confira a internet e tente de novo.');
   ORDER = null;
-  postOrder(o); notifyNtfy(o); if (window.saveClient) saveClient(o);
+  notifyNtfy(o); if (window.saveClient) saveClient(o);
   if (!window.open(url, '_blank')) location.href = url;
   el('couponMsg').style.color = '';
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
@@ -632,19 +644,12 @@ el('confirmBtn').onclick = () => {
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
   if (!validate()) return;
-  const name = el('clientName').value.trim(), addr = el('clientAddress').value.trim(), num = el('houseNumber').value.trim();
+  const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
   const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), ph = phoneDigits(), g2 = parseFloat(el('cashGiven').value);
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
   const LN = '━━━━━━━━━━━━━━━━━━', payName = { dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão' }[PAYMENT] || PAYMENT;
   const when = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  let txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*\n🧾 *Pedido #${oid.slice(-5)}* · ${when}\n${LN}\n👤 *CLIENTE*\n${name}\n📱 ${phTxt}\n${LN}\n📍 *ENTREGA*\n${addr}, ${num}\n⏱️ Previsão: ${PRAZO} min\n${LN}\n🛒 *ITENS*\n`;
-  for (const k in CART) {
-    const it = CART[k];
-    txt += `▪️ *${it.qty}x ${it.name}* — ${fmt(unit(it) * it.qty)}\n` + it.addons.map(a => `    ➕ ${a.name}\n`).join('') + (it.note ? `    📝 _${it.note}_\n` : '');
-  }
-  txt += `${LN}\n💳 *PAGAMENTO:* ${payName}\n`;
-  if (PAYMENT === 'dinheiro') txt += (NOCHG || !g2) ? '💵 Sem troco\n' : `💵 Troco para ${fmt(g2)} (levar ${fmt(g2 - cartTotal())})\n`;
-  txt += `${LN}\nSubtotal: ${fmt(sb)}\n` + (COUPON ? `🏷️ Cupom ${COUPON.code}: ${COUPON.tipo === 'frete' ? 'frete grátis' : '−' + fmt(dsc)}\n` : '') + `Entrega: ${fmt(feeNow())}\n💰 *TOTAL: ${fmt(cartTotal())}*`;
+  const txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*\n🧾 *Pedido #${oid.slice(-5)}* · ${when}\n${LN}\n👤 *CLIENTE*\n${name}\n📱 ${phTxt}\n${LN}\n📍 *ENTREGA*\n${addr}, ${num}\n${LN}\nItens e valores: veja no painel, pelo código do pedido.`;
   ORDER = { id: oid, nome: name, fone: '55' + ph, end: addr, num, loc: '', pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN, prazo: PRAZO,
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
