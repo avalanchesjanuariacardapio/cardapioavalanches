@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b0c"><meta name="color-scheme" content="dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Cardápio digital da Avalanches. Escolha seu lanche e envie o pedido pelo WhatsApp.">
@@ -327,7 +327,7 @@ function loadPhotos(base) {
   [...ITEMS, ...LOJAIMGS].forEach(it => {
     if (!(it.image || '').startsWith('cloud:')) return;
     const v = it.image.slice(6), c = cache[it.id];
-    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll('[data-pid="' + it.id + '"]').forEach(i => { i.src = d; i.style.display = ''; }); };
+    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll('[data-pid="' + CSS.escape(String(it.id)) + '"]').forEach(i => { i.src = d; i.style.display = ''; }); };
     if (c && c.v === v) return show(c.d);
     fetch(`${base}/fotos/${it.id}`).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
@@ -399,7 +399,7 @@ function checkOpen() {
 
 /* Cardápio */
 function card(it) {
-  return `<button class="card" data-id="${it.id}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${imgSrc(it)}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${it.id}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
+  return `<button class="card" data-id="${esc(it.id)}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${esc(it.id)}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
 }
 function render() {
   const q = el('search').value.trim().toLowerCase();
@@ -409,7 +409,7 @@ function render() {
   if (!list.length) html = '<div class="empty">Nenhum item encontrado. Tente outro nome ou categoria.</div>';
   else if (cat === 'all' && !q) Object.keys(CATS).forEach(c => {
     const g = list.filter(i => i.cat === c);
-    if (g.length) html += `<h2 class="sec">${CATS[c]}</h2>` + g.map(card).join('');
+    if (g.length) html += `<h2 class="sec">${esc(CATS[c])}</h2>` + g.map(card).join('');
   });
   else html = list.map(card).join('');
   el('menuList').innerHTML = html;
@@ -491,7 +491,7 @@ function renderCartItems() {
   if (!keys.length) { c.innerHTML = '<div class="empty">Sua sacola está vazia. Escolha um item no cardápio.</div>'; return; }
   c.innerHTML = keys.map(k => {
     const it = CART[k];
-    return `<div class="line"><div><b>${esc(it.name)}</b>${it.addons.length ? `<small>+ ${it.addons.map(a => esc(a.name)).join(', ')}</small>` : ''}${it.note ? `<small>Obs: ${esc(it.note)}</small>` : ''}<div class="mini"><button data-k="${esc(k)}" data-d="-1" aria-label="Diminuir">−</button><span>${it.qty}</span><button data-k="${esc(k)}" data-d="1" aria-label="Aumentar">+</button></div></div><b>${fmt(unit(it) * it.qty)}</b></div>`;
+    return `<div class="line"><div><b>${esc(it.name)}</b>${it.addons.length ? `<small>+ ${it.addons.map(a => esc(a.name)).join(', ')}</small>` : ''}${it.note ? `<small>Obs: ${esc(it.note)}</small>` : ''}<div class="mini"><button data-k="${esc(k)}" data-d="-1" aria-label="Diminuir">−</button><span>${Number(it.qty)||1}</span><button data-k="${esc(k)}" data-d="1" aria-label="Aumentar">+</button></div></div><b>${fmt(unit(it) * it.qty)}</b></div>`;
   }).join('');
 }
 el('cartItems').onclick = e => {
@@ -596,12 +596,11 @@ function postOrder(o) {
   } catch (e) {}
 }
 /* Aviso no celular via app ntfy (https://ntfy.sh). Deixe NTFY_TOPIC vazio ('') para desligar. */
-const NTFY_TOPIC = 'avl-pedidos-xxcWSWBJxvqyhH4vBnE';
+const NTFY_TOPIC = '';
 function notifyNtfy(o) {
   if (!NTFY_TOPIC) return;
   try {
-    const itens = o.itens.map(i => i.q + 'x ' + i.n + (i.ex.length ? ' (+' + i.ex.join(', ') + ')' : '') + (i.obs ? ' [obs: ' + i.obs + ']' : '')).join('\n');
-    const msg = itens + '\n' + o.nome + ' · ' + fmt(o.total) + ' · ' + ({ dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito' }[o.pag] || o.pag) + '\n' + o.end + ', ' + o.num;
+    const msg = 'Abra o painel para ver os detalhes do pedido.';
     const q = new URLSearchParams({ title: 'Novo pedido #' + String(o.id).slice(-5) + (o.ant ? ' (antecipado)' : ''), priority: 'high', tags: 'hamburger', click: new URL('admin.html', location.href).href });
     fetch('https://ntfy.sh/' + encodeURIComponent(NTFY_TOPIC) + '?' + q.toString(), { method: 'POST', body: msg, keepalive: true }).catch(() => {});
   } catch (e) {}
