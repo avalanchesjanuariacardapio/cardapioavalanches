@@ -263,7 +263,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='prt')printOrder(v);
  else if(a=='seg'){OS=v;view()}
  else if(a=='nh'){NOVHIDE=true;nov()}
- else if(a=='esp')espSheet();else if(a=='espsave')espSave();else if(a=='espoff')espOff();else if(a=='ntf')askNotif();else if(a=='ntt')testNote();else if(a=='rp'){RP=v;RMORE=50;if(RP=='custom'&&!RA)RA=RB=ymd(0);startRep();relRender()}else if(a=='rmore'){RMORE+=50;relRender()}else if(a=='cf'){CF=v;cliRender()}else if(a=='cx'){CLO.has(v)?CLO.delete(v):CLO.add(v);$('clist').innerHTML=cliList()}else if(a=='cwa'){const c=CL.find(x=>x.k==v);if(c)window.open('https://wa.me/'+c.k+'?text='+encodeURIComponent(cliMsg(c)),'_blank','noopener')}else if(a=='cref'){CLT=0;loadCli()}
+ else if(a=='cpr'){CPR=v;CUERR='';view()}else if(a=='cpref'){CUERR='';if(CUS[CPR])CUS[CPR].at=0;view()}else if(a=='esp')espSheet();else if(a=='espsave')espSave();else if(a=='espoff')espOff();else if(a=='ntf')askNotif();else if(a=='ntt')testNote();else if(a=='rp'){RP=v;RMORE=50;if(RP=='custom'&&!RA)RA=RB=ymd(0);startRep();relRender()}else if(a=='rmore'){RMORE+=50;relRender()}else if(a=='cf'){CF=v;cliRender()}else if(a=='cx'){CLO.has(v)?CLO.delete(v):CLO.add(v);$('clist').innerHTML=cliList()}else if(a=='cwa'){const c=CL.find(x=>x.k==v);if(c)window.open('https://wa.me/'+c.k+'?text='+encodeURIComponent(cliMsg(c)),'_blank','noopener')}else if(a=='cref'){CLT=0;loadCli()}
  else if(a=='pvd'){$('pr_a').value=v=='-1'?'':ymd(+v);$('pr_e').checked=true;promoPrev()}
  else if(a=='catpromo'){const q=prompt('Desconto em % para TODOS os itens desta categoria (0 remove as promoções):','10');if(q===null)return;const n=+String(q).replace(',','.');if(!(n>=0&&n<=95))return toast('Digite um valor de 0 a 95');let ate='';if(n>0){const d=prompt('Por quantos dias? (0 = sem prazo)','7');if(d===null)return;ate=+d>0?ymd(+d-1):''}D.items.forEach(i=>{if(i.cat==v){if(n>0)i.promo={tipo:'pct',valor:n,ate};else delete i.promo}});save();view();toast(n>0?'Promoção aplicada':'Promoções removidas')}
  else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.4,960,false,r=>{D.loja.poster=r;save();view()});
@@ -398,9 +398,36 @@ function csave(){cread();const code=cd.code;
  if(cd._new&&CUP.some(c=>c.code==code))return toast('Esse código já existe');
  const c={code,...cj(cd)};
  setDoc(doc(db,'cupons',code),{json:JSON.stringify(cj(c))}).then(()=>{CUP=CUP.filter(x=>x.code!=code).concat(c);$('back').classList.remove('open');view();toast('Cupom salvo e já valendo')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
-function cupView(){const hoje=ymd(0);return espCard()+'<button class="btn pri full" style="margin:0 0 14px" data-a="newc">＋ Novo cupom</button>'+(CUP.length?`<div class="card">${CUP.map(c=>{const venc=c.ate&&c.ate<hoje,u=ORD.filter(o=>o.o.cupom==c.code).length;return `<div class="row ${c.ativo===false||venc?'off':''}"><div class="n" data-a="editc" data-v="${esc(c.code)}"><b>${esc(c.code)}</b><small>${esc(cdesc(c))}${venc?' · VENCIDO':''}${u?' · usado '+u+'x':''}</small></div><input type="checkbox" class="sw" data-ctog="${esc(c.code)}" ${c.ativo!==false?'checked':''}></div>`}).join('')}</div>`:'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
+let CPR='30',CUS={},CULOAD=false,CUERR='';
+const CPN={'0':'Hoje','7':'7 dias','30':'30 dias','all':'Tudo'};
+const isEspK=k=>k==ES.code||(ES.hist||[]).includes(k);
+function cuStart(p){if(p=='all')return 0;const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate()-(p=='0'?0:p=='7'?6:29)).getTime()}
+async function loadCUse(){if(CULOAD)return;const p=CPR;CULOAD=true;CUERR='';
+ try{const s=cuStart(p),q=s?query(collection(db,'pedidos'),where('t','>=',s),orderBy('t','desc'),limit(2000)):query(collection(db,'pedidos'),orderBy('t','desc'),limit(2000));
+  const snap=await getDocs(q),rows=[];
+  snap.docs.forEach(x=>{const v=x.data();if(String(v.status)=='cancelado')return;try{const o=JSON.parse(v.json);if(o&&o.cupom)rows.push({k:String(o.cupom),d:+o.desc||0})}catch(e){}});
+  CUS[p]={at:Date.now(),rows,cap:snap.size>=2000}}
+ catch(e){CUERR=e.code||e.message}
+ CULOAD=false;if(tab=='cup')view()}
+function cuPanel(){
+ const cu=CUS[CPR];if(!CULOAD&&!CUERR&&(!cu||Date.now()-cu.at>12e4))loadCUse();
+ const chips=Object.keys(CPN).map(k=>`<button class="btn ${CPR==k?'pri':''}" data-a="cpr" data-v="${k}">${CPN[k]}</button>`).join('')+`<button class="btn" data-a="cpref" aria-label="Atualizar">↻</button>`;
+ const head=`<div class="card"><h3>Uso dos cupons</h3><p class="sub" style="margin-bottom:10px">Quantas vezes cada cupom foi usado, separando especiais e comuns.</p><div class="chp" style="margin-bottom:0">${chips}</div></div>`;
+ if(!cu)return head+(CUERR?`<div class="card"><p class="sub">Erro ao carregar: ${esc(CUERR)}</p></div>`:`<div class="card"><p class="sub">Carregando uso dos cupons…</p></div>`);
+ const m={};cu.rows.forEach(r=>{const x=m[r.k]||(m[r.k]={n:0,d:0});x.n++;x.d+=r.d});
+ const all=[...new Set([...CUP.map(c=>c.code),...Object.keys(m)])],isE=k=>isEspK(k),n0=k=>m[k]?m[k].n:0;
+ const sorter=(x,y)=>n0(y)-n0(x)||x.localeCompare(y),gE=all.filter(isE).sort(sorter),gC=all.filter(k=>!isE(k)).sort(sorter);
+ const sum=g=>g.reduce((t,k)=>({n:t.n+n0(k),d:t.d+(m[k]?m[k].d:0)}),{n:0,d:0}),sE=sum(gE),sC=sum(gC);
+ const usos=n=>n+(n==1?' uso':' usos'),val=(k)=>{const x=m[k];if(!x)return '—';const c=CUP.find(y=>y.code==k);return x.d>0?'−'+brl(x.d):c&&c.tipo=='frete'?'frete grátis':brl(0)};
+ const grp=(t,g,s,vz)=>`<div class="card"><div class="lr" style="padding-top:0"><b>${t}</b><span>${usos(s.n)} · ${s.d>0?'−'+brl(s.d):brl(0)}</span></div>${g.length?g.map(k=>`<div class="lr"><span>${esc(k)}${CUP.some(c=>c.code==k)?'':' <small>(removido)</small>'}</span><span>${m[k]?usos(m[k].n)+' · ':''}${val(k)}</span></div>`).join(''):`<p class="sub" style="margin-top:8px">${vz}</p>`}</div>`;
+ return head+`<div class="kp"><div><small>Cupons usados</small><b>${sE.n+sC.n}</b></div><div><small>Desconto concedido</small><b>${brl(sE.d+sC.d)}</b></div></div>`
+  +grp('🎉 Cupons especiais',gE,sE,'Nenhum cupom especial ainda.')+grp('🏷️ Cupons comuns',gC,sC,'Nenhum cupom comum ainda.')
+  +`<p class="sub" style="margin:-4px 0 14px">Não conta pedidos cancelados.${cu.cap?' Considerando os 2000 pedidos mais recentes do período.':''}</p>`}
+function cupView(){const hoje=ymd(0),row=c=>{const venc=c.ate&&c.ate<hoje;return `<div class="row ${c.ativo===false||venc?'off':''}"><div class="n" data-a="editc" data-v="${esc(c.code)}"><b>${esc(c.code)}</b><small>${esc(cdesc(c))}${venc?' · VENCIDO':''}</small></div><input type="checkbox" class="sw" data-ctog="${esc(c.code)}" ${c.ativo!==false?'checked':''}></div>`},
+ lst=(t,g)=>g.length?`<div class="card"><h3 style="margin-bottom:6px">${t}</h3>${g.map(row).join('')}</div>`:'';
+ return espCard()+'<button class="btn pri full" style="margin:0 0 14px" data-a="newc">＋ Novo cupom</button>'+cuPanel()+(CUP.length?lst('🎉 Cupons especiais',CUP.filter(c=>isEspK(c.code)))+lst('🏷️ Cupons comuns',CUP.filter(c=>!isEspK(c.code))):'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
 const TEMAS={anonovo:['🎆 Ano Novo','Feliz Ano Novo! Comece o ano com desconto no seu pedido.'],carnaval:['🎭 Carnaval','É Carnaval! Use o cupom e aproveite um desconto.'],mulher:['🌷 Dia da Mulher','Hoje o dia é delas! Use o cupom no seu pedido.'],pascoa:['🥚 Páscoa','Feliz Páscoa! Um presente em forma de desconto para você.'],maes:['🌸 Dia das Mães','Feliz Dia das Mães! Use o cupom e surpreenda quem você ama.'],namorados:['❤️ Dia dos Namorados','Dia dos Namorados: peça a dois com desconto!'],junina:['🔥 Festa Junina','Arraiá do sabor! Use o cupom e ganhe desconto.'],pais:['⭐ Dia dos Pais','Feliz Dia dos Pais! Use o cupom no seu pedido.'],criancas:['🧸 Dia das Crianças','Dia das Crianças! Use o cupom e faça a festa.'],halloween:['🎃 Halloween','Doce ou desconto? Use o cupom e aproveite!'],blackfriday:['🏷️ Black Friday','Black Friday: desconto especial só por hoje!'],natal:['🎄 Natal','Feliz Natal! Nosso presente: um cupom de desconto para você.'],hamburguer:['🍔 Dia do Hambúrguer','Hoje é o nosso dia! Use o cupom no seu hambúrguer.'],aniversario:['🎂 Aniversário da loja','Estamos de aniversário e o presente é seu! Use o cupom.'],cliente:['🎁 Dia do Cliente','Obrigado por pedir com a gente! Use o cupom de presente.'],copa:['⚽ Dia de jogo','Dia de jogo! Use o cupom e peça o lanche da torcida.'],independencia:['💚 7 de Setembro','Feliz 7 de Setembro! Use o cupom e aproveite.'],geral:['✨ Promoção especial','Cupom especial por tempo limitado. Aproveite!']};
-let ES={on:false,code:'',tema:'geral',msg:'',ate:'',v:0};
+let ES={on:false,code:'',tema:'geral',msg:'',ate:'',v:0,hist:[]};
 const espW=o=>setDoc(doc(db,'cardapio','ao_vivo'),{esp:JSON.stringify(o)},{merge:true});
 function espCard(){const e=ES,t=TEMAS[e.tema];return `<div class="card" style="display:flex;align-items:center;gap:10px"><div class="n" style="flex:1"><b>🎉 Cupom especial</b><small class="sub" style="display:block">${e.on&&t?esc(t[0])+' · '+esc(e.code)+' · no ar':'Aviso comemorativo no site (desligado)'}</small></div>${e.on?'<button class="btn" data-a="espoff">Desligar</button>':''}<button class="btn pri" data-a="esp">${e.on?'Editar':'Criar'}</button></div>`}
 function espSheet(){CURO=null;const cs=CUP.filter(c=>c.ativo!==false),e=ES,t=TEMAS[e.tema]||TEMAS.geral,novo=!cs.length;
@@ -420,7 +447,7 @@ function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.
   if(CUP.some(x=>x.code==c))return toast('Esse código já existe');
   nc={code:c,tipo:tp,valor:tp=='frete'?0:vl,min:mn,ate:a,ativo:true}}
  else{const cp=CUP.find(x=>x.code==c);if(!cp||cp.ativo===false)return toast('Escolha um cupom ativo')}
- const o={on:true,code:c,tema:t,msg:m,ate:a,v:Date.now()};
+ const o={on:true,code:c,tema:t,msg:m,ate:a,v:Date.now(),hist:[...new Set([...(ES.hist||[]),c])].slice(-50)};
  const go=nc?setDoc(doc(db,'cupons',c),{json:JSON.stringify(cj(nc))}).then(()=>{CUP=CUP.filter(x=>x.code!=c).concat(nc)}):Promise.resolve();
  go.then(()=>espW(o)).then(()=>{ES=o;$('back').classList.remove('open');view();toast('Cupom especial no ar')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
 function espOff(){const o={...ES,on:false};espW(o).then(()=>{ES=o;view();toast('Aviso desligado')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
