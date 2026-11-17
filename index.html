@@ -339,7 +339,7 @@ function loadPhotos(base) {
     const sel = '[data-pid="' + CSS.escape(String(it.id)) + '"]';
     const show = d => { PHOTOS[it.id] = d; document.querySelectorAll(sel).forEach(i => showImg(i, d)); };
     if (c && c.v === v) return show(c.d);
-    fetch(`${base}/fotos/${it.id}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
+    fetch(`${base}/fotos/${encodeURIComponent(it.id)}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
       try { localStorage.setItem('avl_photos', JSON.stringify(cache)); } catch (e) {}
     }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo.jpeg' : u); }); });
