@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'none'">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b0c"><meta name="color-scheme" content="dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Cardápio digital da Avalanches. Escolha seu lanche e envie o pedido pelo WhatsApp.">
 <title>Avalanches — Cardápio Digital</title>
@@ -141,6 +141,25 @@ textarea.field{resize:none}
 @keyframes zoom{from{transform:scale(1.12)}}
 @keyframes pulse{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.card{opacity:1;transform:none}*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+input,textarea,select{font-size:16px}
+/* Cupom especial (aviso comemorativo) */
+.espb{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:20px;background:rgba(5,5,7,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .35s ease}
+.espb.on{opacity:1;pointer-events:auto}
+.espc{position:relative;z-index:1;width:100%;max-width:340px;text-align:center;background:#17171b;border:1px solid var(--line);border-radius:26px;padding:26px 22px 20px;box-shadow:0 30px 70px -20px #000;transform:translateY(18px) scale(.95);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.espb.on .espc{transform:none}
+.espi{font-size:44px;line-height:1;margin-bottom:8px;animation:espb 2.4s ease-in-out infinite}
+.espc h3{margin:0 0 6px;font:800 22px var(--font)}.espc p{margin:0 0 16px;color:var(--muted);font-size:14.5px;line-height:1.45}
+.espk{display:inline-block;margin:0 0 14px;padding:10px 20px;border:2px dashed var(--o);border-radius:14px;font:800 22px var(--font);letter-spacing:.08em;color:var(--o2)}
+.espc .btn{width:100%;margin:0 0 8px}
+.espp{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.espp span{position:absolute;top:-8%;left:var(--x);font-size:var(--s);opacity:.9;will-change:transform;animation:espd var(--d) linear var(--l) infinite}
+.espb.up .espp span{top:auto;bottom:-8%;animation-name:espu}
+@keyframes espd{from{transform:translate3d(0,-10vh,0) rotate(0)}to{transform:translate3d(var(--dx),115vh,0) rotate(360deg)}}
+@keyframes espu{0%{transform:translate3d(0,0,0);opacity:0}15%{opacity:.95}to{transform:translate3d(var(--dx),-115vh,0) rotate(25deg);opacity:0}}
+@keyframes espb{50%{transform:translateY(-5px) scale(1.06)}}
+@media(prefers-reduced-motion:reduce){.espp{display:none}.espi{animation:none}}
 </style>
 </head>
 <body>
@@ -318,6 +337,34 @@ async function refreshEta() {
   if (!CLOUD_BASE || document.hidden) return;
   try { const r = await fetch(CLOUD_BASE + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r.ok) { const f = (await r.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || PRAZO; showEta(); } } catch (e) {}
 }
+['gesturestart', 'gesturechange', 'gestureend'].forEach(n => document.addEventListener(n, e => e.preventDefault()));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+const ESPT = { anonovo: ['🎆 ✨ 🥂', 'u', 'Feliz Ano Novo!'], carnaval: ['🎭 🎊 🎉', 'd', 'Bom Carnaval!'], mulher: ['🌷 💜 ✨', 'd', 'Dia da Mulher'], pascoa: ['🥚 🐰 🍫', 'd', 'Feliz Páscoa!'], maes: ['🌸 💐 🌷', 'd', 'Feliz Dia das Mães!'], namorados: ['❤️ 💕 💘', 'u', 'Dia dos Namorados'], junina: ['🔥 🎈 🌽', 'u', 'Festa Junina'], pais: ['⭐ 🏆 👔', 'd', 'Feliz Dia dos Pais!'], criancas: ['🎈 🧸 🍭', 'u', 'Dia das Crianças'], halloween: ['🎃 🦇 👻', 'd', 'Feliz Halloween!'], blackfriday: ['🏷️ 💥 🔥', 'd', 'Black Friday'], natal: ['🎄 ❄️ ⭐', 'd', 'Feliz Natal!'], hamburguer: ['🍔 🍟 🧀', 'd', 'Dia do Hambúrguer'], aniversario: ['🎂 🎉 🎈', 'u', 'É aniversário da loja!'], cliente: ['🎁 ⭐ ✨', 'u', 'Dia do Cliente'], copa: ['⚽ 🏆 💚', 'd', 'Dia de jogo!'], independencia: ['💚 💛 ⭐', 'd', 'Feliz 7 de Setembro!'], geral: ['✨ 🎉 🎁', 'u', 'Cupom especial'] };
+async function showEsp(base, e) {
+  try {
+    const th = ESPT[e && e.tema];
+    if (!e || !e.on || !th || !/^[A-Z0-9]{3,20}$/.test(e.code)) return;
+    const today = new Date().toLocaleDateString('sv-SE');
+    if (e.ate && today > e.ate) return;
+    const k = [e.code, e.tema, e.v].join('|'), test = /[?&]esp/.test(location.search);
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem('avl_esp') || '{}'); } catch (x) {}
+    if (!test && seen.k === k && seen.d === today) return;
+    const r = await fetch(base + '/cupons/' + e.code, { cache: 'no-store' }); if (!r.ok) return;
+    const c = JSON.parse((await r.json()).fields.json.stringValue);
+    if (c.ativo === false || (c.ate && today > c.ate)) return;
+    const em = th[0].split(' '), mk = (t, cls, txt) => { const n = document.createElement(t); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+    const bd = mk('div', 'espb' + (th[1] === 'u' ? ' up' : '')), card = mk('div', 'espc'), pp = mk('div', 'espp');
+    for (let i = 0; i < 18; i++) { const s = mk('span', '', em[i % em.length]); s.style.cssText = `--x:${Math.random() * 100}%;--s:${16 + Math.random() * 18}px;--d:${5 + Math.random() * 5}s;--l:${-Math.random() * 8}s;--dx:${Math.random() * 80 - 40}px`; pp.appendChild(s); }
+    const cp = mk('button', 'btn primary', 'Copiar cupom'), x = mk('button', 'btn ghost', 'Fechar');
+    const close = () => { bd.classList.remove('on'); setTimeout(() => bd.remove(), 400); };
+    cp.onclick = async () => { try { await navigator.clipboard.writeText(e.code); } catch (y) { const t = mk('textarea'); t.value = e.code; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (z) {} t.remove(); } const ci = document.getElementById('couponIn'); if (ci) ci.value = e.code; showToast('Cupom copiado! Cole na sacola.'); close(); };
+    x.onclick = close; bd.onclick = ev => { if (ev.target === bd) close(); };
+    card.append(mk('div', 'espi', em[0]), mk('h3', '', th[2]), mk('p', '', String(e.msg || '').slice(0, 140)), mk('div', 'espk', e.code), cp, x);
+    bd.append(pp, card); document.body.appendChild(bd);
+    requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('on')));
+    try { localStorage.setItem('avl_esp', JSON.stringify({ k, d: today })); } catch (y) {}
+  } catch (x) {}
+}
 async function loadCloud() {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
   const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
@@ -328,7 +375,7 @@ async function loadCloud() {
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
   } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
   CLOUD_BASE = base; applyData(JSON.parse(txt));
-  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const f = (await r2.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; } } catch (e) {}
+  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
   showEta(); return base;
 }
 function loadPhotos(base) {
