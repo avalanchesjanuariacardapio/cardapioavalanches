@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="boot">
 <head>
 <meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -20,6 +20,9 @@ button,a,.card,.tab{touch-action:manipulation}
 .page,.sheet,.sheet-back{overscroll-behavior:contain}
 html.locked{overflow:hidden;overscroll-behavior:none}body.locked{position:fixed;left:0;right:0;overflow:hidden}
 html{scroll-behavior:smooth;background:#0b0b0c;color-scheme:dark}
+/* Evita mostrar valores antigos (taxa, horário, nome) por um instante antes de carregar os dados atuais */
+.id h1,#storeStatus,.facts,.banner{transition:opacity .3s ease}
+html.boot .id h1,html.boot #storeStatus,html.boot .facts,html.boot .banner{opacity:0}
 body{margin:0;background:#050505;color:var(--text);font:400 15px/1.45 var(--font);overflow-x:hidden}
 button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 :focus-visible{outline:2px solid var(--o2);outline-offset:2px}
@@ -161,6 +164,7 @@ input,textarea,select{font-size:16px}
 @keyframes espb{50%{transform:translateY(-5px) scale(1.06)}}
 @media(prefers-reduced-motion:reduce){.espp{display:none}.espi{animation:none}}
 </style>
+<noscript><style>html.boot .id h1,html.boot #storeStatus,html.boot .facts,html.boot .banner{opacity:1}</style></noscript>
 </head>
 <body>
 <div id="toasts" role="status" aria-live="polite"></div>
@@ -747,11 +751,13 @@ document.addEventListener('keydown', e => {
 
 (async () => {
   setTimeout(revealSlots, 8000);
+  const unboot = () => document.documentElement.classList.remove('boot');
+  setTimeout(unboot, 4000);
   let base; try { base = await loadCloud(); } catch (e) {}
   if (!base) revealSlots();
   buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
   if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
-  render(); updateCart();
+  render(); updateCart(); unboot();
 })();
 
 /* Ao reabrir o navegador/aba, atualiza o cardápio sozinho (sem precisar forçar a atualização) */
