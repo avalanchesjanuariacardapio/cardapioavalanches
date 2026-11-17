@@ -403,12 +403,26 @@ const TEMAS={anonovo:['🎆 Ano Novo','Feliz Ano Novo! Comece o ano com desconto
 let ES={on:false,code:'',tema:'geral',msg:'',ate:'',v:0};
 const espW=o=>setDoc(doc(db,'cardapio','ao_vivo'),{esp:JSON.stringify(o)},{merge:true});
 function espCard(){const e=ES,t=TEMAS[e.tema];return `<div class="card" style="display:flex;align-items:center;gap:10px"><div class="n" style="flex:1"><b>🎉 Cupom especial</b><small class="sub" style="display:block">${e.on&&t?esc(t[0])+' · '+esc(e.code)+' · no ar':'Aviso comemorativo no site (desligado)'}</small></div>${e.on?'<button class="btn" data-a="espoff">Desligar</button>':''}<button class="btn pri" data-a="esp">${e.on?'Editar':'Criar'}</button></div>`}
-function espSheet(){CURO=null;const cs=CUP.filter(c=>c.ativo!==false),e=ES,t=TEMAS[e.tema]||TEMAS.geral;
- $('sheet').innerHTML=`<h3>🎉 Cupom especial</h3><p class="sub">Aparece uma vez por dia para o cliente ao abrir o site, com a animação da data.</p>`+(cs.length?`<label>Cupom<select id="e_c">${cs.map(c=>`<option value="${esc(c.code)}" ${c.code==e.code?'selected':''}>${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}</select></label><label>Data comemorativa<select id="e_t">${Object.keys(TEMAS).map(k=>`<option value="${k}" ${k==e.tema?'selected':''}>${esc(TEMAS[k][0])}</option>`).join('')}</select></label><label>Mensagem (até 140 letras)<textarea id="e_m" rows="3" maxlength="140" data-d="${esc(t[1])}">${esc(e.msg||t[1])}</textarea></label><label>Mostrar até (opcional)<input id="e_a" type="date" value="${esc(e.ate||'')}"></label><p class="sub">Para testar no site, abra o endereço com <b>?esp</b> no final.</p><button class="btn pri full" data-a="espsave">${e.on?'Atualizar e ativar':'Ativar no site'}</button>`:`<p class="sub">Crie e ative um cupom primeiro.</p>`)+`<button class="btn full" data-a="scancel">Fechar</button>`;$('back').classList.add('open')}
-function espSave(){const c=$('e_c').value,t=$('e_t').value,m=$('e_m').value.trim().slice(0,140),a=$('e_a').value,cp=CUP.find(x=>x.code==c);
- if(!cp||cp.ativo===false)return toast('Escolha um cupom ativo');if(!m)return toast('Escreva a mensagem');if(!TEMAS[t])return;
+function espSheet(){CURO=null;const cs=CUP.filter(c=>c.ativo!==false),e=ES,t=TEMAS[e.tema]||TEMAS.geral,novo=!cs.length;
+ $('sheet').innerHTML=`<h3>🎉 Cupom especial</h3><p class="sub">Aparece uma única vez para cada cliente, na primeira vez que ele abre o cardápio, com a animação da data.</p><label>Cupom<select id="e_c">${cs.map(c=>`<option value="${esc(c.code)}" ${c.code==e.code?'selected':''}>${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}<option value="__novo" ${novo?'selected':''}>✏️ Criar meu próprio desconto…</option></select></label><div id="e_n" style="display:${novo?'block':'none'}"><div class="two"><label>Tipo<select id="e_nt"><option value="pct">% de desconto</option><option value="fixo">R$ de desconto</option><option value="frete">Frete grátis</option></select></label><label>Valor<input id="e_nv" type="number" min="0" step="0.5" value="10"></label></div><label>Pedido mínimo em R$ (0 = sem mínimo)<input id="e_nm" type="number" min="0" value="0"></label><label>Código (opcional, vazio = gerar sozinho)<input id="e_nk" maxlength="20" autocapitalize="characters"></label><p class="sub" id="e_np"></p></div><label>Data comemorativa<select id="e_t">${Object.keys(TEMAS).map(k=>`<option value="${k}" ${k==e.tema?'selected':''}>${esc(TEMAS[k][0])}</option>`).join('')}</select></label><label>Mensagem (até 140 letras)<textarea id="e_m" rows="3" maxlength="140" data-d="${esc(t[1])}">${esc(e.msg||t[1])}</textarea></label><label>Mostrar até (opcional)<input id="e_a" type="date" value="${esc(e.ate||'')}"></label><p class="sub">Para testar no site, abra o endereço com <b>?esp</b> no final. Se criar um desconto próprio, o cupom também vence na data de “Mostrar até”.</p><button class="btn pri full" data-a="espsave">${e.on?'Atualizar e ativar':'Ativar no site'}</button><button class="btn full" data-a="scancel">Fechar</button>`;$('back').classList.add('open');espPrev()}
+function espPrev(){const s=$('e_c');if(!s)return;const n=s.value=='__novo',b=$('e_n');if(b)b.style.display=n?'block':'none';const p=$('e_np');if(n&&p)p.textContent='👁 '+cdesc({tipo:$('e_nt').value,valor:+$('e_nv').value||0,min:+$('e_nm').value||0,ate:$('e_a').value})}
+['input','change'].forEach(ev=>document.addEventListener(ev,e=>{const i=e.target.id;if(i=='e_c'||i=='e_nt'||i=='e_nv'||i=='e_nm'||i=='e_a')espPrev()}));
+function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.trim().slice(0,140),a=$('e_a').value;
+ if(!m)return toast('Escreva a mensagem');if(!TEMAS[t])return;
+ let nc=null;
+ if(c=='__novo'){const tp=$('e_nt').value,vl=+$('e_nv').value||0,mn=+$('e_nm').value||0;
+  if(!['pct','fixo','frete'].includes(tp))return;
+  if(tp!='frete'&&!(vl>0))return toast('Informe o valor do desconto');
+  if(tp=='pct'&&vl>100)return toast('Porcentagem máxima: 100');
+  c=$('e_nk').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!c){do{c='ESP'+Math.random().toString(36).slice(2,6).toUpperCase()}while(c.length<7||CUP.some(x=>x.code==c))}
+  else if(!/^[A-Z0-9]{3,20}$/.test(c))return toast('Código: 3 a 20 letras ou números');
+  if(CUP.some(x=>x.code==c))return toast('Esse código já existe');
+  nc={code:c,tipo:tp,valor:tp=='frete'?0:vl,min:mn,ate:a,ativo:true}}
+ else{const cp=CUP.find(x=>x.code==c);if(!cp||cp.ativo===false)return toast('Escolha um cupom ativo')}
  const o={on:true,code:c,tema:t,msg:m,ate:a,v:Date.now()};
- espW(o).then(()=>{ES=o;$('back').classList.remove('open');view();toast('Cupom especial no ar')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ const go=nc?setDoc(doc(db,'cupons',c),{json:JSON.stringify(cj(nc))}).then(()=>{CUP=CUP.filter(x=>x.code!=c).concat(nc)}):Promise.resolve();
+ go.then(()=>espW(o)).then(()=>{ES=o;$('back').classList.remove('open');view();toast('Cupom especial no ar')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
 function espOff(){const o={...ES,on:false};espW(o).then(()=>{ES=o;view();toast('Aviso desligado')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
 let AC=null;
 function audio(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch(e){}return AC}

@@ -347,8 +347,9 @@ async function showEsp(base, e) {
     const today = new Date().toLocaleDateString('sv-SE');
     if (e.ate && today > e.ate) return;
     const k = [e.code, e.tema, e.v].join('|'), test = /[?&]esp/.test(location.search);
-    let seen = {}; try { seen = JSON.parse(localStorage.getItem('avl_esp') || '{}'); } catch (x) {}
-    if (!test && seen.k === k && seen.d === today) return;
+    let old = {}, SEEN = {}; try { old = JSON.parse(localStorage.getItem('avl_esp') || '{}'); } catch (x) {} try { SEEN = JSON.parse(localStorage.getItem('avl_esp2') || '{}') || {}; } catch (x) {}
+    if (!test && (SEEN[k] || old.k === k || (window.__espSeen || {})[k])) return;
+    (window.__espSeen = window.__espSeen || {})[k] = 1;
     const r = await fetch(base + '/cupons/' + e.code, { cache: 'no-store' }); if (!r.ok) return;
     const c = JSON.parse((await r.json()).fields.json.stringValue);
     if (c.ativo === false || (c.ate && today > c.ate)) return;
@@ -362,10 +363,10 @@ async function showEsp(base, e) {
     card.append(mk('div', 'espi', em[0]), mk('h3', '', th[2]), mk('p', '', String(e.msg || '').slice(0, 140)), mk('div', 'espk', e.code), cp, x);
     bd.append(pp, card); document.body.appendChild(bd);
     requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('on')));
-    try { localStorage.setItem('avl_esp', JSON.stringify({ k, d: today })); } catch (y) {}
+    if (!test) { SEEN[k] = Date.now(); try { Object.keys(SEEN).sort((a, b) => SEEN[b] - SEEN[a]).slice(30).forEach(q => delete SEEN[q]); localStorage.setItem('avl_esp2', JSON.stringify(SEEN)); } catch (y) {} }
   } catch (x) {}
 }
-async function loadCloud() {
+async function loadCloud(skipEsp) {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
   const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
   let txt;
@@ -375,7 +376,7 @@ async function loadCloud() {
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
   } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
   CLOUD_BASE = base; applyData(JSON.parse(txt));
-  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
+  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp && !skipEsp) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
   showEta(); return base;
 }
 function loadPhotos(base) {
@@ -751,6 +752,36 @@ document.addEventListener('keydown', e => {
   buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
   if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
   render(); updateCart();
+})();
+
+/* Ao reabrir o navegador/aba, atualiza o cardápio sozinho (sem precisar forçar a atualização) */
+(function () {
+  var hiddenAt = 0, busy = false;
+  function overlayOpen() { return !!document.querySelector('.page.open,.sheet-back.open,.back.open'); }
+  function swCheck() { try { if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {}); } catch (e) {} }
+  async function refresh() {
+    if (busy || !CLOUD_BASE || overlayOpen()) return;
+    busy = true;
+    try {
+      var before = JSON.stringify(CATS);
+      await loadCloud(true);
+      if (JSON.stringify(CATS) !== before) buildTabs();
+      applyHours(); checkOpen(); render(); updateCart(); loadPhotos(CLOUD_BASE);
+    } catch (e) {} finally { busy = false; }
+  }
+  function back(persisted) {
+    var away = hiddenAt ? Date.now() - hiddenAt : 0; hiddenAt = 0;
+    swCheck();
+    if (away > 20 * 60 * 1000 && !overlayOpen()) { location.reload(); return; }
+    if (persisted || away > 30 * 1000) refresh();
+  }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) hiddenAt = Date.now(); else back(false); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) back(true); });
+  window.addEventListener('online', function () { refresh(); });
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    var rl = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (rl || overlayOpen()) return; rl = true; location.reload(); });
+  }
 })();
 </script>
 <script>
