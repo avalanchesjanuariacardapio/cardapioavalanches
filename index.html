@@ -27,6 +27,8 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .app::before{content:"";position:absolute;left:0;right:0;top:0;height:560px;background:radial-gradient(420px 420px at 100% 28%,rgba(255,106,0,.17),transparent 70%);pointer-events:none}
 .cover{height:calc(clamp(96px,27vw,132px) + env(safe-area-inset-top,0px));background:radial-gradient(circle at 80% 20%,rgba(255,106,0,.55),transparent 55%),linear-gradient(135deg,#1c1c1c,#050505);position:relative;overflow:hidden}
 .cover img{width:100%;height:100%;object-fit:cover;display:block;animation:zoom 1.6s ease-out both}
+.cover img,#logoImg{opacity:0;transition:opacity .45s ease}
+.cover img.ready,#logoImg.ready{opacity:1}
 .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--bg))}
 .id{display:flex;gap:14px;align-items:flex-end;padding:0 18px;margin-top:-48px;position:relative;z-index:1}
 .id>div{padding-bottom:4px}
@@ -304,7 +306,14 @@ function buildTabs() {
 }
 let PHOTOS = {}, LOJAIMGS = [], PRAZO = 40;
 function showEta() { el('etaText').textContent = '~' + PRAZO + ' min'; el('etaChip').style.display = ''; }
-const imgSrc = it => !it.image ? 'logo.jpeg' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || 'logo.jpeg') : encodeURI(it.image);
+const TP = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const showImg = (i, u) => {
+  i.style.display = '';
+  if (i.getAttribute('src') === u && i.complete && i.naturalWidth) { i.classList.add('ready'); return; }
+  i.classList.remove('ready'); i.addEventListener('load', () => i.classList.add('ready'), { once: true }); i.src = u;
+};
+const revealSlots = () => ['coverImg', 'logoImg'].forEach(id => { const i = document.getElementById(id), u = i && i.getAttribute('src'); if (u && !i.classList.contains('ready')) showImg(i, u); });
+const imgSrc = it => !it.image ? 'logo.jpeg' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || TP) : encodeURI(it.image);
 async function refreshEta() {
   if (!CLOUD_BASE || document.hidden) return;
   try { const r = await fetch(CLOUD_BASE + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r.ok) { const f = (await r.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || PRAZO; showEta(); } } catch (e) {}
@@ -327,12 +336,13 @@ function loadPhotos(base) {
   [...ITEMS, ...LOJAIMGS].forEach(it => {
     if (!(it.image || '').startsWith('cloud:')) return;
     const v = it.image.slice(6), c = cache[it.id];
-    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll('[data-pid="' + CSS.escape(String(it.id)) + '"]').forEach(i => { i.src = d; i.style.display = ''; }); };
+    const sel = '[data-pid="' + CSS.escape(String(it.id)) + '"]';
+    const show = d => { PHOTOS[it.id] = d; document.querySelectorAll(sel).forEach(i => showImg(i, d)); };
     if (c && c.v === v) return show(c.d);
-    fetch(`${base}/fotos/${it.id}`).then(r => r.json()).then(j => {
+    fetch(`${base}/fotos/${it.id}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
       try { localStorage.setItem('avl_photos', JSON.stringify(cache)); } catch (e) {}
-    }).catch(() => {});
+    }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo.jpeg' : u); }); });
   });
 }
 let POSTER_ON = false;
@@ -355,8 +365,10 @@ function applyData(d) {
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
   LOJAIMGS = [];
   [['perfil', 'logoImg'], ['capa', 'coverImg'], ['poster', 'posterImg']].forEach(([k, id]) => {
-    const v = l[k]; if (!v) return; LOJAIMGS.push({ id: '_' + k, image: v });
-    if (!v.startsWith('cloud:')) { const i = document.getElementById(id); i.src = encodeURI(v); i.style.display = ''; }
+    const v = l[k], i = document.getElementById(id);
+    if (!v) { const u = i.getAttribute('src'); if (u) showImg(i, u); return; }
+    LOJAIMGS.push({ id: '_' + k, image: v });
+    if (!v.startsWith('cloud:')) showImg(i, encodeURI(v));
   });
   CATS = {}; EXTRA = [];
   (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
@@ -681,7 +693,9 @@ document.addEventListener('keydown', e => {
 });
 
 (async () => {
+  setTimeout(revealSlots, 8000);
   let base; try { base = await loadCloud(); } catch (e) {}
+  if (!base) revealSlots();
   buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
   if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
   render(); updateCart();
