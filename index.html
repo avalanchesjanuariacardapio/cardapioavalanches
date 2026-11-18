@@ -603,6 +603,36 @@ function cupRead() {
   try { const m = document.cookie.match(/(?:^|; )avl_cu=([^;]*)/); if (m) b = JSON.parse(decodeURIComponent(m[1])) || {}; } catch (e) {}
   return Object.assign({}, b, a);
 }
+/* Trava no servidor: coleção cupom_usos, 1 documento por cupom+versão+telefone. Só dá para CRIAR (nunca apagar/alterar). */
+let ORDER_CP = null, CHK = false;
+const cuKey = (code, rev, fone) => code + '_' + (rev || '0') + '_' + fone;
+function cupPend(k, v) {
+  let p = {}; try { p = JSON.parse(localStorage.getItem('avl_cup_pend') || '{}') || {}; } catch (e) {}
+  if (v === undefined) return p[k] || '';
+  if (v) p[k] = v; else delete p[k];
+  try { localStorage.setItem('avl_cup_pend', JSON.stringify(p)); } catch (e) {}
+}
+/* 'livre' | 'usado' | 'erro' ; oid = pedido atual (um novo envio do MESMO pedido não conta como reuso) */
+async function cupSrvGet(k, oid) {
+  try {
+    const r = await fetch(FS_BASE + '/cupom_usos/' + encodeURIComponent(k), { cache: 'no-store' });
+    if (r.status === 404) return 'livre';
+    if (!r.ok) return 'erro';
+    const d = await r.json(), o = d.fields && d.fields.o ? d.fields.o.stringValue : '';
+    return (oid && (o === oid || (cupPend(k) && o === cupPend(k)))) ? 'livre' : 'usado';
+  } catch (e) { return 'erro'; }
+}
+async function cupSrvClaim(k, oid) {
+  cupPend(k, oid);
+  try {
+    const r = await fetch(FS_BASE + '/cupom_usos?documentId=' + encodeURIComponent(k), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { t: { integerValue: String(Date.now()) }, o: { stringValue: oid } } }) });
+    if (r.ok) return 'livre';
+    if (r.status === 409 || r.status === 403) return await cupSrvGet(k, oid); // já existe: é o meu próprio envio ou de outro pedido?
+    return 'erro';
+  } catch (e) { return 'erro'; }
+}
 function cupUsed(code, rev) { const u = cupRead(); return Object.prototype.hasOwnProperty.call(u, code) && String(u[code]) === String(rev || ''); }
 function cupMark(code, rev) {
   const u = cupRead(); u[code] = String(rev || '');
@@ -696,26 +726,42 @@ let SENDING = false;
 async function sendWa() {
   if (!ORDER || SENDING) return;
   SENDING = true;
-  const o = ORDER, cpn = (COUPON && COUPON.code === o.cupom) ? COUPON : null, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, btns = [el('confirmBtn'), el('btnSendPixWa')];
+  const o = ORDER, cp = (ORDER_CP && ORDER_CP.code === o.cupom) ? ORDER_CP : null, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, btns = [el('confirmBtn'), el('btnSendPixWa')];
   btns.forEach(b => b.disabled = true);
   showToast('Registrando seu pedido…');
+  if (o.cupom) {
+    const ck = cuKey(o.cupom, cp ? cp.rev : '', o.fone), st = await cupSrvClaim(ck, o.id);
+    if (st !== 'livre') {
+      SENDING = false; btns.forEach(b => b.disabled = false);
+      if (st === 'usado') { ORDER = null; COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este telefone já usou este cupom.'; updateCart(); el('pixModal').classList.remove('open'); return showToast('Este telefone já usou este cupom. Confira o total.'); }
+      return showToast('Não foi possível validar o cupom agora. Tente de novo.');
+    }
+  }
   const ok = await postOrder(o);
   SENDING = false; btns.forEach(b => b.disabled = false);
   if (!ok) return showToast('Não conseguimos registrar o pedido. Confira a internet e tente de novo.');
   ORDER = null;
-  if (o.cupom) cupMark(o.cupom, cpn ? cpn.rev : '');
+  if (o.cupom) { cupMark(o.cupom, cp ? cp.rev : ''); cupPend(cuKey(o.cupom, cp ? cp.rev : '', o.fone), ''); }
   notifyNtfy(o); if (window.saveClient) saveClient(o);
   if (!window.open(url, '_blank')) location.href = url;
   el('couponMsg').style.color = '';
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
   showToast('Pedido enviado! Finalize no WhatsApp.');
 }
-el('confirmBtn').onclick = () => {
+el('confirmBtn').onclick = async () => {
+  if (CHK) return;
   if (!IS_OPEN) return closedMsg();
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
   if (COUPON && cupUsed(COUPON.code, COUPON.rev)) { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Você já usou este cupom neste aparelho.'; updateCart(); return showToast('Este cupom já foi usado neste aparelho. Confira o total.'); }
   if (!validate()) return;
+  ORDER_CP = null;
+  if (COUPON) {
+    CHK = true; const k0 = cuKey(COUPON.code, COUPON.rev, '55' + phoneDigits()), st = await cupSrvGet(k0, ''); CHK = false;
+    if (st === 'usado') { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este telefone já usou este cupom.'; updateCart(); return showToast('Este telefone já usou este cupom. Confira o total.'); }
+    if (st === 'erro') return showToast('Não foi possível validar o cupom agora. Tente de novo.');
+    ORDER_CP = { code: COUPON.code, rev: COUPON.rev };
+  }
   const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
   const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), ph = phoneDigits(), g2 = parseFloat(el('cashGiven').value);
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
