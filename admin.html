@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex"><title>Painel do Cardápio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="manifest" href="admin.webmanifest"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#0b0b0c"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Painel">
+<link rel="manifest" href="admin.webmanifest"><link rel="icon" type="image/png" href="logo-app.png"><link rel="apple-touch-icon" href="logo-app.png"><meta name="theme-color" content="#0b0b0c"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Painel">
 <style>
 :root{color-scheme:dark;--o:#ff6a00;--o2:#ffa04d;--bg:#09090b;--s1:#131316;--s2:#1c1c21;--g:rgba(255,255,255,.05);--l:rgba(255,255,255,.08);--t:#f5f3f0;--m:#9a958e;--ok:#34d399;--bad:#ff5d52;--e:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -203,9 +203,8 @@ input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
   box-shadow:0 12px 34px -26px #000;
  }
  .top>div:first-child{display:flex;align-items:center;gap:14px}
- .top .mark{display:none;width:38px;height:38px;border-radius:12px;flex:none;
-  background:linear-gradient(145deg,#ffb066,#ff6a00 70%,#e85c00);color:#1a0d00;
-  align-items:center;justify-content:center;font-size:20px;box-shadow:0 8px 20px -8px rgba(255,106,0,.9)}
+ .top .mark{display:none;width:40px;height:40px;border-radius:12px;flex:none;object-fit:cover;
+  background:#1a1a1f;box-shadow:0 6px 18px -8px rgba(255,106,0,.8),0 1px 0 rgba(255,255,255,.12) inset}
  h1{font-size:20px;font-weight:800;letter-spacing:-.035em}
  .sub{font-size:12.5px;color:var(--m);letter-spacing:0;margin-top:1px}
  #live{display:flex;align-items:center;gap:8px}
@@ -306,7 +305,8 @@ input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
  /* ---- Login ---- */
  .login{margin-top:6vh}
  .login .card{max-width:400px;margin:0 auto;padding:32px 26px;text-align:center}
- .login img{width:70px;height:70px;border-radius:20px;margin:0 auto}
+ .login img{width:84px;height:84px;border-radius:22px;margin:0 auto;display:block;object-fit:cover;
+  box-shadow:0 16px 34px -12px rgba(255,106,0,.75),0 1px 0 rgba(255,255,255,.14) inset}
  .login h2{font-size:23px;font-weight:800;letter-spacing:-.04em}
  .login label{text-align:left;margin-top:16px}
  .login .btn{margin-top:20px}
@@ -334,7 +334,7 @@ input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
  /* ---- Mobile-first: se parece com app nativo ---- */
  .top{padding-left:max(18px,calc((100% - 560px)/2));padding-right:max(18px,calc((100% - 560px)/2))}
  .wrap{max-width:560px;padding-left:16px;padding-right:16px;padding-bottom:calc(130px + env(safe-area-inset-bottom))}
- .top .mark{display:flex}
+ .top .mark{display:block}
  /* Bottom nav com área segura e toque confortável */
  .nav{
   bottom:0;left:0;right:0;width:100%;transform:none;
@@ -385,7 +385,7 @@ input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
  }
 </style></head><body>
 <div id="toasts"></div>
-<header class="top"><div><span class="mark">🍔</span><div><h1 id="ttl">Painel</h1><p class="sub" id="hs"></p></div></div><div id="live"></div></header><div class="wrap"><div id="main"></div></div>
+<header class="top"><div><img class="mark" src="logo-app.png" alt="Logo da loja"><div><h1 id="ttl">Painel</h1><p class="sub" id="hs"></p></div></div><div id="live"></div></header><div class="wrap"><div id="main"></div></div>
 <nav class="nav"><div id="nav"></div></nav>
 <div id="nov"></div><div class="pbar" id="pubbar"></div><div class="back" id="back"><div class="sheet" id="sheet"></div></div><div id="ticket" aria-hidden="true"></div>
 <script type="module">
@@ -430,7 +430,7 @@ function nav(){
  document.querySelector('nav').style.display='';
  const ini=user&&user.email?esc(user.email.trim().slice(0,1).toUpperCase()):'?';
  const nome=user&&user.email?esc(user.email.split('@')[0]):'Administrador';
- $('nav').innerHTML='<div class="brand"><div class="lg">🍔</div><div><b>'+esc(D.loja&&D.loja.nome||'Avalanches')+'</b><small>Painel administrativo</small></div></div>'
+ $('nav').innerHTML='<div class="brand"><img class="lg" src="logo-app.png" alt=""><div><b>'+esc(D.loja&&D.loja.nome||'Avalanches')+'</b><small>Painel administrativo</small></div></div>'
   +TABS.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${tab==t[0]?'on':''}${t[0]=='loja'&&dirty?' dot':''}"><b>${t[1]}</b>${t[2]}${t[0]=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}</button>`).join('')
   +'<div class="usebar"><div class="av">'+ini+'</div><div class="u"><b>'+nome+'</b><small>Administrador</small></div><button data-a="out" title="Sair">⏻</button></div>';
 }
@@ -908,7 +908,7 @@ async function publish(){
   dirty=false;localStorage.removeItem('avl_dirty');try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}toast('Publicado! Já está no ar.')
  }catch(e){toast('Erro ao publicar: '+(e.code||e.message))}
  view()}
-function login(){document.querySelector('nav').style.display='none';$('pubbar').innerHTML='';$('ttl').textContent='Painel';$('hs').textContent='';$('live').innerHTML='';$('main').classList.add('in');$('main').innerHTML='<div class="card login"><img src="icon.svg" alt=""><h2>Bem-vindo de volta</h2><p class="sub" style="margin-bottom:18px">Entre para gerenciar pedidos e cardápio.</p><label>E-mail<input id="em" type="email" autocomplete="username" placeholder="seu@email.com"></label><label>Senha<input id="pw" type="password" autocomplete="current-password" placeholder="••••••••"></label><button class="btn pri full" data-a="login">Entrar</button></div>'}
+function login(){document.querySelector('nav').style.display='none';$('pubbar').innerHTML='';$('ttl').textContent='Painel';$('hs').textContent='';$('live').innerHTML='';$('main').classList.add('in');$('main').innerHTML='<div class="card login"><img src="logo-app.png" alt="Logo da loja"><h2>Bem-vindo de volta</h2><p class="sub" style="margin-bottom:18px">Entre para gerenciar pedidos e cardápio.</p><label>E-mail<input id="em" type="email" autocomplete="username" placeholder="seu@email.com"></label><label>Senha<input id="pw" type="password" autocomplete="current-password" placeholder="••••••••"></label><button class="btn pri full" data-a="login">Entrar</button></div>'}
 if(!ok){document.querySelector('nav').style.display='none';$('main').innerHTML='<div class="card"><h3>Falta configurar</h3><p class="sub">Cole os dados do seu projeto Firebase no começo do arquivo admin.html (onde está COLE_AQUI).</p></div>'}
 else onAuthStateChanged(auth,async u=>{
  user=u;
