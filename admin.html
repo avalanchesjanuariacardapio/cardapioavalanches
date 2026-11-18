@@ -11,7 +11,7 @@
  --l:rgba(255,255,255,.08);--l2:rgba(255,255,255,.14);--t:#f7f5f2;--m:#918c85;
  --ok:#34d399;--ok2:#1c8a63;--bad:#ff5d52;--warn:#fbbf24;--info:#60a5fa;
  --r:18px;--rs:13px;--sh:0 1px 0 rgba(255,255,255,.05) inset,0 18px 40px -26px #000;
- --e:cubic-bezier(.22,.9,.3,1)}
+ --e:cubic-bezier(.4,0,.2,1)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{min-height:100dvh}
@@ -24,8 +24,8 @@ body>*{position:relative}
 #toasts{position:fixed;top:calc(12px + env(safe-area-inset-top));left:0;right:0;z-index:120;
  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 16px}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer;-webkit-appearance:none;border:0;background:none;transition:transform .18s var(--e),background .22s,border-color .22s,opacity .2s}
-button:active{transform:scale(.97)}
+button{cursor:pointer;-webkit-appearance:none;border:0;background:none;transition:transform .24s var(--e),background .26s,border-color .26s,opacity .24s}
+button:active{transform:scale(.975)}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--o2);outline-offset:2px}
 a{color:var(--o2)}
 ::selection{background:rgba(255,106,0,.35)}
@@ -66,7 +66,7 @@ h1{font-size:20px;font-weight:800;letter-spacing:-.035em;margin:0;line-height:1.
 
 /* ---------- Conteúdo ---------- */
 .wrap{max-width:600px;margin:0 auto;padding:16px 14px calc(34px + env(safe-area-inset-bottom))}
-#main.in>*{animation:riseIn .45s var(--e) both}
+#main.in>*{animation:riseIn .52s var(--e) both}
 #main.in>:nth-child(2){animation-delay:.04s}#main.in>:nth-child(3){animation-delay:.08s}
 #main.in>:nth-child(n+4){animation-delay:.12s}
 @keyframes riseIn{from{opacity:0;transform:translateY(12px) scale(.995)}}
@@ -131,7 +131,7 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  margin:0;padding:0;border-radius:99px;background:#3a3a42;border:0;position:relative;flex:none;transition:background .25s;touch-action:manipulation}
 .sw:checked{background:var(--ok)}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;
- box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .25s var(--e)}
+ box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .3s var(--e)}
 .sw:checked::after{transform:translateX(18px)}
 .hd{touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;width:30px;height:48px;display:flex;
  align-items:center;justify-content:center;color:var(--m);flex:none;margin-left:-8px}
@@ -185,7 +185,7 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 
 /* ---------- Navegação: só menu de 3 pontinhos (mobile) e sidebar (desktop) ---------- */
 @keyframes pop{from{transform:scale(.3)}}
-.pbar{position:fixed;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom));padding:0 14px;z-index:55;animation:riseIn .35s var(--e)}
+.pbar{position:fixed;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom));padding:0 14px;z-index:55;animation:riseIn .44s var(--e)}
 .pbar .btn{max-width:600px;margin:0 auto;box-shadow:0 14px 30px -8px rgba(255,106,0,.7)}
 .side{display:none}
 
@@ -229,20 +229,20 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 .back{position:fixed;inset:0;z-index:80;display:none;align-items:flex-end;justify-content:center;
  background:rgba(4,4,6,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .back.open,.back.closing{display:flex}
-.back.open{animation:fade .22s}
-.back.closing{animation:fadeOut .24s var(--e) forwards}
+.back.open{animation:fade .28s}
+.back.closing{animation:fadeOut .3s var(--e) forwards}
 .sheet{background:linear-gradient(165deg,#22222a,#15151a);border:1px solid var(--l);border-bottom:0;width:100%;max-width:640px;
  max-height:93dvh;overflow:auto;border-radius:26px 26px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));
  overscroll-behavior:contain;box-shadow:0 -24px 60px -20px #000}
-.back.open .sheet{animation:sheetUp .38s var(--e)}
+.back.open .sheet{animation:sheetUp .46s var(--e);will-change:transform,opacity}
 @keyframes fade{from{opacity:0}}
 @keyframes fadeOut{to{opacity:0}}
 @keyframes sheetUp{from{transform:translateY(100%);opacity:.6}}
 @keyframes sheetDown{to{transform:translateY(100%);opacity:.4}}
 @keyframes drawerIn{from{transform:translateX(-100%);opacity:.6}}
 @keyframes drawerOut{to{transform:translateX(-100%);opacity:.4}}
-.back.closing .sheet{animation:sheetDown .26s var(--e) forwards}
-.back.side-mode.closing .sheet{animation:drawerOut .28s var(--e) forwards}
+.back.closing .sheet{animation:sheetDown .34s var(--e) forwards}
+.back.side-mode.closing .sheet{animation:drawerOut .36s var(--e) forwards}
 /* Cabeçalho unificado: alça arrastável + voltar + fechar */
 .shandle{position:relative;display:block;width:100%;height:26px;margin:-4px 0 6px;
  cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -261,7 +261,7 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  border-radius:0;border-left:0;border-bottom:0;border-top:0;
  padding:calc(12px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
  box-shadow:30px 0 70px -20px #000}
-.back.side-mode.open .sheet{animation:drawerIn .34s var(--e)}
+.back.side-mode.open .sheet{animation:drawerIn .44s var(--e);will-change:transform,opacity}
 /* Recorte: foto limitada à tela e botões sempre enquadrados */
 .cropback .sheet{display:flex;flex-direction:column;max-height:100dvh;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
 .cropback #cv{max-width:100%;margin:0 auto 10px}
@@ -277,7 +277,7 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 .toast{position:relative;max-width:100%;background:linear-gradient(135deg,#26262e,#1b1b21);color:var(--t);
  border:1px solid var(--l2);font-size:13.5px;font-weight:650;padding:12px 16px;border-radius:14px;
  box-shadow:0 18px 42px -12px #000,0 1px 0 rgba(255,255,255,.07) inset;display:flex;align-items:center;gap:9px;
- animation:toastIn .38s var(--e);pointer-events:auto}
+ animation:toastIn .44s var(--e);pointer-events:auto}
 #toasts .toast{width:auto;max-width:420px}
 @keyframes toastIn{from{opacity:0;transform:translateY(-16px) scale(.96)}}
 .toast.ok{border-color:rgba(52,211,153,.4)}.toast.ok b{color:var(--ok)}
@@ -287,10 +287,10 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 
 /* ---------- Banner de novo pedido ---------- */
 #nov{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:90;display:none;justify-content:center;pointer-events:none}
-#nov.on{display:flex;animation:fade .2s}
+#nov.on{display:flex;animation:fade .26s}
 #nov .nv{pointer-events:auto;width:100%;max-width:560px;background:linear-gradient(180deg,#25252c,#1a1a1f);
  border:1px solid rgba(255,106,0,.55);border-radius:20px;padding:14px;box-shadow:0 18px 40px -12px #000;backdrop-filter:blur(18px)}
-#nov.on .nv{animation:novIn .4s var(--e)}
+#nov.on .nv{animation:novIn .46s var(--e)}
 @keyframes novIn{from{opacity:0;transform:translateY(-20px) scale(.97)}}
 #nov .nvh{display:flex;align-items:flex-start;gap:10px}#nov .nvh .n{flex:1;min-width:0}
 #nov .nvh b{display:block;font-weight:750}#nov .nvh small{display:block;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -438,7 +438,7 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 </style>
 </head><body>
 <aside class="side" id="side"></aside><div id="toasts"></div>
-<header class="top"><button class="topback" id="topback" data-a="topback" aria-label="Voltar" title="Voltar"></button><div class="ttlbox"><h1 id="ttl">Painel</h1><p class="sub" id="hs"></p></div><div id="live"></div><button class="dots" id="maisbtn" data-a="more" aria-label="Mais opções" title="Mais opções"></button></header><div class="wrap"><div id="main"></div></div>
+<header class="top"><button class="dots" id="maisbtn" data-a="more" aria-label="Mais opções" title="Mais opções"></button><button class="topback" id="topback" data-a="topback" aria-label="Voltar" title="Voltar"></button><div class="ttlbox"><h1 id="ttl">Painel</h1><p class="sub" id="hs"></p></div><div id="live"></div></header><div class="wrap"><div id="main"></div></div>
 <div id="nov"></div><div class="pbar" id="pubbar"></div><div class="back" id="back"><div class="sheet" id="sheet"></div></div><div id="ticket" aria-hidden="true"></div>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -577,8 +577,10 @@ function closeBack(b){
  b.classList.add('closing');b.classList.remove('open');
  const done=()=>{b.classList.remove('closing','side-mode');if(b.id!=='back')b.remove();CURO=null};
  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){done();return}
- let fim=false,timer,onend=e=>{if(e&&e.target!==b)return;if(fim)return;fim=true;b.removeEventListener('animationend',onend);clearTimeout(timer);done()};
- b.addEventListener('animationend',onend);timer=setTimeout(onend,380);
+ const alvo=s||b;
+ let fim=false,timer,onend=e=>{if(e&&e.target!==alvo)return;if(fim||!b.classList.contains('closing'))return;
+  fim=true;alvo.removeEventListener('animationend',onend);clearTimeout(timer);done()};
+ alvo.addEventListener('animationend',onend);timer=setTimeout(onend,460);
 }
 /* Arrastar a alça fecha a aba: para baixo OU para o lado, nos dois tipos de aba */
 (()=>{
@@ -588,7 +590,7 @@ function closeBack(b){
   if(!on||!sh)return;
   const dx=e.clientX-sx,dy=e.clientY-sy,esq=bk.classList.contains('side-mode'),d=Math.max(esq?-dx:dx,dy),target=bk;
   on=false;
-  if(d>60)closeBack(target);else limpa();
+  if(d>48)closeBack(target);else limpa();
   sh=bk=alca=null;
  };
  document.addEventListener('pointerdown',e=>{
@@ -647,6 +649,7 @@ function moreSheet(){
   +'<div class="mgrid">'+MORETABS.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${tab==t[0]?'on':''}"><i>${t[1]}${t[0]=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}</i><span>${t[2]}<small style="display:block;color:var(--m);font-size:9.5px;font-weight:500;margin-top:2px;letter-spacing:0">${t[3]}</small></span></button>`).join('')+'</div>'
   +`<button class="mfoot" data-a="config"><span class="av">${ini}</span><span class="u"><b>${nome}</b><small>Administrador · Configurações</small></span>${ICO.gear}</button>`;
    openSheet('Menu',true);
+   const alca=$('sheet').querySelector('.shandle');if(alca)alca.remove();
 }
 function fld(l,k,type='text',x=''){return `<label>${l}<input data-f="${k}" type="${type}" value="${esc(D.loja[k])}" ${x}></label>`}
 function hours(k){return `<select data-f="${k}">${[...Array(24).keys()].map(h=>`<option value="${h}" ${D.loja[k]==h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select>`}
@@ -803,13 +806,17 @@ function homeHTML(){
   fat=doDia.filter(o=>o.status!=='cancelado').reduce((a,o)=>a+(+V(o).total||0),0),
   ticket=entregues.length?fat/entregues.length:0,
   totalItens=doDia.reduce((a,o)=>a+(V(o).itens||[]).reduce((x,i)=>x+i.q,0),0),
-  aberta=openNow(),hr=new Date().getHours(),
+  cpDia=doDia.filter(o=>o.status!=='cancelado'&&V(o).cupom),
+  cpEsp=cpDia.filter(o=>isEspK(V(o).cupom)),
+  cpCom=cpDia.filter(o=>!isEspK(V(o).cupom)),
+  somaCup=g=>g.reduce((a,o)=>a+(+V(o).desc||0),0),
+  hr=new Date().getHours(),
   saud=hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite',
   nome=(user&&user.email?user.email.split('@')[0]:'chefe'),
   data=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}),
   atrasados=ativos.filter(o=>dl(o)<Date.now()).length;
 
- return `<div class="hello"><div><h2>${saud}, ${esc(nome)}</h2><p>${esc(data.charAt(0).toUpperCase()+data.slice(1))}</p></div><div class="dia"><b class="status-mini ${aberta?'':'off'}"><i></i>${aberta?'Aberta':'Fechada'}</b>${PRAZO} min de preparo</div></div>
+ return `<div class="hello"><div><h2>${saud}, ${esc(nome)}</h2><p>${esc(data.charAt(0).toUpperCase()+data.slice(1))}</p></div><div class="dia">${PRAZO} min de preparo</div></div>
  <div class="kp" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
   <div class="w"><small>FATURAMENTO HOJE</small><b>${brl(fat)}</b></div>
   <div><small>PEDIDOS HOJE</small><b>${doDia.length}</b></div>
@@ -819,6 +826,11 @@ function homeHTML(){
  ${novos.length?`<div class="card" style="border-color:rgba(255,106,0,.4);background:linear-gradient(150deg,rgba(255,106,0,.12),rgba(255,106,0,.02)),var(--s1);margin-bottom:12px;cursor:pointer" data-a="tab" data-v="pedidos"><h3 style="justify-content:space-between">${ICO.sparkle} ${novos.length} pedido${novos.length>1?'s':''} novo${novos.length>1?'s':''} esperando <span style="font-size:18px">→</span></h3><p class="sub" style="margin:4px 0 0 12px">Toque para aceitar e começar o preparo.</p></div>`:''}
  <div class="sec-title">Resumo do dia</div>
  <div class="card"><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.check}Entregues</span><b>${entregues.length}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.menu}Itens vendidos</span><b>${totalItens}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.close}Cancelados</span><b>${cancelados.length}</b></div></div>
+ <div class="card"><h3>${ICO.cup}Uso de cupons hoje</h3>
+  <div class="lr"><span>${ICO.sparkle}Especiais</span><b>${cpEsp.length} ${cpEsp.length==1?'uso':'usos'}${cpEsp.length?' · −'+brl(somaCup(cpEsp)):''}</b></div>
+  <div class="lr"><span>${ICO.cup}Comuns</span><b>${cpCom.length} ${cpCom.length==1?'uso':'usos'}${cpCom.length?' · −'+brl(somaCup(cpCom)):''}</b></div>
+  <p class="sub" style="margin:8px 0 0">Não conta pedidos cancelados.</p>
+ </div>
  ${dirty?`<div class="card" style="border-color:rgba(251,191,36,.4);margin-top:12px"><p class="sub" style="margin:0">Você tem mudanças no cardápio ainda não publicadas.</p><button class="btn pri full" style="margin-top:10px" data-a="publish">${ICO.pub}Publicar agora</button></div>`:''}`;
 }
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
@@ -1121,8 +1133,8 @@ let lastTab='';
 const TT={home:'Início',cli:'Clientes',rel:'Relatórios',pedidos:'Pedidos',menu:'Cardápio',cup:'Cupons',add:'Adicionais',loja:'Minha loja',pub:'Publicar'};
 const SUB={home:'Seu negócio em um só lugar',cli:'Histórico e fidelização',rel:'Faturamento e vendas',pedidos:'Acompanhe e despache em tempo real',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
 function openNow(){const L=D.loja,h=new Date().getHours(),a=+L.open,c=+L.close;return L.modo=='aberto'?true:L.modo=='fechado'?false:(a<c?(h>=a&&h<c):(h>=a||h<c))}
-function chrome(){$('ttl').textContent=TT[tab]||'';$('hs').textContent=SUB[tab]||'';const o=openNow();$('live').innerHTML='<span class="pill'+(o?'':' off')+'"><i></i>'+(o?'Loja aberta':'Loja fechada')+'</span>';
- if(lastTab!=tab){lastTab=tab;const m=$('main');m.classList.remove('in');void m.offsetWidth;m.classList.add('in');clearTimeout(window._ti);window._ti=setTimeout(()=>m.classList.remove('in'),800);window.scrollTo&&window.scrollTo(0,0)}}
+function chrome(){$('ttl').textContent=TT[tab]||'';$('hs').textContent=SUB[tab]||'';
+ if(lastTab!=tab){lastTab=tab;const m=$('main');m.classList.remove('in');void m.offsetWidth;m.classList.add('in');clearTimeout(window._ti);window._ti=setTimeout(()=>m.classList.remove('in'),800);window.scrollTo&&window.scrollTo({top:0,left:0,behavior:'instant'})}}
 document.addEventListener('keydown',e=>{if(e.key=='Enter'&&$('pw')&&document.activeElement==$('pw')){const b=document.querySelector('[data-a=login]');b&&b.click()}});
 async function pull(){
  if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[]}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
