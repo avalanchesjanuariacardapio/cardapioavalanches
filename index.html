@@ -357,6 +357,10 @@ async function showEsp(base, e) {
     const r = await fetch(base + '/cupons/' + e.code, { cache: 'no-store' }); if (!r.ok) return;
     const c = JSON.parse((await r.json()).fields.json.stringValue);
     if (c.ativo === false || (c.ate && today > c.ate)) return;
+    // Guarda a versão (rev) do cupom especial SEM aplicar o desconto automaticamente.
+    // Assim, se o cliente digitar esse código na sacola, o travamento 1-uso-por-telefone
+    // usa a mesma versão gravada no painel (antes, ficava rev='' e não batia).
+    try { const m = JSON.parse(localStorage.getItem('avl_esp_rev') || '{}'); m[e.code] = String(c.rev || ''); localStorage.setItem('avl_esp_rev', JSON.stringify(m)); } catch (x) {}
     if (!test && cupUsed(e.code, c.rev)) return;
     const em = th[0].split(' '), mk = (t, cls, txt) => { const n = document.createElement(t); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
     const bd = mk('div', 'espb' + (th[1] === 'u' ? ' up' : '')), card = mk('div', 'espc'), pp = mk('div', 'espp');
@@ -796,7 +800,10 @@ async function applyCoupon() {
     if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.');
     if (cupUsed(code, c.rev)) return say('Você já usou este cupom neste aparelho.');
     if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.');
-    COUPON = { code, tipo: c.tipo, valor: +c.valor || 0, min: +c.min || 0, ate: c.ate || '', rev: String(c.rev || '') };
+    // Usa a rev guardada pelo aviso especial, se houver. Isso mantém o ID de uso
+    // (codigo_versao_telefone) igual ao que o painel grava, travando reutilização.
+    let espRev = ''; try { espRev = (JSON.parse(localStorage.getItem('avl_esp_rev') || '{}')[code]) || ''; } catch (x) {}
+    COUPON = { code, tipo: c.tipo, valor: +c.valor || 0, min: +c.min || 0, ate: c.ate || '', rev: String(espRev || c.rev || '') };
     updateCart(); say('Cupom aplicado!', true);
   } catch (e) { say('Não foi possível validar o cupom agora. Tente de novo.'); }
   finally { btn.disabled = false; }
