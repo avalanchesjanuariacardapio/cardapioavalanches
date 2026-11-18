@@ -380,6 +380,67 @@ input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
   .hello h2{font-size:20px}.hello .dia{display:none}
   .card{padding:15px}.kp b{font-size:21px}.kp .w b{font-size:29px}
  }
+ /* ============================================================
+    ACABAMENTO PRO — nav 3 botões, menu, ícones e status elegante
+    ============================================================ */
+ /* Status da loja: dupla animação suave, sem emoji */
+ .pill{min-height:32px;padding:6px 12px 6px 11px}
+ .pill i,.pill i::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);display:block}
+ .pill i{position:relative;animation:statusPulse 2.4s ease-out infinite}
+ .pill i::after{position:absolute;inset:0;animation:statusRing 2.4s ease-out infinite}
+ .pill.off{color:var(--m)}
+ .pill.off i,.pill.off i::after{background:#ff827a;animation:none;box-shadow:none}
+ @keyframes statusPulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.45)}50%{box-shadow:0 0 0 5px rgba(52,211,153,0)}}
+ @keyframes statusRing{0%{transform:scale(1);opacity:.7}80%,100%{transform:scale(2.6);opacity:0}}
+ .status-mini{display:inline-flex;align-items:center;gap:6px;color:var(--ok)}
+ .status-mini i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:statusPulse 2.4s ease-out infinite}
+ .status-mini.off{color:var(--m)}.status-mini.off i{animation:none}
+ .quick button i svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+ .quick button i{background:rgba(255,106,0,.12)}
+ /* Navegação inferior com 3 ações */
+ .nav{max-width:620px;margin:0 auto;width:calc(100% - 16px);left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom));
+  transform:none;border-radius:22px;padding:6px 8px;background:rgba(16,16,20,.94)}
+ .nav>div{gap:4px}
+ .nav button{min-height:54px;padding:7px 0 6px;gap:5px;border-radius:16px}
+ .nav button .lb{font-size:10.5px;letter-spacing:.01em}
+ .nav button svg{width:23px;height:23px;stroke-width:1.9}
+ .nav button.on{background:linear-gradient(180deg,rgba(255,106,0,.24),rgba(255,106,0,.08));color:var(--t)}
+ .nav button.on::before{top:0;width:20px;height:2px;border-radius:0 0 3px 3px}
+ .nav button.on::after{display:none}
+ .nav .bd{top:2px;right:calc(50% - 24px)}
+ .nav .dot::after{top:6px;right:calc(50% - 20px)}
+ /* Menu "Mais": grade de atalhos em sheet */
+ .msub{font-size:12px;color:var(--m);margin:-2px 0 16px}
+ .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+ .mgrid button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  min-height:88px;padding:12px 6px;border-radius:16px;border:1px solid var(--l);
+  background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),var(--s1);
+  color:var(--t);font-size:11.5px;font-weight:650;text-align:center;transition:transform .22s var(--ease),border-color .22s}
+ .mgrid button:hover{transform:translateY(-2px);border-color:rgba(255,106,0,.45)}
+ .mgrid button.on{border-color:rgba(255,106,0,.5);background:linear-gradient(155deg,rgba(255,106,0,.16),rgba(255,106,0,.03)),var(--s1)}
+ .mgrid button i{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,106,0,.12);color:var(--o2);font-style:normal}
+ .mgrid button i svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+ .mfoot{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--l)}
+ .mfoot .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#2b2b34,#1b1b21);border:1px solid var(--l2);color:var(--o2);font-weight:800;font-size:13px;flex:none}
+ .mfoot .u{flex:1;min-width:0}.mfoot .u b{display:block;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mfoot .u small{font-size:10.5px;color:var(--m)}
+ /* Botões de arquivo inteligentes */
+ .filebtn{display:flex!important;align-items:center;gap:11px;text-align:left!important;padding:12px 14px!important;cursor:pointer;min-height:58px}
+ .filebtn i{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;
+  background:rgba(255,106,0,.12);color:var(--o2);font-style:normal}
+ .filebtn i svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+ .filebtn .ft{flex:1;min-width:0}
+ .filebtn .ft b{display:block;font-size:13px;font-weight:700;color:var(--t)}
+ .filebtn .fname{display:block;font-size:10.5px;color:var(--m);font-weight:500;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none;letter-spacing:0}
+ .filebtn.sel{border-color:rgba(52,211,153,.4)}
+ .filebtn.sel .fname{color:var(--ok)}
+ /* Ícones SVG inline */
+ .ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
+ .btn .ico{margin-right:7px}
+ .btn.pri .ico{stroke:#1a0d00}
  @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
  }
@@ -396,6 +457,9 @@ import {getFirestore,doc,getDoc,setDoc,collection,getDocs,deleteDoc,updateDoc,on
 /* Config público do Firebase (a API key de web NÃO é segredo — a segurança vem das regras do Firestore).
    messagingSenderId adicionado para o Firebase Cloud Messaging (notificações push). */
 const FB={apiKey:'AIzaSyBcyQom-ShyWdTxQonV5ZvU1sg-BB3xpEU',authDomain:'avalanches-4a953.firebaseapp.com',projectId:'avalanches-4a953',messagingSenderId:'745988004860',appId:'1:745988004860:web:a3614e5098342e8c683079'};
+/* UID do administrador: pegue na tela "Configure o acesso admin" que aparece
+   ao entrar, e cole AQUI e também no isAdmin() do firestore.rules. */
+const ADMIN_UID='JnZJF7q89bRmJ57RSRDRcHaRNbD2';
 const ok=FB.projectId!=='COLE_AQUI';let auth,db;
 if(ok){const app=initializeApp(FB);auth=getAuth(app);db=getFirestore(app)}
 const KEY='avl_admin_v2';
@@ -424,15 +488,53 @@ function toast(m,kind){
  setTimeout(()=>{t.style.transition='opacity .22s,transform .22s';t.style.opacity='0';t.style.transform='translateY(-10px)';setTimeout(()=>t.remove(),230)},2600);
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast('Memória cheia: use fotos menores')}dirty=true;try{localStorage.setItem('avl_dirty','1')}catch(e){}nav()}
-const TABS=[['home',`<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></svg>`,'Início'],['pedidos',`<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>`,'Pedidos'],['rel',`<svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M3 20h18"/></svg>`,'Relatórios'],['cli',`<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.5c2 .7 3 2.6 3 5.5"/></svg>`,'Clientes'],['menu',`<svg viewBox="0 0 24 24"><path d="M4 11a8 6 0 0 1 16 0z"/><path d="M3 14.5h18"/><path d="M5 18h14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/></svg>`,'Cardápio'],['add',`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>`,'Adicionais'],['cup',`<svg viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>`,'Cupons'],['loja',`<svg viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/></svg>`,'Loja']];
+/* Ícones SVG (sem emoji) — visual consistente em todo o painel */
+const sv=p=>'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
+const ICO={
+ home:sv('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/>'),
+ orders:sv('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
+ more:sv('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'),
+ menu:sv('<path d="M4 11a8 6 0 0 1 16 0z"/><path d="M3 14.5h18"/><path d="M5 18h14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/>'),
+ cup:sv('<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>'),
+ rel:sv('<path d="M4 20V11M10 20V4M16 20v-6M3 20h18"/>'),
+ cli:sv('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.5c2 .7 3 2.6 3 5.5"/>'),
+ add:sv('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
+ loja:sv('<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/>'),
+ pub:sv('<path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>'),
+ out:sv('<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M14 16l4-4-4-4M18 12H9"/>'),
+ camera:sv('<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'),
+ image:sv('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/>'),
+ upload:sv('<path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>'),
+ copy:sv('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
+ edit:sv('<path d="M4 20h4l10-10-4-4L4 16z"/><path d="m14 6 4 4"/>'),
+ plus:sv('<path d="M12 5v14M5 12h14"/>'),
+ trash:sv('<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>'),
+ check:sv('<path d="m5 12 5 5L20 7"/>'),
+ close:sv('<path d="M6 6l12 12M18 6 6 18"/>'),
+ phone:sv('<path d="M6 3h4l2 5-2.5 1.5a12 12 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/>'),
+ map:sv('<path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>'),
+ clock:sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+ alert:sv('<path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17h.01"/>'),
+ receipt:sv('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 9h6M9 13h4"/>'),
+ send:sv('<path d="m3 11 18-8-8 18-2-7z"/><path d="M11 14 21 3"/>'),
+ sparkle:sv('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 2L22 20l-2.3.9L19 23l-.7-2.1L16 20l2.3-.1z"/>')
+};
+const NAV3=[['home',ICO.home,'Início'],['pedidos',ICO.orders,'Pedidos'],['more',ICO.more,'Mais']]; const MORETABS=[['menu',ICO.menu,'Cardápio','Itens, fotos e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['add',ICO.add,'Adicionais','Opcionais dos itens'],['loja',ICO.loja,'Minha loja','Horários e contato'],['pub',ICO.pub,'Publicar','Enviar mudanças']];
 function nav(){
- $('pubbar').innerHTML=dirty?'<button class="btn pri full" data-a="publish">🚀 Publicar mudanças</button>':'';
+ $('pubbar').innerHTML=dirty?`<button class="btn pri full" data-a="publish">${ICO.pub}Publicar mudanças</button>`:'';
  document.querySelector('nav').style.display='';
+ $('nav').innerHTML='<div>'+NAV3.map(t=>{
+  const ativo=t[0]=='more'?!['home','pedidos'].includes(tab):tab==t[0];
+  return `<button data-a="${t[0]=='more'?'more':'tab'}" ${t[0]=='more'?'':`data-v="${t[0]}"`} class="${ativo?'on':''}" aria-label="${t[2]}">${t[1]}<b class="lb">${t[2]}</b>${t[0]=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}</button>`
+ }).join('')+'</div>';
+}
+function moreSheet(){
  const ini=user&&user.email?esc(user.email.trim().slice(0,1).toUpperCase()):'?';
  const nome=user&&user.email?esc(user.email.split('@')[0]):'Administrador';
- $('nav').innerHTML='<div class="brand"><img class="lg" src="logo-app.png" alt=""><div><b>'+esc(D.loja&&D.loja.nome||'Avalanches')+'</b><small>Painel administrativo</small></div></div>'
-  +TABS.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${tab==t[0]?'on':''}${t[0]=='loja'&&dirty?' dot':''}"><b>${t[1]}</b>${t[2]}${t[0]=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}</button>`).join('')
-  +'<div class="usebar"><div class="av">'+ini+'</div><div class="u"><b>'+nome+'</b><small>Administrador</small></div><button data-a="out" title="Sair">⏻</button></div>';
+ $('sheet').innerHTML='<h3>Mais opções</h3><p class="msub">Tudo para cuidar da sua loja.</p>'
+  +'<div class="mgrid">'+MORETABS.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${tab==t[0]?'on':''}"><i>${t[1]}</i><span>${t[2]}<small style="display:block;color:var(--m);font-size:9.5px;font-weight:500;margin-top:2px;letter-spacing:0">${t[3]}</small></span></button>`).join('')+'</div>'
+  +`<div class="mfoot"><div class="av">${ini}</div><div class="u"><b>${nome}</b><small>Administrador</small></div><button class="btn ic" data-a="out" title="Sair" aria-label="Sair">${ICO.out}</button></div>`;
+ $('back').classList.add('open');
 }
 function fld(l,k,type='text',x=''){return `<label>${l}<input data-f="${k}" type="${type}" value="${esc(D.loja[k])}" ${x}></label>`}
 function hours(k){return `<select data-f="${k}">${[...Array(24).keys()].map(h=>`<option value="${h}" ${D.loja[k]==h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select>`}
@@ -441,20 +543,22 @@ function view(){
  nav();let h='';if(tab!='rel'&&repU){repU();repU=null}
  if(tab=='loja')h=profCard()+`<div class="card"><h3>Dados da loja</h3>${fld('Nome da loja','nome')}${fld('WhatsApp dos pedidos (com 55 + DDD)','phone','tel')}<div class="two">${fld('Taxa de entrega (R$)','fee','number','step="0.01" min="0"')}<label>Chave PIX<input data-f="pixKey" value="${esc(D.loja.pixKey)}"></label></div></div>
  
- <div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div class="n" style="flex:1"><b>⏱ Tempo de preparo</b><small class="sub" style="display:block">Aparece no site para os clientes</small></div><button class="btn ic" data-a="pz" data-v="-5">−</button><b style="min-width:56px;text-align:center">${PRAZO} min</b><button class="btn ic" data-a="pz" data-v="5">+</button></div><div class="card"><h3>Horário de funcionamento</h3><div class="two"><label>Abre às${hours('open')}</label><label>Fecha às${hours('close')}</label></div>
+ <div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div class="n" style="flex:1"><b>${ICO.clock}Tempo de preparo</b><small class="sub" style="display:block">Aparece no site para os clientes</small></div><button class="btn ic" data-a="pz" data-v="-5">−</button><b style="min-width:56px;text-align:center">${PRAZO} min</b><button class="btn ic" data-a="pz" data-v="5">+</button></div><div class="card"><h3>Horário de funcionamento</h3><div class="two"><label>Abre às${hours('open')}</label><label>Fecha às${hours('close')}</label></div>
  <label>Situação da loja<select data-f="modo"><option value="auto" ${D.loja.modo=='auto'?'selected':''}>Automática (pelo horário)</option><option value="aberto" ${D.loja.modo=='aberto'?'selected':''}>Forçar ABERTA agora</option><option value="fechado" ${D.loja.modo=='fechado'?'selected':''}>Forçar FECHADA (hoje não abro)</option></select></label></div>`;
- if(tab=='menu'){h=`${posterCard()}<div class="card"><h3>Categorias</h3><p class="sub" style="margin:-6px 0 8px">Segure em ⠿ e arraste para reordenar</p><div data-sort="cat">${D.cats.map((c,i)=>`<div class="row" data-sid="${esc(c.id)}">${GRIP}<div class="n"><input data-c="${i}" data-p="name" value="${esc(c.name)}" style="margin:0"><label class="chk" style="margin:6px 0 0"><input type="checkbox" data-c="${i}" data-p="extras" ${c.extras?'checked':''}>Oferecer adicionais</label></div><button class="btn ic danger" data-a="delcat" data-v="${i}">✕</button></div>`).join('')}</div><button class="btn full" data-a="addcat">＋ Nova categoria</button></div>`;
-  D.cats.forEach(c=>{const l=D.items.filter(i=>i.cat==c.id);h+=`<div class="card"><h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span><span style="display:flex;gap:6px;flex:none"><button class="btn pri" style="min-height:36px;font-size:13px;padding:0 12px" data-a="new" data-v="${esc(c.id)}">＋ Novo item</button><button class="btn" style="min-height:36px;font-size:13px;padding:0 12px" data-a="catpromo" data-v="${esc(c.id)}">🏷 Promoção</button></span></h3><div data-sort="item" data-cat="${esc(c.id)}">${l.map(row).join('')}</div>${l.length?'':'<p class="sub">Nenhum item.</p>'}</div>`})}
+ if(tab=='menu'){h=`${posterCard()}<div class="card"><h3>Categorias</h3><p class="sub" style="margin:-6px 0 8px">Segure em ⠿ e arraste para reordenar</p><div data-sort="cat">${D.cats.map((c,i)=>`<div class="row" data-sid="${esc(c.id)}">${GRIP}<div class="n"><input data-c="${i}" data-p="name" value="${esc(c.name)}" style="margin:0"><label class="chk" style="margin:6px 0 0"><input type="checkbox" data-c="${i}" data-p="extras" ${c.extras?'checked':''}>Oferecer adicionais</label></div><button class="btn ic danger" data-a="delcat" data-v="${i}">✕</button></div>`).join('')}</div><button class="btn full" data-a="addcat">${ICO.plus}Nova categoria</button></div>`;
+  D.cats.forEach(c=>{const l=D.items.filter(i=>i.cat==c.id);h+=`<div class="card"><h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span><span style="display:flex;gap:6px;flex:none"><button class="btn pri" style="min-height:36px;font-size:13px;padding:0 12px" data-a="new" data-v="${esc(c.id)}">${ICO.plus}Novo item</button><button class="btn" style="min-height:36px;font-size:13px;padding:0 12px" data-a="catpromo" data-v="${esc(c.id)}">${ICO.cup}Promoção</button></span></h3><div data-sort="item" data-cat="${esc(c.id)}">${l.map(row).join('')}</div>${l.length?'':'<p class="sub">Nenhum item.</p>'}</div>`})}
  if(tab=='add')h=addH();
- if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>🚀 Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub">${esc(user&&user.email||'')}</p>${ntfBtn()}<button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`;
+ if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>${ICO.pub}Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub">${esc(user&&user.email||'')}</p>${ntfBtn()}<button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`;
  if(tab=='home')h=homeHTML();
  if(tab=='rel'){if(!repU)startRep();h=relHTML()}if(tab=='cli'){if(!CLOAD&&(!CLT||Date.now()-CLT>12e4))loadCli();h=cliHTML()}if(tab=='pedidos')h=pedidosView();if(tab=='cup')h=cupView();if(tab=='loja')h+=pubH();
  $('main').innerHTML=h;chrome();tick()}
-function sheet(){CURO=null;const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Novo item':'Editar item'}</h3><div class="pic" id="pv">${d.image?`<img src="${esc(ps(d))}" onerror="this.remove()">`:'Sem foto'}</div><label class="btn full" style="text-align:center;color:var(--t);margin:0 0 12px">📷 Trocar foto<input type="file" accept="image/*" id="ph" hidden></label>${d.image?'<button class="btn full" data-a="reframe" style="margin:0 0 12px">🔍 Ajustar enquadramento</button>':''}
+/* Botão de arquivo "inteligente": mostra o nome do arquivo escolhido */
+const fb=(id,ico,t,hint)=>`<label class="btn full filebtn" for="${id}"><i>${ico}</i><span class="ft"><b>${t}</b><small class="fname">${hint||'Toque para escolher uma imagem'}</small></span><input type="file" accept="image/*" id="${id}" hidden></label>`;
+function sheet(){CURO=null;const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Novo item':'Editar item'}</h3><div class="pic" id="pv">${d.image?`<img src="${esc(ps(d))}" onerror="this.remove()">`:'Sem foto'}</div>${fb('ph',ICO.camera,'Foto do item',d.image?'Toque para trocar a foto':'Toque para escolher uma foto')}${d.image?`<button class="btn full" data-a="reframe" style="margin:0 0 12px">${ICO.edit}Ajustar enquadramento</button>`:''}
  <label>Nome<input id="s_n" value="${esc(d.name)}"></label><label>Descrição<textarea id="s_d" rows="2">${esc(d.desc)}</textarea></label>
  <div class="two"><label>Preço (R$)<input id="s_p" type="number" step="0.5" min="0" value="${d.price}"></label><label>Categoria<select id="s_c">${D.cats.map(c=>`<option value="${esc(c.id)}" ${c.id==d.cat?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label></div>
  <label class="chk"><input type="checkbox" id="s_a" ${d.ativo!==false?'checked':''}>Disponível no cardápio</label>
- <div class="card" style="margin:14px 0 6px;padding:14px"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="pr_e" ${d.promo?'checked':''}>🔥 Item em promoção</label>
+ <div class="card" style="margin:14px 0 6px;padding:14px"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="pr_e" ${d.promo?'checked':''}>${ICO.cup}Item em promoção</label>
  <div class="two"><label>Tipo<select id="pr_t"><option value="pct" ${!d.promo||d.promo.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${d.promo&&d.promo.tipo=='fixo'?'selected':''}>Preço promocional (R$)</option></select></label><label>Valor<input id="pr_v" type="number" min="0" step="0.5" value="${d.promo?d.promo.valor:''}"></label></div>
  <label>Válida até (vazio = sem prazo)<input id="pr_a" type="date" value="${esc(d.promo&&d.promo.ate||'')}"></label>
  <div class="chp"><button class="btn" data-a="pvd" data-v="0">Só hoje</button><button class="btn" data-a="pvd" data-v="6">7 dias</button><button class="btn" data-a="pvd" data-v="29">30 dias</button><button class="btn" data-a="pvd" data-v="-1">Sem prazo</button></div><p class="sub" id="pr_pv"></p></div>
@@ -462,7 +566,8 @@ function sheet(){CURO=null;const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Nov
 function shrink(f,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,560/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.72))};im.onerror=()=>toast('Foto inválida');im.src=r.result};r.readAsDataURL(f)}
 function move(id,dir){const it=D.items.find(i=>i.id==id),same=D.items.filter(i=>i.cat==it.cat),k=same.indexOf(it),o=same[k+dir];if(!o)return;const a=D.items.indexOf(it),b=D.items.indexOf(o);[D.items[a],D.items[b]]=[D.items[b],D.items[a]];save();view()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v;
- if(a=='tab'){tab=v;view()}
+ if(a=='tab'){if($('back').classList.contains('open')){$('back').classList.remove('open');CURO=null}tab=v;view()}
+ else if(a=='more'){moreSheet()}
  else if(a=='new'){draft={id:uid('i_'),cat:(v&&D.cats.some(c=>c.id==v)?v:D.cats[0]?.id)||'',name:'',desc:'',price:0,image:'',ativo:true,_new:true};sheet()}
  else if(a=='edit'){draft={...D.items.find(i=>i.id==v)};sheet()}
  else if(a=='scancel'){$('back').classList.remove('open');CURO=null}
@@ -483,7 +588,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='rfc')crop(ps({id:'_capa',image:lp('capa')}),2,900,false,r=>{D.loja.capa=r;save();view()});
  else if(a=='rfp')crop(ps({id:'_perfil',image:lp('perfil')}),1,360,true,r=>{D.loja.perfil=r;save();view()});
  else if(a=='st'){const o0=ORD.find(x=>x.id==v),s=b.dataset.s,w=s=='preparo'&&o0?chk(o0):[];
- if((!w.length||confirm('⚠ Este pedido tem divergências:\n\n'+w.join('\n')+'\n\nValor a cobrar pelo cardápio: '+brl(V(o0).total)+'\n\nAceitar mesmo assim?'))&&(s!='cancelado'||confirm('Cancelar este pedido?'))){if(s=='entrega')dispatchMsg(v);$('back').classList.remove('open');CURO=null;
+ if((!w.length||confirm('Atenção: este pedido tem divergências:\n\n'+w.join('\n')+'\n\nValor a cobrar pelo cardápio: '+brl(V(o0).total)+'\n\nAceitar mesmo assim?'))&&(s!='cancelado'||confirm('Cancelar este pedido?'))){if(s=='entrega')dispatchMsg(v);$('back').classList.remove('open');CURO=null;
   const ref=doc(db,'pedidos',v),f=s=='preparo'&&o0?fixOrder(o0):null,er=x=>toast('Erro: '+(x.code||x.message));
   (f&&Math.abs(f.total-o0.o.total)>.05?updateDoc(ref,{status:s,json:JSON.stringify(f)}).catch(()=>updateDoc(ref,{status:s})):updateDoc(ref,{status:s})).catch(er)}}
  else if(a=='newc'){cd={_new:true,code:'',tipo:'pct',valor:10,min:0,ate:'',ativo:true};csheet()}
@@ -516,18 +621,19 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.dataset.atog!==undefined){const ad=D.addons[t.dataset.atog];if(ad){ad.ativo=t.checked;save();t.closest('.row').classList.toggle('off',!t.checked)}}
  else if(t.dataset.tog){const it=D.items.find(i=>i.id==t.dataset.tog);it.ativo=t.checked;save();const r=t.closest('.row');r.classList.toggle('off',!t.checked);r.querySelector('small').textContent=pTxt(it)+(t.checked?'':' · esgotado')+' · toque para editar'}
  else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)));t.closest('.row').classList.toggle('off',!t.checked)}
- else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent='👁 '+cdesc(cd)}
+ else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent=''+cdesc(cd)}
  else if(t.id&&(t.id.startsWith('pr_')||t.id=='s_p')&&draft)promoPrev()
  else if(t.id&&t.id.startsWith('po_')&&D.loja.posterItem)poSave()
  else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save();view()}});
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.type=='file'&&t.files[0]){const l=t.closest('label.filebtn'),n=l&&l.querySelector('.fname');if(n){n.textContent=t.files[0].name;l.classList.add('sel')}}
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
  if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.4,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
  if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
  if(t.id=='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.items||!j.cats||!j.loja)throw 0;D=j;D.addons=D.addons||[];save();view();toast('Cardápio carregado')}catch(x){toast('Arquivo inválido')}};r.readAsText(t.files[0])}});
 $('back').onclick=e=>{if(e.target==$('back')){$('back').classList.remove('open');CURO=null}};
-const ST={novo:'🆕 Novo',preparo:'👨‍🍳 Preparando',entrega:'🛵 Saiu para entrega',entregue:'✅ Entregue',cancelado:'❌ Cancelado'};
-const NEXT={novo:['preparo','Aceitar e preparar'],preparo:['entrega','🛵 Despachar e avisar o cliente'],entrega:['entregue','Marcar como entregue']};
+const ST={novo:'Novo',preparo:'Em preparo',entrega:'Saiu para entrega',entregue:'Entregue',cancelado:'Cancelado'};
+const NEXT={novo:['preparo','Aceitar e preparar'],preparo:['entrega',ICO.send+'Despachar e avisar o cliente'],entrega:['entregue','Marcar como entregue']};
 const san=o=>({nome:String(o.nome||'').slice(0,80),fone:String(o.fone||'').replace(/\D/g,'').slice(0,15),prazo:+o.prazo||0,end:String(o.end||'').slice(0,160),num:String(o.num||'').slice(0,100),loc:/^https:\/\//.test(o.loc)?String(o.loc):'',pag:String(o.pag||'').slice(0,20),troco:+o.troco||0,ant:!!o.ant,cupom:String(o.cupom||'').slice(0,20),desc:+o.desc||0,taxa:+o.taxa||0,total:+o.total||0,itens:(Array.isArray(o.itens)?o.itens:[]).slice(0,40).map(i=>({q:+i.q||1,n:String(i.n||'').slice(0,80),ex:Array.isArray(i.ex)?i.ex.map(x=>String(x).slice(0,40)):[],obs:String(i.obs||'').slice(0,200),p:i.p==null?null:(+i.p||0),ax:+i.ax||0}))});
 const dl=o=>+o.t+((o.o.prazo||PRAZO)+(o.extra||0))*6e4;
 const waNum=d=>{const n=String(d.fone||'').replace(/\D/g,'');return n.length<10?'':(n.length<=11?'55'+n:n)};
@@ -564,7 +670,7 @@ function fixOrder(o){const d=o.o,r2=x=>Math.round(x*100)/100;let sub=0;const ite
 /* Pedido em andamento: usa o valor recalculado. Pedido já encerrado: usa o que ficou gravado. */
 function V(o){return NEXT[o.status]?(fixOrder(o)||o.o):o.o}
 function ocard(o){const d=V(o),n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0))*6e4,q=d.itens.reduce((a,i)=>a+i.q,0),mins=Math.max(0,Math.round((Date.now()-o.t)/6e4)),e=esc(o.id);
- return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${d.ant?' · ⏰ antecipado':''}${chk(o).length?' · <span style="color:var(--bad);font-weight:700">⚠ conferir</span>':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}</div>`}
+ return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${chk(o).length?' · <span style="color:var(--bad);font-weight:700">'+ICO.alert+' conferir</span>':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}</div>`}
 /* Tela inicial: visão do dia + atalhos. Tudo derivado de ORD (já carregado em tempo real). */
 function homeHTML(){
  const hoje=ymd(0),deHoje=o=>new Date(+o.t||0).toLocaleDateString('sv-SE')===hoje;
@@ -579,41 +685,41 @@ function homeHTML(){
   nome=(user&&user.email?user.email.split('@')[0]:'chefe'),
   data=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}),
   atrasados=ativos.filter(o=>dl(o)<Date.now()).length;
- const acoes=[['pedidos','🧾','Pedidos','Acompanhar pedidos'],['menu','🍔','Cardápio','Itens e preços'],['cup','🎟️','Cupons','Descontos ativos'],['rel','📊','Relatórios','Vendas e faturamento'],['cli','👥','Clientes','Histórico e VIP'],['loja','⚙️','Minha loja','Horários e contato']];
- return `<div class="hello"><div><h2>${saud}, ${esc(nome)} 👋</h2><p>${esc(data.charAt(0).toUpperCase()+data.slice(1))}</p></div><div class="dia"><b>${aberta?'🟢 Aberta':'🔴 Fechada'}</b>${PRAZO} min de preparo</div></div>
+ const acoes=[['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['menu',ICO.menu,'Cardápio','Itens e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['loja',ICO.loja,'Minha loja','Horários e contato']];
+ return `<div class="hello"><div><h2>${saud}, ${esc(nome)}</h2><p>${esc(data.charAt(0).toUpperCase()+data.slice(1))}</p></div><div class="dia"><b class="status-mini ${aberta?'':'off'}"><i></i>${aberta?'Aberta':'Fechada'}</b>${PRAZO} min de preparo</div></div>
  <div class="kp" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
   <div class="w"><small>FATURAMENTO HOJE</small><b>${brl(fat)}</b></div>
   <div><small>PEDIDOS HOJE</small><b>${doDia.length}</b></div>
   <div><small>EM ANDAMENTO</small><b style="color:var(--o2)">${ativos.length}${atrasados?' <span style="color:var(--bad);font-size:12px">· '+atrasados+' atrasado'+(atrasados>1?'s':'')+'</span>':''}</b></div>
   <div><small>TÍQUETE MÉDIO</small><b>${brl(ticket)}</b></div>
  </div>
- ${novos.length?`<div class="card" style="border-color:rgba(255,106,0,.4);background:linear-gradient(150deg,rgba(255,106,0,.12),rgba(255,106,0,.02)),var(--s1);margin-bottom:12px;cursor:pointer" data-a="tab" data-v="pedidos"><h3 style="justify-content:space-between">🆕 ${novos.length} pedido${novos.length>1?'s':''} novo${novos.length>1?'s':''} esperando <span style="font-size:18px">→</span></h3><p class="sub" style="margin:4px 0 0 12px">Toque para aceitar e começar o preparo.</p></div>`:''}
+ ${novos.length?`<div class="card" style="border-color:rgba(255,106,0,.4);background:linear-gradient(150deg,rgba(255,106,0,.12),rgba(255,106,0,.02)),var(--s1);margin-bottom:12px;cursor:pointer" data-a="tab" data-v="pedidos"><h3 style="justify-content:space-between">${ICO.sparkle} ${novos.length} pedido${novos.length>1?'s':''} novo${novos.length>1?'s':''} esperando <span style="font-size:18px">→</span></h3><p class="sub" style="margin:4px 0 0 12px">Toque para aceitar e começar o preparo.</p></div>`:''}
  <div class="sec-title">Atalhos</div>
  <div class="quick">${acoes.map(a=>`<button data-a="tab" data-v="${a[0]}"><i>${a[1]}</i><span>${a[2]}<small>${a[3]}</small></span></button>`).join('')}</div>
  <div class="sec-title">Resumo do dia</div>
- <div class="card"><div class="it" style="display:flex;justify-content:space-between"><span>✅ Entregues</span><b>${entregues.length}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>🍽️ Itens vendidos</span><b>${totalItens}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>❌ Cancelados</span><b>${cancelados.length}</b></div></div>
- ${dirty?'<div class="card" style="border-color:rgba(251,191,36,.4);margin-top:12px"><p class="sub" style="margin:0">Você tem mudanças no cardápio ainda não publicadas.</p><button class="btn pri full" style="margin-top:10px" data-a="publish">🚀 Publicar agora</button></div>':''}`;
+ <div class="card"><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.check}Entregues</span><b>${entregues.length}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.menu}Itens vendidos</span><b>${totalItens}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.close}Cancelados</span><b>${cancelados.length}</b></div></div>
+ ${dirty?`<div class="card" style="border-color:rgba(251,191,36,.4);margin-top:12px"><p class="sub" style="margin:0">Você tem mudanças no cardápio ainda não publicadas.</p><button class="btn pri full" style="margin-top:10px" data-a="publish">${ICO.pub}Publicar agora</button></div>`:''}`;
 }
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
  const T=[['ativos','Ativos',act.length],['novo','Novos',by('novo').length],['preparo','Preparo',by('preparo').length],['entrega','Entrega',by('entrega').length],['fim','Finalizados',0]];
  const list=OS=='ativos'?act:OS=='fim'?ORD.filter(o=>!NEXT[o.status]).slice(0,30):by(OS).sort((a,b)=>dl(a)-dl(b));
  return `<div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
 function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=true;nov();const d=V(o),n=NEXT[o.status],w=waNum(d),e=esc(o.id),tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
- $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?' · ⏰ antecipado':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
- <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>📝 ${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
- <div class="blk"><b>Entrega</b><div>${esc(d.end)}, ${esc(d.num)}</div><div class="chp" style="margin:10px 0 0">${d.loc?`<a class="btn" href="${esc(d.loc)}" target="_blank" rel="noopener">🗺 Mapa</a>`:''}${w?`<a class="btn" href="https://wa.me/${w}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn" href="tel:+${w}">📞 Ligar</a>`:''}</div></div>
- <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div>${d.pag=='dinheiro'?(d.troco>0?(d.troco>=d.total?`<div class="it" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,106,0,.1);border:1px solid rgba(255,106,0,.3)"><div>💵 Cliente paga com <b>${brl(d.troco)}</b></div><div style="font-weight:800;font-size:16px;color:var(--o2)">Levar ${brl(Math.round((d.troco-d.total)*100)/100)} de troco</div></div>`:`<div class="it" style="color:var(--bad);font-weight:700">⚠ O valor para troco (${brl(d.troco)}) é menor que o total. Confirmar com o cliente.</div>`):`<div class="it" style="margin-top:6px">💵 Sem troco: valor exato</div>`):''}${Math.abs(d.total-o.o.total)>.05?`<div class="it" style="color:var(--bad);font-weight:700">O cliente enviou ${brl(o.o.total)}. Cobre ${brl(d.total)}.</div>`:''}</div>
- ${(()=>{const w=chk(o);return w.length?`<div class="blk"><b style="color:var(--bad)">⚠ Conferir antes de aceitar</b>${w.map(x=>`<div class="it" style="color:var(--bad)">${esc(x)}</div>`).join('')}</div>`:''})()}
- <button class="btn full" data-a="prt" data-v="${e}" style="margin:2px 0 12px">🧾 Emitir nota</button>
+ $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?'':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
+ <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
+ <div class="blk"><b>Entrega</b><div>${esc(d.end)}, ${esc(d.num)}</div><div class="chp" style="margin:10px 0 0">${d.loc?`<a class="btn" href="${esc(d.loc)}" target="_blank" rel="noopener">${ICO.map}Mapa</a>`:''}${w?`<a class="btn" href="https://wa.me/${w}" target="_blank" rel="noopener">${ICO.phone}WhatsApp</a><a class="btn" href="tel:+${w}">${ICO.phone}Ligar</a>`:''}</div></div>
+ <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div>${d.pag=='dinheiro'?(d.troco>0?(d.troco>=d.total?`<div class="it" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,106,0,.1);border:1px solid rgba(255,106,0,.3)"><div>Cliente paga com <b>${brl(d.troco)}</b></div><div style="font-weight:800;font-size:16px;color:var(--o2)">Levar ${brl(Math.round((d.troco-d.total)*100)/100)} de troco</div></div>`:`<div class="it" style="color:var(--bad);font-weight:700">Atenção: o valor para troco (${brl(d.troco)}) é menor que o total. Confirmar com o cliente.</div>`):`<div class="it" style="margin-top:6px">Sem troco: valor exato</div>`):''}${Math.abs(d.total-o.o.total)>.05?`<div class="it" style="color:var(--bad);font-weight:700">O cliente enviou ${brl(o.o.total)}. Cobre ${brl(d.total)}.</div>`:''}</div>
+ ${(()=>{const w=chk(o);return w.length?`<div class="blk"><b style="color:var(--bad)">${ICO.alert}Conferir antes de aceitar</b>${w.map(x=>`<div class="it" style="color:var(--bad)">${esc(x)}</div>`).join('')}</div>`:''})()}
+ <button class="btn full" data-a="prt" data-v="${e}" style="margin:2px 0 12px">${ICO.receipt}Emitir nota</button>
  ${n?`<div class="chp"><button class="btn" data-a="ext" data-v="${e}" data-n="-5">−5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="5">+5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="10">+10 min</button>${o.extra?`<span class="sub" style="align-self:center">ajuste: ${o.extra>0?'+':''}${o.extra} min</span>`:''}</div><button class="btn pri full big" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${e}" data-s="cancelado">Cancelar pedido</button>`:''}<button class="btn full" data-a="scancel">Fechar</button>`;
  $('back').classList.add('open');tick()}
 function nov(){const n=ORD.filter(o=>o.status=='novo'),el=$('nov');if(!n.length||NOVHIDE){el.classList.remove('on');return}const o=n[0],d=V(o),e=esc(o.id);
- el.innerHTML=`<div class="nv"><div class="nvh"><div class="n"><b>${n.length>1?n.length+' novos pedidos':'Novo pedido'} · #${esc(o.id.slice(-5))}</b><small>${esc(d.nome)} · ${brl(d.total)}</small>${chk(o).length?'<small style="color:var(--bad);font-weight:700">⚠ conferir antes de aceitar</small>':''}<small>${esc(d.itens.map(i=>i.q+'x '+i.n).join(', '))}</small></div><button class="btn ic" data-a="nh" aria-label="Agora não" style="margin:0">✕</button></div><div class="nvb"><button class="btn pri" data-a="st" data-v="${e}" data-s="preparo">Aceitar</button><button class="btn" data-a="ord" data-v="${e}">Detalhes</button></div></div>`;el.classList.add('on')}
+ el.innerHTML=`<div class="nv"><div class="nvh"><div class="n"><b>${n.length>1?n.length+' novos pedidos':'Novo pedido'} · #${esc(o.id.slice(-5))}</b><small>${esc(d.nome)} · ${brl(d.total)}</small>${chk(o).length?'<small style="color:var(--bad);font-weight:700">'+ICO.alert+' conferir antes de aceitar</small>':''}<small>${esc(d.itens.map(i=>i.q+'x '+i.n).join(', '))}</small></div><button class="btn ic" data-a="nh" aria-label="Agora não" style="margin:0">✕</button></div><div class="nvb"><button class="btn pri" data-a="st" data-v="${e}" data-s="preparo">Aceitar</button><button class="btn" data-a="ord" data-v="${e}">Detalhes</button></div></div>`;el.classList.add('on')}
 function addH(){
  const cs=D.cats.map((c,i)=>`<div class="row"><div class="n"><b>${esc(c.name)}</b></div><input type="checkbox" class="sw" data-c="${i}" data-p="extras" ${c.extras?'checked':''} aria-label="Oferecer adicionais em ${esc(c.name)}"></div>`).join('');
  const as=D.addons.map((a,i)=>`<div class="row ${a.ativo===false?'off':''}" data-sid="${esc(a.id)}">${GRIP}<div class="n" style="display:flex;align-items:center;gap:8px"><input data-d="${i}" data-p="name" value="${esc(a.name)}" placeholder="Nome do adicional" aria-label="Nome" style="margin:0;flex:1;min-width:0"><span class="sub" style="margin:0;flex:none">R$</span><input data-d="${i}" data-p="price" type="number" step="0.5" min="0" value="${a.price}" aria-label="Preço" style="width:78px;flex:none;margin:0"></div><div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:none"><input type="checkbox" class="sw" data-atog="${i}" ${a.ativo!==false?'checked':''} aria-label="Disponível"><button class="btn ic danger" data-a="deladd" data-v="${i}" aria-label="Excluir">✕</button></div></div>`).join('');
- return `<button class="btn pri full" style="margin:0 0 14px" data-a="addadd">＋ Novo adicional</button><div class="card"><h3>Adicionais</h3><p class="sub" style="margin:-6px 0 10px">Segure em ⠿ para reordenar. O interruptor tira o adicional do cardápio sem apagar.</p>${as?`<div data-sort="add">${as}</div>`:'<p class="sub">Nenhum adicional ainda. Toque em “Novo adicional”.</p>'}</div><div class="card"><h3>Onde aparecem</h3><p class="sub" style="margin:-6px 0 10px">Os adicionais são oferecidos ao abrir um item destas categorias.</p>${cs||'<p class="sub">Nenhuma categoria.</p>'}</div>`}
-function pubH(){return `<div class="card"><h3>Publicar</h3><p class="sub" style="margin-bottom:10px">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>🚀 Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub" style="margin-bottom:6px">${esc(user&&user.email||'')}</p>${ntfBtn()}<button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`}
+ return `<button class="btn pri full" style="margin:0 0 14px" data-a="addadd">${ICO.plus}Novo adicional</button><div class="card"><h3>Adicionais</h3><p class="sub" style="margin:-6px 0 10px">Segure em ⠿ para reordenar. O interruptor tira o adicional do cardápio sem apagar.</p>${as?`<div data-sort="add">${as}</div>`:'<p class="sub">Nenhum adicional ainda. Toque em “Novo adicional”.</p>'}</div><div class="card"><h3>Onde aparecem</h3><p class="sub" style="margin:-6px 0 10px">Os adicionais são oferecidos ao abrir um item destas categorias.</p>${cs||'<p class="sub">Nenhuma categoria.</p>'}</div>`}
+function pubH(){return `<div class="card"><h3>Publicar</h3><p class="sub" style="margin-bottom:10px">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>${ICO.pub}Publicar mudanças</button></div><div class="card"><h3>Conta</h3><p class="sub" style="margin-bottom:6px">${esc(user&&user.email||'')}</p>${ntfBtn()}<button class="btn full" data-a="reload">Descartar mudanças e recarregar</button><button class="btn full danger" data-a="out">Sair</button></div>`}
 function dispatchMsg(id){const o=ORD.find(x=>x.id==id);if(!o)return;const n=waNum(o.o);if(!n){toast('Esse pedido não tem telefone do cliente');return}
  window.open('https://wa.me/'+n+'?text='+encodeURIComponent(`Olá, ${o.o.nome}! 🛵\n\nSeu pedido *#${id.slice(-5)}* saiu para entrega e chega em instantes.\n\nObrigado pela preferência! 🍔\n— ${D.loja.nome}`),'_blank','noopener')}
 function tick(){document.querySelectorAll('[data-dl]').forEach(e=>{const r=+e.dataset.dl-Date.now(),tot=+e.dataset.tot,a=Math.abs(r),m=Math.floor(a/6e4),sc=Math.floor(a%6e4/1e3);e.textContent=(r<0?'−':'')+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');e.style.background='hsl('+Math.round(Math.max(0,Math.min(1,r/tot/.5))*120)+' 70% 36%)';e.classList.toggle('late',r<0)})}
@@ -635,7 +741,7 @@ function crop(src,ar,outW,round,cb){
  ov.querySelector('#cok').onclick=()=>{const c=document.createElement('canvas');c.width=outW;c.height=Math.round(outW/ar);c.getContext('2d').drawImage(im,-x/sc,-y/sc,fw/sc,fh/sc,0,0,c.width,c.height);ov.remove();cb(c.toDataURL('image/jpeg',.74))}}
 const lp=k=>D.loja[k]||(k=='perfil'?'logo.jpeg':'Avalanche.jpeg');
 const bgi=k=>ps({id:'_'+k,image:lp(k)}).replace(/'/g,'%27');
-function profCard(){return `<div class="card"><h3>Perfil da loja</h3><div style="position:relative;margin-bottom:48px"><div class="pic" style="height:130px;margin:0;background-image:url('${bgi('capa')}')"></div><div style="position:absolute;left:16px;bottom:-40px;width:84px;height:84px;border-radius:50%;border:3px solid var(--o);background:#222 center/cover url('${bgi('perfil')}')"></div></div><div class="two"><label class="btn" style="text-align:center;margin:0;color:var(--t)">🖼 Trocar capa<input type="file" accept="image/*" id="cp" hidden></label><label class="btn" style="text-align:center;margin:0;color:var(--t)">👤 Trocar perfil<input type="file" accept="image/*" id="pf" hidden></label></div><div class="two" style="margin-top:8px"><button class="btn" data-a="rfc">Ajustar capa</button><button class="btn" data-a="rfp">Ajustar perfil</button></div></div>`}
+function profCard(){return `<div class="card"><h3>Perfil da loja</h3><div style="position:relative;margin-bottom:48px"><div class="pic" style="height:130px;margin:0;background-image:url('${bgi('capa')}')"></div><div style="position:absolute;left:16px;bottom:-40px;width:84px;height:84px;border-radius:50%;border:3px solid var(--o);background:#222 center/cover url('${bgi('perfil')}')"></div></div><div class="two">${fb('cp',ICO.image,'Foto da capa','Imagem horizontal do cardápio')}${fb('pf',ICO.cli,'Foto de perfil','Imagem quadrada da loja')}</div><div class="two" style="margin-top:8px"><button class="btn" data-a="rfc">Ajustar capa</button><button class="btn" data-a="rfp">Ajustar perfil</button></div></div>`}
 function listen(){if(unsub)return;let first=true;
  unsub=onSnapshot(query(collection(db,'pedidos'),orderBy('t','desc'),limit(60)),snap=>{
   ORD=snap.docs.map(x=>{const v=x.data();try{return {id:x.id,t:v.t,status:String(v.status),extra:+v.extra||0,o:san(JSON.parse(v.json))}}catch(e){return null}}).filter(Boolean);
@@ -649,11 +755,11 @@ function cdesc(c){const v=c.tipo=='pct'?c.valor+'% de desconto':c.tipo=='fixo'?b
 function gen(){const b=cd.tipo=='frete'?'FRETE':cd.tipo=='pct'?'DESC'+cd.valor:'OFF'+cd.valor;return b+Math.random().toString(36).slice(2,4).toUpperCase()}
 function cread(){if(!$('c_t'))return;cd.tipo=$('c_t').value;cd.valor=+$('c_v').value||0;cd.min=+$('c_m').value||0;cd.ate=$('c_a').value;if(cd._new)cd.code=$('c_k').value.toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function csheet(){CURO=null;const c=cd;$('sheet').innerHTML=`<h3>${c._new?'Novo cupom':'Editar cupom'}</h3><p class="sub">Comece por um modelo pronto:</p><div class="chp">${TPL.map((t,i)=>`<button class="btn" data-a="tpl" data-v="${i}">${t[0]}</button>`).join('')}</div>
- <label>Código (o cliente digita)<div style="display:flex;gap:8px"><input id="c_k" value="${esc(c.code)}" maxlength="20" ${c._new?'':'disabled'}>${c._new?'<button class="btn" data-a="gen" style="margin-top:4px">🎲 Gerar</button>':''}</div></label>
+ <label>Código (o cliente digita)<div style="display:flex;gap:8px"><input id="c_k" value="${esc(c.code)}" maxlength="20" ${c._new?'':'disabled'}>${c._new?'<button class="btn" data-a="gen" style="margin-top:4px">'+ICO.sparkle+'Gerar</button>':''}</div></label>
  <div class="two"><label>Tipo<select id="c_t"><option value="pct" ${c.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${c.tipo=='fixo'?'selected':''}>R$ de desconto</option><option value="frete" ${c.tipo=='frete'?'selected':''}>Frete grátis</option></select></label><label>Valor<input id="c_v" type="number" min="0" step="0.5" value="${c.valor}"></label></div>
  <label>Pedido mínimo em R$ (0 = sem mínimo)<input id="c_m" type="number" min="0" value="${c.min}"></label>
  <label>Validade<input id="c_a" type="date" value="${esc(c.ate||'')}"></label><div class="chp"><button class="btn" data-a="vd" data-v="0">Só hoje</button><button class="btn" data-a="vd" data-v="7">7 dias</button><button class="btn" data-a="vd" data-v="30">30 dias</button><button class="btn" data-a="vd" data-v="-1">Sem validade</button></div>
- <p class="sub" id="c_p">👁 ${esc(cdesc(c))}</p><p class="sub">🔒 Cada aparelho só pode usar este cupom uma vez.</p><button class="btn pri full" data-a="csave">Salvar cupom</button><button class="btn full" data-a="scancel">Cancelar</button>${c._new?'':'<button class="btn full danger" data-a="cdel">Excluir cupom</button>'}`;$('back').classList.add('open')}
+ <p class="sub" id="c_p">${esc(cdesc(c))}</p><p class="sub">Cada aparelho só pode usar este cupom uma vez.</p><button class="btn pri full" data-a="csave">Salvar cupom</button><button class="btn full" data-a="scancel">Cancelar</button>${c._new?'':'<button class="btn full danger" data-a="cdel">Excluir cupom</button>'}`;$('back').classList.add('open')}
 function csave(){cread();const code=cd.code;
  if(!/^[A-Z0-9]{3,20}$/.test(code))return toast('Código: 3 a 20 letras ou números');
  if(cd.tipo!='frete'&&!(cd.valor>0))return toast('Informe o valor do desconto');
@@ -685,18 +791,18 @@ function cuPanel(){
  const usos=n=>n+(n==1?' uso':' usos'),val=(k)=>{const x=m[k];if(!x)return '—';const c=CUP.find(y=>y.code==k);return x.d>0?'−'+brl(x.d):c&&c.tipo=='frete'?'frete grátis':brl(0)};
  const grp=(t,g,s,vz)=>`<div class="card"><div class="lr" style="padding-top:0"><b>${t}</b><span>${usos(s.n)} · ${s.d>0?'−'+brl(s.d):brl(0)}</span></div>${g.length?g.map(k=>`<div class="lr"><span>${esc(k)}${CUP.some(c=>c.code==k)?'':' <small>(removido)</small>'}</span><span>${m[k]?usos(m[k].n)+' · ':''}${val(k)}</span></div>`).join(''):`<p class="sub" style="margin-top:8px">${vz}</p>`}</div>`;
  return head+`<div class="kp"><div><small>Cupons usados</small><b>${sE.n+sC.n}</b></div><div><small>Desconto concedido</small><b>${brl(sE.d+sC.d)}</b></div></div>`
-  +grp('🎉 Cupons especiais',gE,sE,'Nenhum cupom especial ainda.')+grp('🏷️ Cupons comuns',gC,sC,'Nenhum cupom comum ainda.')
+  +grp(ICO.sparkle+'Cupons especiais',gE,sE,'Nenhum cupom especial ainda.')+grp(ICO.cup+'Cupons comuns',gC,sC,'Nenhum cupom comum ainda.')
   +`<p class="sub" style="margin:-4px 0 14px">Não conta pedidos cancelados.${cu.cap?' Considerando os 2000 pedidos mais recentes do período.':''}</p>`}
 function cupView(){const hoje=ymd(0),row=c=>{const venc=c.ate&&c.ate<hoje;return `<div class="row ${c.ativo===false||venc?'off':''}"><div class="n" data-a="editc" data-v="${esc(c.code)}"><b>${esc(c.code)}</b><small>${esc(cdesc(c))}${venc?' · VENCIDO':''}</small></div><input type="checkbox" class="sw" data-ctog="${esc(c.code)}" ${c.ativo!==false?'checked':''}></div>`},
  lst=(t,g)=>g.length?`<div class="card"><h3 style="margin-bottom:6px">${t}</h3>${g.map(row).join('')}</div>`:'';
- return espCard()+'<button class="btn pri full" style="margin:0 0 14px" data-a="newc">＋ Novo cupom</button>'+cuPanel()+(CUP.length?lst('🎉 Cupons especiais',CUP.filter(c=>isEspK(c.code)))+lst('🏷️ Cupons comuns',CUP.filter(c=>!isEspK(c.code))):'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
-const TEMAS={anonovo:['🎆 Ano Novo','Feliz Ano Novo! Comece o ano com desconto no seu pedido.'],carnaval:['🎭 Carnaval','É Carnaval! Use o cupom e aproveite um desconto.'],mulher:['🌷 Dia da Mulher','Hoje o dia é delas! Use o cupom no seu pedido.'],pascoa:['🥚 Páscoa','Feliz Páscoa! Um presente em forma de desconto para você.'],maes:['🌸 Dia das Mães','Feliz Dia das Mães! Use o cupom e surpreenda quem você ama.'],namorados:['❤️ Dia dos Namorados','Dia dos Namorados: peça a dois com desconto!'],junina:['🔥 Festa Junina','Arraiá do sabor! Use o cupom e ganhe desconto.'],pais:['⭐ Dia dos Pais','Feliz Dia dos Pais! Use o cupom no seu pedido.'],criancas:['🧸 Dia das Crianças','Dia das Crianças! Use o cupom e faça a festa.'],halloween:['🎃 Halloween','Doce ou desconto? Use o cupom e aproveite!'],blackfriday:['🏷️ Black Friday','Black Friday: desconto especial só por hoje!'],natal:['🎄 Natal','Feliz Natal! Nosso presente: um cupom de desconto para você.'],hamburguer:['🍔 Dia do Hambúrguer','Hoje é o nosso dia! Use o cupom no seu hambúrguer.'],aniversario:['🎂 Aniversário da loja','Estamos de aniversário e o presente é seu! Use o cupom.'],cliente:['🎁 Dia do Cliente','Obrigado por pedir com a gente! Use o cupom de presente.'],copa:['⚽ Dia de jogo','Dia de jogo! Use o cupom e peça o lanche da torcida.'],independencia:['💚 7 de Setembro','Feliz 7 de Setembro! Use o cupom e aproveite.'],geral:['✨ Promoção especial','Cupom especial por tempo limitado. Aproveite!']};
+ return espCard()+'<button class="btn pri full" style="margin:0 0 14px" data-a="newc">'+ICO.plus+'Novo cupom</button>'+cuPanel()+(CUP.length?lst(ICO.sparkle+'Cupons especiais',CUP.filter(c=>isEspK(c.code)))+lst(ICO.cup+'Cupons comuns',CUP.filter(c=>!isEspK(c.code))):'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
+const TEMAS={anonovo:['Ano Novo','Feliz Ano Novo! Comece o ano com desconto no seu pedido.'],carnaval:['Carnaval','É Carnaval! Use o cupom e aproveite um desconto.'],mulher:['Dia da Mulher','Hoje o dia é delas! Use o cupom no seu pedido.'],pascoa:['Páscoa','Feliz Páscoa! Um presente em forma de desconto para você.'],maes:['Dia das Mães','Feliz Dia das Mães! Use o cupom e surpreenda quem você ama.'],namorados:['Dia dos Namorados','Dia dos Namorados: peça a dois com desconto!'],junina:['Festa Junina','Arraiá do sabor! Use o cupom e ganhe desconto.'],pais:['Dia dos Pais','Feliz Dia dos Pais! Use o cupom no seu pedido.'],criancas:['Dia das Crianças','Dia das Crianças! Use o cupom e faça a festa.'],halloween:['Halloween','Doce ou desconto? Use o cupom e aproveite!'],blackfriday:['Black Friday','Black Friday: desconto especial só por hoje!'],natal:['Natal','Feliz Natal! Nosso presente: um cupom de desconto para você.'],hamburguer:['Dia do Hambúrguer','Hoje é o nosso dia! Use o cupom no seu hambúrguer.'],aniversario:['Aniversário da loja','Estamos de aniversário e o presente é seu! Use o cupom.'],cliente:['Dia do Cliente','Obrigado por pedir com a gente! Use o cupom de presente.'],copa:['Dia de jogo','Dia de jogo! Use o cupom e peça o lanche da torcida.'],independencia:['7 de Setembro','Feliz 7 de Setembro! Use o cupom e aproveite.'],geral:['Promoção especial','Cupom especial por tempo limitado. Aproveite!']};
 let ES={on:false,code:'',tema:'geral',msg:'',ate:'',v:0,hist:[]};
 const espW=o=>setDoc(doc(db,'cardapio','ao_vivo'),{esp:JSON.stringify(o)},{merge:true});
-function espCard(){const e=ES,t=TEMAS[e.tema];return `<div class="card" style="display:flex;align-items:center;gap:10px"><div class="n" style="flex:1"><b>🎉 Cupom especial</b><small class="sub" style="display:block">${e.on&&t?esc(t[0])+' · '+esc(e.code)+' · no ar':'Aviso comemorativo no site (desligado)'}</small></div>${e.on?'<button class="btn" data-a="espoff">Desligar</button>':''}<button class="btn pri" data-a="esp">${e.on?'Editar':'Criar'}</button></div>`}
+function espCard(){const e=ES,t=TEMAS[e.tema];return `<div class="card" style="display:flex;align-items:center;gap:10px"><div class="n" style="flex:1"><b>${ICO.sparkle}Cupom especial</b><small class="sub" style="display:block">${e.on&&t?esc(t[0])+' · '+esc(e.code)+' · no ar':'Aviso comemorativo no site (desligado)'}</small></div>${e.on?'<button class="btn" data-a="espoff">Desligar</button>':''}<button class="btn pri" data-a="esp">${e.on?'Editar':'Criar'}</button></div>`}
 function espSheet(){CURO=null;const cs=CUP.filter(c=>c.ativo!==false),e=ES,t=TEMAS[e.tema]||TEMAS.geral,novo=!cs.length;
- $('sheet').innerHTML=`<h3>🎉 Cupom especial</h3><p class="sub">Aparece uma única vez para cada cliente, na primeira vez que ele abre o cardápio, com a animação da data.</p><label>Cupom<select id="e_c">${cs.map(c=>`<option value="${esc(c.code)}" ${c.code==e.code?'selected':''}>${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}<option value="__novo" ${novo?'selected':''}>✏️ Criar meu próprio desconto…</option></select></label><div id="e_n" style="display:${novo?'block':'none'}"><div class="two"><label>Tipo<select id="e_nt"><option value="pct">% de desconto</option><option value="fixo">R$ de desconto</option><option value="frete">Frete grátis</option></select></label><label>Valor<input id="e_nv" type="number" min="0" step="0.5" value="10"></label></div><label>Pedido mínimo em R$ (0 = sem mínimo)<input id="e_nm" type="number" min="0" value="0"></label><label>Código (opcional, vazio = gerar sozinho)<input id="e_nk" maxlength="20" autocapitalize="characters"></label><p class="sub" id="e_np"></p></div><label>Data comemorativa<select id="e_t">${Object.keys(TEMAS).map(k=>`<option value="${k}" ${k==e.tema?'selected':''}>${esc(TEMAS[k][0])}</option>`).join('')}</select></label><label>Mensagem (até 140 letras)<textarea id="e_m" rows="3" maxlength="140" data-d="${esc(t[1])}">${esc(e.msg||t[1])}</textarea></label><label>Mostrar até (opcional)<input id="e_a" type="date" value="${esc(e.ate||'')}"></label><p class="sub">Para testar no site, abra o endereço com <b>?esp</b> no final. Se criar um desconto próprio, o cupom também vence na data de “Mostrar até”.</p><button class="btn pri full" data-a="espsave">${e.on?'Atualizar e ativar':'Ativar no site'}</button><button class="btn full" data-a="scancel">Fechar</button>`;$('back').classList.add('open');espPrev()}
-function espPrev(){const s=$('e_c');if(!s)return;const n=s.value=='__novo',b=$('e_n');if(b)b.style.display=n?'block':'none';const p=$('e_np');if(n&&p)p.textContent='👁 '+cdesc({tipo:$('e_nt').value,valor:+$('e_nv').value||0,min:+$('e_nm').value||0,ate:$('e_a').value})}
+ $('sheet').innerHTML=`<h3>${ICO.sparkle}Cupom especial</h3><p class="sub">Aparece uma única vez para cada cliente, na primeira vez que ele abre o cardápio, com a animação da data.</p><label>Cupom<select id="e_c">${cs.map(c=>`<option value="${esc(c.code)}" ${c.code==e.code?'selected':''}>${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}<option value="__novo" ${novo?'selected':''}>Criar meu próprio desconto…</option></select></label><div id="e_n" style="display:${novo?'block':'none'}"><div class="two"><label>Tipo<select id="e_nt"><option value="pct">% de desconto</option><option value="fixo">R$ de desconto</option><option value="frete">Frete grátis</option></select></label><label>Valor<input id="e_nv" type="number" min="0" step="0.5" value="10"></label></div><label>Pedido mínimo em R$ (0 = sem mínimo)<input id="e_nm" type="number" min="0" value="0"></label><label>Código (opcional, vazio = gerar sozinho)<input id="e_nk" maxlength="20" autocapitalize="characters"></label><p class="sub" id="e_np"></p></div><label>Data comemorativa<select id="e_t">${Object.keys(TEMAS).map(k=>`<option value="${k}" ${k==e.tema?'selected':''}>${esc(TEMAS[k][0])}</option>`).join('')}</select></label><label>Mensagem (até 140 letras)<textarea id="e_m" rows="3" maxlength="140" data-d="${esc(t[1])}">${esc(e.msg||t[1])}</textarea></label><label>Mostrar até (opcional)<input id="e_a" type="date" value="${esc(e.ate||'')}"></label><p class="sub">Para testar no site, abra o endereço com <b>?esp</b> no final. Se criar um desconto próprio, o cupom também vence na data de “Mostrar até”.</p><button class="btn pri full" data-a="espsave">${e.on?'Atualizar e ativar':'Ativar no site'}</button><button class="btn full" data-a="scancel">Fechar</button>`;$('back').classList.add('open');espPrev()}
+function espPrev(){const s=$('e_c');if(!s)return;const n=s.value=='__novo',b=$('e_n');if(b)b.style.display=n?'block':'none';const p=$('e_np');if(n&&p)p.textContent=''+cdesc({tipo:$('e_nt').value,valor:+$('e_nv').value||0,min:+$('e_nm').value||0,ate:$('e_a').value})}
 ['input','change'].forEach(ev=>document.addEventListener(ev,e=>{const i=e.target.id;if(i=='e_c'||i=='e_nt'||i=='e_nv'||i=='e_nm'||i=='e_a')espPrev()}));
 function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.trim().slice(0,140),a=$('e_a').value;
  if(!m)return toast('Escreva a mensagem');if(!TEMAS[t])return;
@@ -815,11 +921,11 @@ function cliList(){const now=Date.now(),q=CQ.trim().toLowerCase(),qd=q.replace(/
  return l.map(c=>{const d=Math.floor((now-c.last)/DIA),op=CLO.has(c.k);
   return `<div class="card" style="padding:14px;margin-bottom:10px"><div class="lr" style="padding:0;border:0;cursor:pointer" data-a="cx" data-v="${c.k}"><span><b style="display:inline">${esc(c.nome)}</b>${c.n>=VIPN?' ⭐':''}<small> · ${fph(c.fone)}</small></span><b>${mo(c.v)}</b></div>
   <div class="lr" style="padding:4px 0 0;border:0"><span><small>${c.n} ${c.n==1?'pedido':'pedidos'} · último em ${fdy(c.last)} (${d<1?'hoje':d==1?'ontem':'há '+d+' dias'})</small></span><span>${d>30?'<small style="color:var(--o2)">inativo</small>':''}</span></div>
-  ${op?`<div class="lr" style="padding:8px 0 2px;border:0"><span><small>📍 ${esc(c.end)}</small></span></div>${c.ords.map(x=>`<div class="lr" style="padding:3px 0;border:0"><span><small>${fdy(x.t)} · ${esc(x.it)}</small></span><span><small>${mo(x.tt)}</small></span></div>`).join('')}`:''}
-  <button class="btn full" style="margin-top:10px" data-a="cwa" data-v="${c.k}">💬 Enviar promoção no WhatsApp</button></div>`}).join('')||'<div class="card"><p class="sub">Nenhum cliente neste filtro.</p></div>'}
+  ${op?`<div class="lr" style="padding:8px 0 2px;border:0"><span><small>${esc(c.end)}</small></span></div>${c.ords.map(x=>`<div class="lr" style="padding:3px 0;border:0"><span><small>${fdy(x.t)} · ${esc(x.it)}</small></span><span><small>${mo(x.tt)}</small></span></div>`).join('')}`:''}
+  <button class="btn full" style="margin-top:10px" data-a="cwa" data-v="${c.k}">${ICO.phone}Enviar promoção no WhatsApp</button></div>`}).join('')||'<div class="card"><p class="sub">Nenhum cliente neste filtro.</p></div>'}
 function cliHTML(){const now=Date.now(),vip=CL.filter(c=>c.n>=VIPN).length,ina=CL.filter(c=>now-c.last>30*DIA).length,ativos=CUP.filter(c=>c.ativo!==false&&!(c.ate&&c.ate<ymd(0)));
  if(CCP&&!ativos.some(c=>c.code==CCP))CCP='';
- const seg=[['todos','Todos ('+CL.length+')'],['vip','⭐ VIP ('+vip+')'],['inativos','Inativos +30 dias ('+ina+')']].map(a=>`<button class="${CF==a[0]?'on':''}" data-a="cf" data-v="${a[0]}">${a[1]}</button>`).join('');
+ const seg=[['todos','Todos ('+CL.length+')'],['vip','VIP ('+vip+')'],['inativos','Inativos +30 dias ('+ina+')']].map(a=>`<button class="${CF==a[0]?'on':''}" data-a="cf" data-v="${a[0]}">${a[1]}</button>`).join('');
  return `<div class="seg">${seg}</div>
  <div class="two" style="margin-bottom:12px"><label>Buscar<input id="c_q" type="search" placeholder="Nome ou telefone" value="${esc(CQ)}"></label><label>Ordenar<select id="c_s"><option value="gasto" ${CS=='gasto'?'selected':''}>Quem mais gastou</option><option value="recentes" ${CS=='recentes'?'selected':''}>Pedido mais recente</option></select></label></div>
  <label>Cupom na mensagem<select id="c_cp"><option value="">Sem cupom (só o convite)</option>${ativos.map(c=>`<option value="${esc(c.code)}" ${CCP==c.code?'selected':''}>${esc(c.code)} · ${esc(ctxt(c))}</option>`).join('')}</select></label>
@@ -838,7 +944,7 @@ function sysNote(t,b,tag,force){
 function orderNote(x){const d=V(x);sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id)}
 function askNotif(){if(!('Notification' in window)||Notification.permission!='default')return;try{Promise.resolve(Notification.requestPermission()).then(()=>{if(tab=='loja')view()}).catch(()=>{})}catch(e){}}
 function testNote(){sysNote('Notificação de teste','Os avisos de novo pedido vão aparecer aqui.','teste',true)}
-function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">📲 Testar notificação do celular</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber avisos com o painel em segundo plano.</p>':'<button class="btn pri full" data-a="ntf">📲 Ativar notificações do celular</button>'}
+function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">Testar notificação do celular</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber avisos com o painel em segundo plano.</p>':'<button class="btn pri full" data-a="ntf">Ativar notificações do celular</button>'}
 document.addEventListener('click',function ft(){if(!user)return;document.removeEventListener('click',ft);askNotif()});
 setInterval(()=>{if(NEWC>0&&AC&&AC.state=='running')ring()},4500);
 async function wl(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
@@ -867,24 +973,24 @@ function dragStart(e){
 document.addEventListener('pointerdown',dragStart);
 const pOn=i=>!!(i.promo&&+i.promo.valor>0&&(!i.promo.ate||ymd(0)<=i.promo.ate));
 const pFin=i=>!pOn(i)?i.price:i.promo.tipo=='fixo'?Math.min(+i.promo.valor,i.price):Math.round(i.price*(100-Math.min(+i.promo.valor,100)))/100;
-const pTxt=i=>pOn(i)?brl(i.price)+' → '+brl(pFin(i))+' · 🔥 promo'+(i.promo.ate?' até '+i.promo.ate.split('-').reverse().slice(0,2).join('/'):''):brl(i.price);
+const pTxt=i=>pOn(i)?brl(i.price)+' → '+brl(pFin(i))+' · promoção'+(i.promo.ate?' até '+i.promo.ate.split('-').reverse().slice(0,2).join('/'):''):brl(i.price);
 function promoPrev(){const e=$('pr_pv');if(!e)return;const p=parseFloat($('s_p').value)||0,v=parseFloat($('pr_v').value)||0,t=$('pr_t').value;if(!$('pr_e').checked||!v){e.textContent='';return}
- const f=t=='pct'?Math.round(p*(100-Math.min(v,100)))/100:Math.min(v,p);e.textContent='👁 De '+brl(p)+' por '+brl(f)+(p>0?' (−'+Math.round((1-f/p)*100)+'%)':'')}
+ const f=t=='pct'?Math.round(p*(100-Math.min(v,100)))/100:Math.min(v,p);e.textContent='De '+brl(p)+' por '+brl(f)+(p>0?' (−'+Math.round((1-f/p)*100)+'%)':'')}
 function posterCard(){const L=D.loja,has=!!L.poster,u=has?ps({id:'_poster',image:L.poster}).replace(/'/g,'%27'):'';
- return `<div class="card"><h3>🖼 Poster do cardápio</h3><p class="sub" style="margin:-6px 0 10px">Aparece no topo do cardápio, sem nome, só quando você adiciona. Ideal: foto horizontal.</p><div class="pic" style="aspect-ratio:12/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
- <div class="two"><label class="btn" style="text-align:center;margin:0;color:var(--t)">${has?'Trocar poster':'＋ Adicionar poster'}<input type="file" accept="image/*" id="po" hidden></label>${has?'<button class="btn" data-a="rpo">Ajustar enquadramento</button>':''}</div>
+ return `<div class="card"><h3>${ICO.image}Poster do cardápio</h3><p class="sub" style="margin:-6px 0 10px">Aparece no topo do cardápio, sem nome, só quando você adiciona. Ideal: foto horizontal.</p><div class="pic" style="aspect-ratio:12/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
+ <div class="two">${fb('po',ICO.image,has?'Trocar poster':'Adicionar poster',has?'Toque para escolher outra imagem':'Imagem horizontal · toque para escolher')}${has?`<button class="btn" data-a="rpo">${ICO.edit}Ajustar enquadramento</button>`:''}</div>
  ${has?`<label style="margin-top:12px">Ao tocar no poster, abrir o item:<select data-pi>${D.items.map(i=>`<option value="${esc(i.id)}" ${L.posterItem==i.id?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>${poPromo()}<button class="btn full danger" data-a="dpo">Remover poster</button>`:''}</div>`}
 function poPromo(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return '';const pr=it.promo;
- return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--l)"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="po_e" ${pr?'checked':''}>🔥 Desconto neste item (preço normal ${brl(it.price)})</label>
+ return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--l)"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="po_e" ${pr?'checked':''}>${ICO.cup}Desconto neste item (preço normal ${brl(it.price)})</label>
  <div class="two"><label>Tipo<select id="po_t"><option value="pct" ${!pr||pr.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${pr&&pr.tipo=='fixo'?'selected':''}>Preço promocional (R$)</option></select></label><label>Valor<input id="po_v" type="number" min="0" step="0.5" value="${pr?pr.valor:''}"></label></div>
  <label>Válido até (vazio = sem prazo)<input id="po_a" type="date" value="${esc(pr&&pr.ate||'')}"></label>
- <div class="chp"><button class="btn" data-a="pod" data-v="0">Só hoje</button><button class="btn" data-a="pod" data-v="6">7 dias</button><button class="btn" data-a="pod" data-v="29">30 dias</button><button class="btn" data-a="pod" data-v="-1">Sem prazo</button></div><p class="sub" id="po_pv">${pr?'👁 '+esc(pTxt(it)):''}</p></div>`}
+ <div class="chp"><button class="btn" data-a="pod" data-v="0">Só hoje</button><button class="btn" data-a="pod" data-v="6">7 dias</button><button class="btn" data-a="pod" data-v="29">30 dias</button><button class="btn" data-a="pod" data-v="-1">Sem prazo</button></div><p class="sub" id="po_pv">${pr?''+esc(pTxt(it)):''}</p></div>`}
 function poSave(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return;const e=$('po_pv');
  if($('po_e').checked){const t=$('po_t').value,v=parseFloat($('po_v').value);
   if(!(v>0)){delete it.promo;e.textContent='Informe o valor do desconto';save();return}
   if(t=='pct'&&v>95){e.textContent='Desconto máximo: 95%';return}
   if(t=='fixo'&&v>=it.price){e.textContent='O preço promocional precisa ser menor que '+brl(it.price);return}
-  it.promo={tipo:t,valor:v,ate:$('po_a').value||''};e.textContent='👁 '+pTxt(it)}
+  it.promo={tipo:t,valor:v,ate:$('po_a').value||''};e.textContent=''+pTxt(it)}
  else{delete it.promo;e.textContent=''}
  save()}
 let lastTab='';
@@ -913,6 +1019,20 @@ if(!ok){document.querySelector('nav').style.display='none';$('main').innerHTML='
 else onAuthStateChanged(auth,async u=>{
  user=u;
  if(!u){if(unsub){unsub();unsub=null}if(repU){repU();repU=null}CL=[];CLT=0;ORD=[];NEWC=0;$('nov').classList.remove('on');login();return}
+ // Confere o UID também no cliente: mostra o UID para você copiar e colar nos 2 lugares.
+ // A autoridade real é o firestore.rules (que exige o mesmo UID).
+ if(u.uid!==ADMIN_UID){
+  const pronto=ADMIN_UID&&ADMIN_UID!=='COLOQUE_SEU_UID_AQUI';
+  document.querySelector('nav').style.display='none';$('nov').classList.remove('on');
+  $('main').innerHTML='<div class="card login"><img src="logo-app.png" alt="Logo da loja"><h2>'+(pronto?'Acesso não autorizado':'Configure o acesso admin')+'</h2>'
+   +'<p class="sub">Seu UID (copie e cole no lugar de <b>COLOQUE_SEU_UID_AQUI</b>, no <b>admin.html</b> e no <b>firestore.rules</b>):</p>'
+   +'<div class="pixkey" style="word-break:break-all;margin:12px 0">'+esc(u.uid)+'</div>'
+   +'<button class="btn pri full" id="cpuid">'+ICO.copy+'Copiar meu UID</button>'
+   +'<button class="btn full" data-a="out">Sair</button></div>';
+  const cb=document.getElementById('cpuid');
+  if(cb)cb.onclick=async()=>{try{await navigator.clipboard.writeText(u.uid);toast('UID copiado!','ok')}catch(e){toast('Selecione e copie o UID acima.','warn')}};
+  return
+ }
  $('main').innerHTML='<div class="spin"></div>';
  await pull();listen();view()
 });
