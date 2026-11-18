@@ -13,6 +13,7 @@
  --r:18px;--rs:13px;--sh:0 1px 0 rgba(255,255,255,.05) inset,0 18px 40px -26px #000;
  --e:cubic-bezier(.22,.9,.3,1)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{min-height:100dvh}
 html{scroll-behavior:smooth;scrollbar-color:rgba(255,255,255,.15) transparent;scrollbar-width:thin}
 body{margin:0;color:var(--t);font:14.5px/1.5 Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
@@ -84,7 +85,8 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:rgba(255,106,0,.6
 select option{color:#111}
 input[type=range]{padding:0;min-height:30px;accent-color:var(--o);border:0;background:none}
 input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-block;accent-color:var(--o)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.two>*{min-width:0}
 .chk{display:flex;align-items:center;gap:10px;color:var(--t);font-size:13px;font-weight:500;letter-spacing:0}
 .chk input{width:20px;height:20px}
 
@@ -107,9 +109,9 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 .btn.pri .ico{stroke:#1a0d00}
 .chp{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .chp .btn{min-height:38px;padding:0 13px;font-size:13px;margin:0}
-.seg{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 12px;padding:0 14px;scrollbar-width:none}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;scrollbar-width:none}
 .seg::-webkit-scrollbar{display:none}
-.seg button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:99px;
+.seg button{flex:1 1 auto;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 10px;border-radius:99px;
  background:var(--s2);border:1px solid var(--l);color:var(--m);font-weight:700;font-size:12.5px}
 .seg button.on{background:linear-gradient(180deg,rgba(255,106,0,.24),rgba(255,106,0,.1));border-color:rgba(255,106,0,.48);color:#fff}
 .seg i{font-style:normal;background:linear-gradient(135deg,var(--o2),var(--o));color:#1a0d00;border-radius:99px;
@@ -154,16 +156,6 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 .kp small{display:block;color:var(--m);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
 .kp b{display:block;font-size:23px;font-weight:800;letter-spacing:-.045em;margin-top:5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .kp .w b{font-size:32px;color:var(--ok)}
-.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
-.quick button{display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border-radius:var(--r);
- background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),var(--s1);
- border:1px solid var(--l);box-shadow:var(--sh);font-weight:700;font-size:12.5px;color:var(--t);
- transition:transform .24s var(--e),border-color .24s,box-shadow .24s}
-.quick button:hover{transform:translateY(-2px);border-color:rgba(255,106,0,.45)}
-.quick button i{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;
- background:rgba(255,106,0,.12);color:var(--o2);flex:none;font-style:normal}
-.quick button i svg{width:19px;height:19px}
-.quick button small{display:block;color:var(--m);font-size:10.5px;font-weight:500;margin-top:2px;letter-spacing:0}
 .it{padding:3px 0}.it small{display:block;color:var(--o2)}
 .lr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--l)}
 .lr:last-child{border:0}.lr small{color:var(--m)}.lr>span:first-child{min-width:0}.lr>b,.lr>span:last-child{white-space:nowrap;flex:none}
@@ -247,8 +239,8 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 @keyframes fadeOut{to{opacity:0}}
 @keyframes sheetUp{from{transform:translateY(100%);opacity:.6}}
 @keyframes sheetDown{to{transform:translateY(100%);opacity:.4}}
-@keyframes drawerIn{from{transform:translateX(100%);opacity:.6}}
-@keyframes drawerOut{to{transform:translateX(100%);opacity:.4}}
+@keyframes drawerIn{from{transform:translateX(-100%);opacity:.6}}
+@keyframes drawerOut{to{transform:translateX(-100%);opacity:.4}}
 .back.closing .sheet{animation:sheetDown .26s var(--e) forwards}
 .back.side-mode.closing .sheet{animation:drawerOut .28s var(--e) forwards}
 /* Cabeçalho unificado: alça arrastável + voltar + fechar */
@@ -264,12 +256,20 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shead .msub{margin:0 0 2px}
 /* Menu dos 3 pontinhos: gaveta lateral */
-.back.side-mode{justify-content:flex-end;align-items:stretch}
+.back.side-mode{justify-content:flex-start;align-items:stretch}
 .back.side-mode .sheet{width:min(90vw,380px);max-width:380px;height:100dvh;max-height:100dvh;
- border-radius:0;border-right:0;border-bottom:0;border-top:0;
+ border-radius:0;border-left:0;border-bottom:0;border-top:0;
  padding:calc(12px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
- box-shadow:-30px 0 70px -20px #000}
+ box-shadow:30px 0 70px -20px #000}
 .back.side-mode.open .sheet{animation:drawerIn .34s var(--e)}
+/* Recorte: foto limitada à tela e botões sempre enquadrados */
+.cropback .sheet{display:flex;flex-direction:column;max-height:100dvh;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.cropback #cv{max-width:100%;margin:0 auto 10px}
+.cropback label{margin-bottom:8px}
+.crop-actions{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto;
+ padding:10px 0 2px;border-top:1px solid var(--l);background:var(--s1)}
+.crop-actions .btn{margin:0;min-height:44px;font-size:13px;padding:0 10px}
+[data-theme="light"] .crop-actions{background:#fff}
 .pic{width:100%;height:190px;border-radius:18px;background:#222 center/cover;display:flex;align-items:center;justify-content:center;
  color:var(--m);margin-bottom:10px;overflow:hidden;border:1px solid var(--l)}
 .pic img{width:100%;height:100%;object-fit:cover}
@@ -363,7 +363,6 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  .wrap{max-width:1080px;margin:0 0 0 248px;padding:26px 30px 60px}
  .kp{grid-template-columns:repeat(4,1fr)}
  .kp .w{grid-column:auto}.kp .w b{font-size:28px}
- .quick{grid-template-columns:repeat(3,1fr)}
  .hello h2{font-size:27px}
  .card{padding:20px;margin-bottom:16px}
  .back{align-items:center}
@@ -374,12 +373,10 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 }
 @media (min-width:1280px){
  .wrap{max-width:1180px}
- .quick{grid-template-columns:repeat(6,1fr)}
 }
 @media (max-width:420px){
  .hello h2{font-size:20px}.hello .dia{display:none}
  .card{padding:14px}.kp b{font-size:20px}.kp .w b{font-size:28px}
- .quick button{padding:11px;gap:8px}.quick button small{font-size:10px}
  
 }
 /* ---------- Configurações ---------- */
@@ -416,7 +413,8 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 [data-theme="light"] .btn{background:linear-gradient(180deg,#fff,#f6f7f9);box-shadow:0 1px 0 #fff inset}
 [data-theme="light"] .btn:hover{background:linear-gradient(180deg,#fff,#eef0f3)}
 [data-theme="light"] .seg button{background:#f3f4f7}
-[data-theme="light"] .seg button.on,[data-theme="light"] .dots.on{color:#fff}
+[data-theme="light"] .seg button.on{color:var(--t)}
+[data-theme="light"] .dots.on{color:#fff}
 [data-theme="light"] .mgrid button:hover,[data-theme="light"] .side button:hover,[data-theme="light"] .mfoot:hover{background:rgba(15,23,42,.05)}
 [data-theme="light"] .mgrid button.on,[data-theme="light"] .side button.on{background:linear-gradient(90deg,rgba(232,92,0,.12),transparent);color:var(--t)}
 [data-theme="light"] .sheet{background:linear-gradient(165deg,#fff,#f7f8fa);box-shadow:0 24px 60px -20px rgba(15,23,42,.4)}
@@ -588,7 +586,7 @@ function closeBack(b){
  const limpa=()=>{if(sh){sh.style.transition='';sh.style.opacity='';sh.style.transform=''}if(bk)bk.style.opacity='';on=false;sh=bk=alca=null};
  const fim=e=>{
   if(!on||!sh)return;
-  const dx=e.clientX-sx,dy=e.clientY-sy,d=Math.max(dx,dy),target=bk;
+  const dx=e.clientX-sx,dy=e.clientY-sy,esq=bk.classList.contains('side-mode'),d=Math.max(esq?-dx:dx,dy),target=bk;
   on=false;
   if(d>60)closeBack(target);else limpa();
   sh=bk=alca=null;
@@ -602,8 +600,9 @@ function closeBack(b){
  });
  document.addEventListener('pointermove',e=>{
   if(!on||!sh)return;
-  const dx=e.clientX-sx,dy=e.clientY-sy,horizontal=dx>=dy,d=Math.max(0,dx,dy);
-  sh.style.transform=horizontal?'translateX('+d+'px)':'translateY('+d+'px)';
+  const dx=e.clientX-sx,dy=e.clientY-sy,esq=bk.classList.contains('side-mode'),dl=esq?-dx:dx;
+  const horizontal=dl>=dy,d=Math.max(0,dl,dy);
+  sh.style.transform=horizontal?'translateX('+(esq?-d:d)+'px)':'translateY('+d+'px)';
   sh.style.opacity=String(Math.max(.5,1-d/420));bk.style.opacity=String(Math.max(.3,1-d/500));
  });
  document.addEventListener('pointerup',fim);
@@ -622,6 +621,7 @@ function cfgSheet(){
    <button class="theme-btn ${TEMA=='light'?'on':''}" data-a="theme" data-v="light">${ICO.sun}Claro</button>
   </div></div>
  <div class="card"><h3>${ICO.bell}Avisos</h3>
+  <p class="sub" style="margin:-4px 0 8px">Novos pedidos avisam sozinhos quando o celular permite notificações.</p>
   <button class="cfg-row" data-a="som"><i>${ICO.sound}</i><span><b>Som dos novos pedidos</b><small>${SOM?'Ativado':'Desativado'}</small></span><span class="mini-sw ${SOM?'on':''}"></span></button>
   <button class="cfg-row" data-a="testsom"><i>${ICO.sound}</i><span><b>Testar som</b><small>Ouça como ficará o aviso</small></span>${ICO.send}</button>
   ${ntfBtn()}
@@ -808,7 +808,7 @@ function homeHTML(){
   nome=(user&&user.email?user.email.split('@')[0]:'chefe'),
   data=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}),
   atrasados=ativos.filter(o=>dl(o)<Date.now()).length;
- const acoes=[['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['menu',ICO.menu,'Cardápio','Itens e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['loja',ICO.loja,'Minha loja','Horários e contato']];
+
  return `<div class="hello"><div><h2>${saud}, ${esc(nome)}</h2><p>${esc(data.charAt(0).toUpperCase()+data.slice(1))}</p></div><div class="dia"><b class="status-mini ${aberta?'':'off'}"><i></i>${aberta?'Aberta':'Fechada'}</b>${PRAZO} min de preparo</div></div>
  <div class="kp" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
   <div class="w"><small>FATURAMENTO HOJE</small><b>${brl(fat)}</b></div>
@@ -817,8 +817,6 @@ function homeHTML(){
   <div><small>TÍQUETE MÉDIO</small><b>${brl(ticket)}</b></div>
  </div>
  ${novos.length?`<div class="card" style="border-color:rgba(255,106,0,.4);background:linear-gradient(150deg,rgba(255,106,0,.12),rgba(255,106,0,.02)),var(--s1);margin-bottom:12px;cursor:pointer" data-a="tab" data-v="pedidos"><h3 style="justify-content:space-between">${ICO.sparkle} ${novos.length} pedido${novos.length>1?'s':''} novo${novos.length>1?'s':''} esperando <span style="font-size:18px">→</span></h3><p class="sub" style="margin:4px 0 0 12px">Toque para aceitar e começar o preparo.</p></div>`:''}
- <div class="sec-title">Atalhos</div>
- <div class="quick">${acoes.map(a=>`<button data-a="tab" data-v="${a[0]}"><i>${a[1]}</i><span>${a[2]}<small>${a[3]}</small></span></button>`).join('')}</div>
  <div class="sec-title">Resumo do dia</div>
  <div class="card"><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.check}Entregues</span><b>${entregues.length}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.menu}Itens vendidos</span><b>${totalItens}</b></div><div class="it" style="display:flex;justify-content:space-between"><span>${ICO.close}Cancelados</span><b>${cancelados.length}</b></div></div>
  ${dirty?`<div class="card" style="border-color:rgba(251,191,36,.4);margin-top:12px"><p class="sub" style="margin:0">Você tem mudanças no cardápio ainda não publicadas.</p><button class="btn pri full" style="margin-top:10px" data-a="publish">${ICO.pub}Publicar agora</button></div>`:''}`;
@@ -849,8 +847,8 @@ function tick(){document.querySelectorAll('[data-dl]').forEach(e=>{const r=+e.da
 setInterval(tick,1000);
 function readF(f,cb){const r=new FileReader();r.onload=()=>cb(r.result);r.readAsDataURL(f)}
 function crop(src,ar,outW,round,cb){
- const ov=document.createElement('div');ov.className='back open';ov.style.zIndex=80;
- ov.innerHTML=`<div class="sheet"><h3>Ajustar enquadramento</h3><p class="sub">Arraste a foto para posicionar e use o zoom.</p><div id="cv" style="position:relative;width:${round?'70%':'100%'};margin:0 auto 12px;aspect-ratio:${ar};overflow:hidden;border-radius:${round?'50%':'14px'};background:#000;touch-action:none;cursor:grab"><img id="ci" style="position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none"></div><label>Zoom<input id="cz" type="range" min="1" max="4" step="0.01" value="1"></label><button class="btn pri full" id="cok">Usar esta foto</button><button class="btn full" id="cno">Cancelar</button></div>`;
+ const ov=document.createElement('div');ov.className='back open cropback';ov.style.zIndex=80;
+ ov.innerHTML=`<div class="sheet"><h3>Ajustar enquadramento</h3><p class="sub">Arraste a foto para posicionar e use o zoom.</p><div id="cv" style="position:relative;width:min(${round?'70%':'100%'},${(42*ar).toFixed(1)}dvh);aspect-ratio:${ar};overflow:hidden;border-radius:${round?'50%':'14px'};background:#000;touch-action:none;cursor:grab"><img id="ci" style="position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none"></div><label>Zoom<input id="cz" type="range" min="1" max="4" step="0.01" value="1"></label><div class="crop-actions"><button class="btn pri" id="cok">Usar esta foto</button><button class="btn" id="cno">Cancelar</button></div></div>`;
  document.body.appendChild(ov);
  const ovSheet=ov.querySelector('.sheet'),ovTitle=ovSheet.querySelector(':scope > h3');if(ovTitle)ovTitle.remove();
   ovSheet.insertAdjacentHTML('afterbegin',sheetHead('Ajustar enquadramento'));
@@ -1064,14 +1062,14 @@ document.addEventListener('change',e=>{const t=e.target;if(t.id=='c_s'){CS=t.val
 function sysNote(t,b,tag,force){
  if(!('Notification' in window)||Notification.permission!='granted')return;
  if(!force&&document.visibilityState=='visible')return;
- const o={body:b,tag:tag,renotify:true,requireInteraction:true,vibrate:[300,120,300,120,300],icon:'icon-180.png',data:{url:location.href}};
+ const o={body:b,tag:tag,renotify:true,requireInteraction:true,vibrate:[300,120,300,120,300],icon:'logo-app.png',data:{url:location.href}};
  const rdy=navigator.serviceWorker?Promise.race([navigator.serviceWorker.ready,new Promise((_,j)=>setTimeout(j,1500))]):Promise.reject();
  rdy.then(r=>r.showNotification(t,o)).catch(()=>{try{new Notification(t,o)}catch(e){}})}
-function orderNote(x){const d=V(x);sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id)}
+function orderNote(x){const d=V(x);sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id,true)}
 function askNotif(){if(!('Notification' in window)||Notification.permission!='default')return;try{Promise.resolve(Notification.requestPermission()).then(()=>{if(tab=='loja')view();else if($('sheet')&&$('sheet').querySelector('.cfg-user'))cfgSheet()}).catch(()=>{})}catch(e){}}
 function testNote(){sysNote('Notificação de teste','Os avisos de novo pedido vão aparecer aqui.','teste',true)}
-function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">Testar notificação do celular</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber avisos com o painel em segundo plano.</p>':'<button class="btn pri full" data-a="ntf">Ativar notificações do celular</button>'}
-document.addEventListener('click',function ft(){if(!user)return;document.removeEventListener('click',ft);askNotif()});
+function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">Testar aviso automático</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber os avisos automáticos de pedido.</p>':'<button class="btn pri full" data-a="ntf">Ativar avisos automáticos</button>'}
+document.addEventListener('click',function ft(){if(!ok)return;document.removeEventListener('click',ft);askNotif()});
 setInterval(()=>{if(NEWC>0&&AC&&AC.state=='running')ring()},4500);
 async function wl(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
 document.addEventListener('pointerdown',()=>{audio();wl()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)wl()});
