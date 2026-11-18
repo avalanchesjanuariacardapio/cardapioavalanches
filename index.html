@@ -179,7 +179,7 @@ input,textarea,select{font-size:16px}
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span></div>
+    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">…</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
 
@@ -269,7 +269,7 @@ input,textarea,select{font-size:16px}
     <div class="sum">
       <div><span>Subtotal</span><span id="subtotalText">R$ 0,00</span></div>
       <div id="discRow" style="display:none"><span>Desconto <small id="discCode"></small></span><span id="discText" style="color:#3ddc84"></span></div>
-      <div><span>Taxa de entrega</span><span id="feeText">R$ 4,99</span></div>
+      <div><span>Taxa de entrega</span><span id="feeText">…</span></div>
       <div class="tot"><span>Total</span><span id="totalText">R$ 0,00</span></div>
     </div>
 
@@ -370,15 +370,19 @@ async function showEsp(base, e) {
     if (!test) { SEEN[k] = Date.now(); try { Object.keys(SEEN).sort((a, b) => SEEN[b] - SEEN[a]).slice(30).forEach(q => delete SEEN[q]); localStorage.setItem('avl_esp2', JSON.stringify(SEEN)); } catch (y) {} }
   } catch (x) {}
 }
+let CFG_STALE = false; // true quando a config veio do cache antigo (sem conseguir falar com a nuvem)
+const fetchT = (url, ms) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms); return fetch(url, { cache: 'no-store', signal: c.signal }).finally(() => clearTimeout(t)); };
 async function loadCloud(skipEsp) {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
   const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
   let txt;
   try {
-    const r = await fetch(base + '/cardapio/config', { cache: 'no-store' }); if (!r.ok) throw 0;
+    let r; try { r = await fetchT(base + '/cardapio/config', 10000); } catch (e) { await new Promise(w => setTimeout(w, 1200)); r = await fetchT(base + '/cardapio/config', 10000); }
+    if (!r.ok) throw 0;
     txt = (await r.json()).fields.json.stringValue;
+    CFG_STALE = false;
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
-  } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
+  } catch (e) { CFG_STALE = true; txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
   CLOUD_BASE = base; applyData(JSON.parse(txt));
   try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp && !skipEsp) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
   showEta(); return base;
@@ -758,6 +762,7 @@ document.addEventListener('keydown', e => {
   buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
   if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
   render(); updateCart(); unboot();
+  if (CFG_STALE && window.__retryCloud) window.__retryCloud();
 })();
 
 /* Ao reabrir o navegador/aba, atualiza o cardápio sozinho (sem precisar forçar a atualização) */
@@ -766,7 +771,7 @@ document.addEventListener('keydown', e => {
   function overlayOpen() { return !!document.querySelector('.page.open,.sheet-back.open,.back.open'); }
   function swCheck() { try { if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {}); } catch (e) {} }
   async function refresh() {
-    if (busy || !CLOUD_BASE || overlayOpen()) return;
+    if (busy || (!CLOUD_BASE && !CFG_STALE) || overlayOpen()) return;
     busy = true;
     try {
       var before = JSON.stringify(CATS);
@@ -775,11 +780,22 @@ document.addEventListener('keydown', e => {
       applyHours(); checkOpen(); render(); updateCart(); loadPhotos(CLOUD_BASE);
     } catch (e) {} finally { busy = false; }
   }
+  var tries = 0, looping = false;
+  function retryLoop() {
+    if (looping) return; looping = true;
+    (function next() {
+      var wait = [3000, 8000, 20000, 45000][tries];
+      if (!CFG_STALE || wait === undefined) { looping = false; tries = 0; return; }
+      tries++;
+      setTimeout(async function () { if (CFG_STALE && !document.hidden) await refresh(); next(); }, wait);
+    })();
+  }
+  window.__retryCloud = retryLoop;
   function back(persisted) {
     var away = hiddenAt ? Date.now() - hiddenAt : 0; hiddenAt = 0;
     swCheck();
     if (away > 20 * 60 * 1000 && !overlayOpen()) { location.reload(); return; }
-    if (persisted || away > 30 * 1000) refresh();
+    if (persisted || away > 30 * 1000 || CFG_STALE) refresh().then(function () { if (CFG_STALE) retryLoop(); });
   }
   document.addEventListener('visibilitychange', function () { if (document.hidden) hiddenAt = Date.now(); else back(false); });
   window.addEventListener('pageshow', function (e) { if (e.persisted) back(true); });
