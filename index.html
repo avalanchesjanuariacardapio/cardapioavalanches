@@ -294,7 +294,7 @@ input,textarea,select{font-size:16px}
 <script>
 const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do painel)
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/' + FB_PROJECT + '/databases/(default)/documents';
-let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
+let CONFIG = { phone: '5534984405375', fee: 2.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
 let OPEN_H = 19, CLOSE_H = 23, FORCE = 'auto', STORE = 'Avalanches'; // valores padrão; o painel online sobrescreve
 const hh = h => String(h).padStart(2, '0') + ':00';
 function applyHours() {
@@ -372,14 +372,39 @@ async function showEsp(base, e) {
 }
 let CFG_STALE = false; // true quando a config veio do cache antigo (sem conseguir falar com a nuvem)
 const fetchT = (url, ms) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms); return fetch(url, { cache: 'no-store', signal: c.signal }).finally(() => clearTimeout(t)); };
+/* Lê a config SEMPRE ao vivo. Primeiro por POST (batchGet), que nenhum cache guarda; se falhar, usa o GET normal. */
+async function cfgFresh() {
+  const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+  try {
+    const c = new AbortController(), t = setTimeout(() => c.abort(), 10000);
+    try {
+      const r = await fetch(base + ':batchGet', { method: 'POST', cache: 'no-store', signal: c.signal, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documents: [`projects/${FB_PROJECT}/databases/(default)/documents/cardapio/config`] }) });
+      if (r.ok) { const a = await r.json(), f = a && a[0] && a[0].found; if (f && f.fields && f.fields.json && f.fields.json.stringValue) return f.fields.json.stringValue; }
+    } finally { clearTimeout(t); }
+  } catch (e) {}
+  const r = await fetchT(base + '/cardapio/config', 10000); if (!r.ok) throw 0;
+  return (await r.json()).fields.json.stringValue;
+}
+/* Antes de enviar o pedido: confere taxa e preços ao vivo. true = tudo igual, false = valores mudaram (já atualizados na tela), null = não deu para confirmar. */
+async function verifyLive() {
+  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return true;
+  let txt; try { txt = await cfgFresh(); } catch (e) { return null; }
+  try {
+    const before = cartTotal(), catsB = JSON.stringify(CATS);
+    CFG_STALE = false; try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
+    applyData(JSON.parse(txt));
+    if (JSON.stringify(CATS) !== catsB) buildTabs();
+    render(); updateCart();
+    return Math.abs(cartTotal() - before) < 0.005;
+  } catch (e) { return null; }
+}
 async function loadCloud(skipEsp) {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
   const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
   let txt;
   try {
-    let r; try { r = await fetchT(base + '/cardapio/config', 10000); } catch (e) { await new Promise(w => setTimeout(w, 1200)); r = await fetchT(base + '/cardapio/config', 10000); }
-    if (!r.ok) throw 0;
-    txt = (await r.json()).fields.json.stringValue;
+    try { txt = await cfgFresh(); } catch (e) { await new Promise(w => setTimeout(w, 1200)); txt = await cfgFresh(); }
     CFG_STALE = false;
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
   } catch (e) { CFG_STALE = true; txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
@@ -432,6 +457,20 @@ function applyData(d) {
   { const ci = Object.keys(CATS); ITEMS.sort((a, b) => ci.indexOf(a.cat) - ci.indexOf(b.cat)); }
   ADDONS = (d.addons || []).filter(a => a.ativo !== false);
   setPoster(l);
+  repriceCart();
+}
+/* A sacola fica salva no aparelho: ao carregar o cardápio, refaz os preços com os valores atuais e tira o que não existe mais */
+function repriceCart() {
+  if (!ITEMS.length) return;
+  let removed = 0;
+  Object.keys(CART).forEach(k => {
+    const c = CART[k], it = ITEMS.find(i => c.pid != null ? String(i.id) === String(c.pid) : i.name === c.name);
+    if (!it) { delete CART[k]; removed++; return; }
+    c.price = ePrice(it);
+    (c.addons || []).forEach(a => { const n = ADDONS.find(x => x.id === a.id); if (n) a.price = +n.price; });
+  });
+  if (removed && typeof showToast === 'function') showToast('Alguns itens da sacola não estão mais disponíveis.');
+  try { updateCart(); } catch (e) {}
 }
 
 const el = id => document.getElementById(id);
@@ -531,7 +570,7 @@ el('addCart').onclick = () => {
   const note = el('note').value.trim();
   const id = currentProd.id + selectedAddons.map(a => a.id).join('') + (note ? '|' + note : '');
   if (CART[id]) CART[id].qty += qty;
-  else CART[id] = { name: currentProd.name, price: ePrice(currentProd), qty, addons: [...selectedAddons], note };
+  else CART[id] = { pid: currentProd.id, name: currentProd.name, price: ePrice(currentProd), qty, addons: [...selectedAddons], note };
   const r = el('addCart').getBoundingClientRect(); closeModal(); updateCart(); showToast('Adicionado à sacola'); fly(r.left + r.width / 2, r.top + r.height / 2);
 };
 
@@ -589,7 +628,7 @@ function fly(x, y) {
 function quickAdd(it, btn) {
   if (!IS_OPEN) return closedMsg();
   if (CART[it.id]) CART[it.id].qty++;
-  else CART[it.id] = { name: it.name, price: ePrice(it), qty: 1, addons: [], note: '' };
+  else CART[it.id] = { pid: it.id, name: it.name, price: ePrice(it), qty: 1, addons: [], note: '' };
   updateCart(); showToast(it.name + ' adicionado');
   const r = btn.getBoundingClientRect(); fly(r.left + r.width / 2, r.top + r.height / 2);
 }
@@ -695,11 +734,16 @@ async function sendWa() {
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
   showToast('Pedido enviado! Finalize no WhatsApp.');
 }
-el('confirmBtn').onclick = () => {
+el('confirmBtn').onclick = async () => {
   if (!IS_OPEN) return closedMsg();
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
   if (!validate()) return;
+  const cb = el('confirmBtn'); cb.disabled = true; showToast('Conferindo valores…');
+  const live = await verifyLive();
+  cb.disabled = false;
+  if (live === null) return showToast('Não conseguimos confirmar a taxa de entrega agora. Confira a internet e tente de novo.');
+  if (live === false) return showToast('Os valores foram atualizados. Confira o total e confirme de novo.');
   const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
   const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), ph = phoneDigits(), g2 = parseFloat(el('cashGiven').value);
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
@@ -795,7 +839,7 @@ document.addEventListener('keydown', e => {
     var away = hiddenAt ? Date.now() - hiddenAt : 0; hiddenAt = 0;
     swCheck();
     if (away > 20 * 60 * 1000 && !overlayOpen()) { location.reload(); return; }
-    if (persisted || away > 30 * 1000 || CFG_STALE) refresh().then(function () { if (CFG_STALE) retryLoop(); });
+    if (persisted || away > 10 * 1000 || CFG_STALE) refresh().then(function () { if (CFG_STALE) retryLoop(); });
   }
   document.addEventListener('visibilitychange', function () { if (document.hidden) hiddenAt = Date.now(); else back(false); });
   window.addEventListener('pageshow', function (e) { if (e.persisted) back(true); });
