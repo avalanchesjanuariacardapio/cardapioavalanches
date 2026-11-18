@@ -39,7 +39,7 @@ a{color:var(--o2)}
 .topback{display:none;align-items:center;justify-content:center;width:36px;height:36px;min-height:36px;flex:none;
  border:0;border-radius:0;color:var(--t);background:none;box-shadow:none}
 .topback svg{width:20px;height:20px}
-.dots{display:flex;align-items:center;justify-content:center;width:38px;height:38px;min-height:38px;flex:none;
+.dots{display:none;align-items:center;justify-content:center;width:38px;height:38px;min-height:38px;flex:none;
  border:0;border-radius:0;color:var(--t);background:none;box-shadow:none}
 .dots svg{width:22px;height:22px;fill:none;stroke:none}
 .dots svg circle{fill:currentColor}
@@ -354,9 +354,10 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 /* ---------- DESKTOP: sidebar + conteúdo largo ---------- */
 @media (min-width:960px){
  .top{padding:16px 30px}
+ body.home-tab .dots{display:flex}
  h1{font-size:23px}
  .sub{font-size:13px}
- .side{position:fixed;display:flex;flex-direction:column;z-index:70;left:0;top:0;bottom:0;width:248px;
+ .side{position:fixed;display:flex;flex-direction:column;z-index:70;left:0;top:0;bottom:0;width:248px;overscroll-behavior:contain;
   background:linear-gradient(180deg,#15151a,#0e0e11);border-right:1px solid var(--l);padding:20px 14px 16px;
   box-shadow:18px 0 50px -34px #000;transform:translateX(-100%);transition:transform .42s var(--e)}
  body.side-open .side{transform:translateX(0)}
@@ -372,7 +373,7 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  .side .brand img{width:42px;height:42px;border-radius:13px;object-fit:cover;flex:none}
  .side .brand b{display:block;font-size:14px;font-weight:800;letter-spacing:-.02em}
  .side .brand small{display:block;color:var(--m);font-size:10.5px;margin-top:1px}
- .side .slist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0;scrollbar-width:thin}
+ .side .slist{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:0;scrollbar-width:thin}
  .side button{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:0 10px;border-radius:0;
   color:var(--m);font-size:13px;font-weight:650;text-align:left;border-bottom:1px solid rgba(255,255,255,.05)}
  .side button:hover{background:rgba(255,255,255,.04);color:var(--t)}
@@ -570,16 +571,20 @@ const ICO={
 const MORETABS=[['home',ICO.home,'Início','Seu painel e resumo'],['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['menu',ICO.menu,'Cardápio','Itens, fotos e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['fin',ICO.money,'Financeiro','Valores, promoções e total'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['add',ICO.add,'Adicionais','Opcionais dos itens'],['loja',ICO.loja,'Minha loja','Horários e contato'],['pub',ICO.pub,'Publicar','Enviar mudanças']];
 const ALLTABS=MORETABS;
 const desk=()=>window.matchMedia&&matchMedia('(min-width:960px)').matches;
+function syncMais(){
+ const n=$('nav'),b=n&&n.querySelector('.mais'),back=$('back');
+ if(b)b.classList.toggle('on',!!(back&&back.classList.contains('open')&&back.classList.contains('full')));
+}
 function toggleSide(open){
  const on=open===undefined?!document.body.classList.contains('side-open'):!!open;
  document.body.classList.toggle('side-open',on);
  const mb=$('maisbtn');if(mb)mb.classList.toggle('on',on&&desk());
 }
 function setChrome(on){
- const s=document.getElementById('side'),m=$('maisbtn'),b=$('topback'),nv=$('nav');
+ const s=document.getElementById('side'),b=$('topback'),nv=$('nav');
  if(nv)nv.hidden=!on;
  if(s)s.style.display=on?'':'none';
- if(m)m.style.display=on&&(desk()||tab=='home')?'':'none';
+ document.body.classList.toggle('home-tab',on&&tab=='home');
  if(b){if(!b.innerHTML)b.innerHTML=ICO.back;b.style.display=on&&tab!='home'?'flex':'none'}
  if(!on)toggleSide(false);
  document.body.classList.toggle('auth',!on);
@@ -587,7 +592,7 @@ function setChrome(on){
 function nav(){
  $('pubbar').innerHTML=dirty?`<button class="btn pri full" data-a="publish">${ICO.pub}Publicar mudanças</button>`:'';
  setChrome(true);
- const mb=$('maisbtn');if(mb){mb.innerHTML=ICO.more;mb.classList.toggle('on',desk()?document.body.classList.contains('side-open'):!['home','pedidos'].includes(tab))}
+ const mb=$('maisbtn');if(mb){mb.innerHTML=ICO.more;mb.classList.toggle('on',desk()&&document.body.classList.contains('side-open'))}
  const ini=user&&user.email?esc(user.email.trim().slice(0,1).toUpperCase()):'?';
  const nome=user&&user.email?esc(user.email.split('@')[0]):'Administrador';
  const loja=esc(D.loja&&D.loja.nome||'Avalanches');
@@ -600,7 +605,8 @@ function nav(){
   const nv=$('nav');
   if(nv)nv.innerHTML=[['home',ICO.home,'Início'],['pedidos',ICO.orders,'Pedidos'],['menu',ICO.menu,'Cardápio'],['cup',ICO.cup,'Cupons']].map(([k,ic,l])=>
    `<button data-a="tab" data-v="${k}" class="${tab==k?'on':''}" aria-label="${l}">${ic}${k=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}<span>${l}</span></button>`).join('')
-   +`<button data-a="more" class="mais ${MORETABS.some(t=>t[0]==tab)?'on':''}" aria-label="Mais atalhos">${ICO.more}<span>mais</span></button>`;
+   +`<button data-a="more" class="mais" aria-label="Mais atalhos">${ICO.more}<span>mais</span></button>`;
+ syncMais();
 }
 /* Cabeçalho padrão: voltar, título, fechar e alça para arrastar */
 function sheetHead(t){
@@ -621,7 +627,7 @@ function openSheet(t,side){
   s.insertAdjacentHTML('afterbegin',sheetHead(title));
  }
  b.classList.toggle('side-mode',!!side);
- b.classList.add('open');
+ b.classList.add('open');syncMais();
 }
 /* Fecha com animação suave; funciona no painel e no recorte de foto */
 function closeBack(b){
@@ -629,7 +635,7 @@ function closeBack(b){
  if(!b.classList.contains('open')){if(b.id!=='back')b.remove();return}
  b.style.opacity='';const s=b.querySelector('.sheet');
  if(s){s.style.transition='';s.style.opacity='';s.style.transform=''}
- b.classList.add('closing');b.classList.remove('open');
+ b.classList.add('closing');b.classList.remove('open');syncMais();
  const done=()=>{b.classList.remove('closing','side-mode');if(b.id!=='back')b.remove();CURO=null};
  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){done();return}
  const alvo=s||b;
@@ -712,7 +718,7 @@ function moreSheet(){
   +'<div class="mgrid">'+MORETABS.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${tab==t[0]?'on':''}"><i>${t[1]}${t[0]=='pedidos'&&NEWC?'<span class="bd">'+NEWC+'</span>':''}</i><span>${t[2]}<small style="display:block;color:var(--m);font-size:9.5px;font-weight:500;margin-top:2px;letter-spacing:0">${t[3]}</small></span></button>`).join('')+'</div>'
   +`<button class="mfoot" data-a="config"><span class="av">${ini}</span><span class="u"><b>${nome}</b><small>Administrador · Configurações</small></span>${ICO.gear}</button>`;
    openSheet('Todos os atalhos');
-   $('back').classList.add('full');
+   $('back').classList.add('full');syncMais();
    const alca=$('sheet').querySelector('.shandle');if(alca)alca.remove();
 }
 function fld(l,k,type='text',x=''){return `<label>${l}<input data-f="${k}" type="${type}" value="${esc(D.loja[k])}" ${x}></label>`}
@@ -1287,7 +1293,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
 <script>
 /* Trava a rolagem do fundo enquanto houver uma tela aberta (sacola, item, Pix, painel) */
 (function () {
-  var SEL = '.page.open,.sheet-back.open,.back.open', b = document.body, h = document.documentElement, on = false, y = 0, sy = 0;
+  var SEL = '.page.open,.sheet-back.open,.back.open,body.side-open', b = document.body, h = document.documentElement, on = false, y = 0, sy = 0;
   function sync() {
     var any = !!document.querySelector(SEL);
     if (any && !on) {
