@@ -183,7 +183,7 @@ const ok=FB.projectId!=='COLE_AQUI';let auth,db;
 if(ok){const app=initializeApp(FB);auth=getAuth(app);db=getFirestore(app)}
 const KEY='avl_admin_v2';
 const IT=[['i_cq','hamburgueres','Cachorro Quente','Pão, salsicha, mortadela, mussarela, batata, milho, molho',8,'cachoro quente na chapa.jpeg'],['i_hb','hamburgueres','Hambúrguer','Pão, carne, batata, alface, tomate, molho especial',12,'logo.jpeg'],['i_xb','hamburgueres','X-Burguer','Pão, carne, mussarela, batata, milho, alface, tomate',15,'xburguer.jpeg'],['i_xs','hamburgueres','X-Salada','Pão, carne, mussarela, presunto, alface, tomate, milho, batata',16,'xburguer.jpeg'],['i_xe','hamburgueres','X-Egg','Pão, carne, mussarela, ovo, presunto, salada, batata',17,'xburguer.jpeg'],['i_xc','hamburgueres','X-Calabresa','Pão, carne, mussarela, calabresa, salada, batata',18,'xburguer.jpeg'],['i_xba','hamburgueres','X-Bacon','Pão, carne, mussarela, bacon, salada, batata',19,'xburguer.jpeg'],['i_fb','hamburgueres','Franburguer','Pão, frango desfiado, mussarela, salada, batata, milho',18,'logo.jpeg'],['i_xtudo','hamburgueres','X-Tudo','Pão, carne, bacon, ovo, presunto, mussarela, calabresa, milho, batata, salada',25,'xtudo.jpeg'],['i_av','hamburgueres','Avalanches','Pão, carne, bacon, frango, ovo, presunto, mussarela, calabresa, cebola roxa, milho, batata, tudo',27,'Avalanche.jpeg'],['b_guarana350','bebidas','Guaraná Lata','350ml',5,'guarana lata.jpg'],['b_coca350','bebidas','Coca-Cola Lata','350ml',5.5,'coca-cola lata.jpg']];
-const DEF={loja:{nome:'Avalanches',phone:'5534984405375',fee:2.99,pixKey:'14421d15-c771-4ab9-8e7f-fd69e987af1a',open:19,close:23,modo:'auto'},
+const DEF={loja:{nome:'Avalanches',phone:'5534984405375',fee:4.99,pixKey:'14421d15-c771-4ab9-8e7f-fd69e987af1a',open:19,close:23,modo:'auto'},
 cats:[{id:'hamburgueres',name:'Burguers',extras:true},{id:'bebidas',name:'Bebidas',extras:false}],
 items:IT.map(a=>({id:a[0],cat:a[1],name:a[2],desc:a[3],price:a[4],image:a[5],ativo:true})),
 addons:[{id:'a_carne',name:'Carne',price:4},{id:'a_bacon',name:'Bacon',price:4},{id:'a_ovo',name:'Ovo',price:3}]};
@@ -381,7 +381,7 @@ function listen(){if(unsub)return;let first=true;
   first=false;nav();nov();if(tab=='pedidos'||tab=='cup')view();if(CURO&&$('back').classList.contains('open'))osheet(CURO)},e=>toast('Erro nos pedidos: '+(e.code||e.message)))}
 const TPL=[['10% de desconto',{tipo:'pct',valor:10,min:0}],['Frete grátis',{tipo:'frete',valor:0,min:0}],['R$ 5 off acima de R$ 30',{tipo:'fixo',valor:5,min:30}],['Primeira compra 15%',{tipo:'pct',valor:15,min:0}]];
 const ymd=n=>new Date(Date.now()+n*864e5).toLocaleDateString('sv-SE');
-const cj=c=>({tipo:c.tipo,valor:+c.valor||0,min:+c.min||0,ate:c.ate||'',ativo:c.ativo!==false});
+const cj=c=>({tipo:c.tipo,valor:+c.valor||0,min:+c.min||0,ate:c.ate||'',ativo:c.ativo!==false,rev:String(c.rev||'')});
 function cdesc(c){const v=c.tipo=='pct'?c.valor+'% de desconto':c.tipo=='fixo'?brl(c.valor)+' de desconto':'Frete grátis';return v+(c.min>0?' em pedidos a partir de '+brl(c.min):'')+(c.ate?' · até '+c.ate.split('-').reverse().join('/'):' · sem validade')}
 function gen(){const b=cd.tipo=='frete'?'FRETE':cd.tipo=='pct'?'DESC'+cd.valor:'OFF'+cd.valor;return b+Math.random().toString(36).slice(2,4).toUpperCase()}
 function cread(){if(!$('c_t'))return;cd.tipo=$('c_t').value;cd.valor=+$('c_v').value||0;cd.min=+$('c_m').value||0;cd.ate=$('c_a').value;if(cd._new)cd.code=$('c_k').value.toUpperCase().replace(/[^A-Z0-9]/g,'')}
@@ -390,12 +390,13 @@ function csheet(){CURO=null;const c=cd;$('sheet').innerHTML=`<h3>${c._new?'Novo 
  <div class="two"><label>Tipo<select id="c_t"><option value="pct" ${c.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${c.tipo=='fixo'?'selected':''}>R$ de desconto</option><option value="frete" ${c.tipo=='frete'?'selected':''}>Frete grátis</option></select></label><label>Valor<input id="c_v" type="number" min="0" step="0.5" value="${c.valor}"></label></div>
  <label>Pedido mínimo em R$ (0 = sem mínimo)<input id="c_m" type="number" min="0" value="${c.min}"></label>
  <label>Validade<input id="c_a" type="date" value="${esc(c.ate||'')}"></label><div class="chp"><button class="btn" data-a="vd" data-v="0">Só hoje</button><button class="btn" data-a="vd" data-v="7">7 dias</button><button class="btn" data-a="vd" data-v="30">30 dias</button><button class="btn" data-a="vd" data-v="-1">Sem validade</button></div>
- <p class="sub" id="c_p">👁 ${esc(cdesc(c))}</p><button class="btn pri full" data-a="csave">Salvar cupom</button><button class="btn full" data-a="scancel">Cancelar</button>${c._new?'':'<button class="btn full danger" data-a="cdel">Excluir cupom</button>'}`;$('back').classList.add('open')}
+ <p class="sub" id="c_p">👁 ${esc(cdesc(c))}</p><p class="sub">🔒 Cada aparelho só pode usar este cupom uma vez.</p><button class="btn pri full" data-a="csave">Salvar cupom</button><button class="btn full" data-a="scancel">Cancelar</button>${c._new?'':'<button class="btn full danger" data-a="cdel">Excluir cupom</button>'}`;$('back').classList.add('open')}
 function csave(){cread();const code=cd.code;
  if(!/^[A-Z0-9]{3,20}$/.test(code))return toast('Código: 3 a 20 letras ou números');
  if(cd.tipo!='frete'&&!(cd.valor>0))return toast('Informe o valor do desconto');
  if(cd.tipo=='pct'&&cd.valor>100)return toast('Porcentagem máxima: 100');
  if(cd._new&&CUP.some(c=>c.code==code))return toast('Esse código já existe');
+ if(cd._new)cd.rev=String(Date.now());
  const c={code,...cj(cd)};
  setDoc(doc(db,'cupons',code),{json:JSON.stringify(cj(c))}).then(()=>{CUP=CUP.filter(x=>x.code!=code).concat(c);$('back').classList.remove('open');view();toast('Cupom salvo e já valendo')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
 let CPR='30',CUS={},CULOAD=false,CUERR='';
@@ -445,7 +446,7 @@ function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.
   if(!c){do{c='ESP'+Math.random().toString(36).slice(2,6).toUpperCase()}while(c.length<7||CUP.some(x=>x.code==c))}
   else if(!/^[A-Z0-9]{3,20}$/.test(c))return toast('Código: 3 a 20 letras ou números');
   if(CUP.some(x=>x.code==c))return toast('Esse código já existe');
-  nc={code:c,tipo:tp,valor:tp=='frete'?0:vl,min:mn,ate:a,ativo:true}}
+  nc={code:c,tipo:tp,valor:tp=='frete'?0:vl,min:mn,ate:a,ativo:true,rev:String(Date.now())}}
  else{const cp=CUP.find(x=>x.code==c);if(!cp||cp.ativo===false)return toast('Escolha um cupom ativo')}
  const o={on:true,code:c,tema:t,msg:m,ate:a,v:Date.now(),hist:[...new Set([...(ES.hist||[]),c])].slice(-50)};
  const go=nc?setDoc(doc(db,'cupons',c),{json:JSON.stringify(cj(nc))}).then(()=>{CUP=CUP.filter(x=>x.code!=c).concat(nc)}):Promise.resolve();
