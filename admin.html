@@ -611,9 +611,10 @@ function closeBack(b){
 })();
 /* Configurações: conta, tema, som, avisos e dados */
 function cfgSheet(){
+ const s=$('sheet'),top=s?s.scrollTop:0;
  const email=user&&user.email||'Administrador',nome=esc(email.split('@')[0]),ini=esc(email.trim().slice(0,1).toUpperCase());
  const uid=user&&user.uid||'',pend=dirty?'Sim':'Não';
- $('sheet').innerHTML=`<h3>Configurações</h3>
+ s.innerHTML=`<h3>Configurações</h3>
  <div class="cfg-user"><span class="av">${ini}</span><span class="u"><b>${nome}</b><small>${esc(email)}</small></span><span class="cfg-badge">Admin</span></div>
  <div class="card"><h3>${ICO.gear}Aparência</h3><p class="sub">Escolha como o painel aparece neste aparelho.</p>
   <div class="seg" style="margin:0">
@@ -637,6 +638,7 @@ function cfgSheet(){
  </div>
  <p class="sub" style="text-align:center;margin:14px 0 0">Painel administrativo · configurações locais</p>`;
  openSheet('Configurações');
+ s.scrollTop=top;
 }
 function moreSheet(){
  const ini=user&&user.email?esc(user.email.trim().slice(0,1).toUpperCase()):'?';
@@ -683,7 +685,12 @@ document.addEventListener('click',e=>{if(e.target.id=='back')closeBack($('back')
  else if(a=='theme'){TEMA=v;applyTheme();try{localStorage.setItem('avl_theme',v)}catch(e){}cfgSheet();toast(v=='light'?'Tema claro ativado':'Tema escuro ativado')}
  else if(a=='som'){SOM=!SOM;try{localStorage.setItem('avl_som',SOM?'1':'0')}catch(e){}cfgSheet();toast(SOM?'Som ativado':'Som desativado')}
  else if(a=='testsom'){if(SOM){ring();toast('Som de teste tocado')}else toast('Som está desativado')}
- else if(a=='copyuid'){if(!user||!user.uid)return toast('UID indisponível','err');Promise.resolve(navigator.clipboard&&navigator.clipboard.writeText(user.uid)).then(()=>toast('UID copiado!','ok')).catch(()=>toast('Não foi possível copiar. UID: '+user.uid,'warn'))}
+ else if(a=='copyuid'){
+  if(!user||!user.uid)return toast('UID indisponível','err');
+  const txt=user.uid,feito=()=>toast('UID copiado!','ok');
+  const manual=()=>{try{const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();const r=document.execCommand('copy');ta.remove();r?feito():prompt('Copie seu UID:',txt)}catch(e){prompt('Copie seu UID:',txt)}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(feito).catch(manual);else manual();
+ }
  else if(a=='new'){draft={id:uid('i_'),cat:(v&&D.cats.some(c=>c.id==v)?v:D.cats[0]?.id)||'',name:'',desc:'',price:0,image:'',ativo:true,_new:true};sheet()}
  else if(a=='edit'){draft={...D.items.find(i=>i.id==v)};sheet()}
  else if(a=='scancel'||a=='sheetback')closeBack($('back'));
