@@ -763,15 +763,35 @@ function setPin(la, lo) {
   const err = document.getElementById('e_loc'); if (err) err.textContent = '';
   renderLoc();
 }
+let GEOSEQ = 0;
 async function fillAddrFromGeo(la, lo) {
-  try {
-    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + la + '&lon=' + lo + '&addressdetails=1&accept-language=pt-BR', { headers: { 'Accept': 'application/json' } });
-    if (!r.ok) return;
-    const j = await r.json(), a = j && j.address || {}, road = a.road || a.pedestrian || a.footway || a.path || a.street || '';
-    const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.village || a.town || a.city || '';
-    const addr = [road, bairro].filter(Boolean).join(road && bairro ? ', ' : '') || (j && j.display_name ? j.display_name.split(',').slice(0, 2).join(',').trim() : '');
+  const seq = ++GEOSEQ;
+  const apt = (road, bairro, numero) => {
+    if (seq !== GEOSEQ) return;
+    const addr = [road, bairro].filter(Boolean).join(road && bairro ? ', ' : '');
     if (addr) { const el = document.getElementById('clientAddress'); if (el) { el.value = addr; el.classList.remove('bad'); } const e = document.getElementById('e_addr'); if (e) e.textContent = ''; }
-    if (a.house_number) { const en = document.getElementById('houseNumber'); if (en) { en.value = a.house_number; en.classList.remove('bad'); } const er = document.getElementById('e_num'); if (er) er.textContent = ''; }
+    if (numero) { const en = document.getElementById('houseNumber'); if (en) { en.value = numero; en.classList.remove('bad'); } const er = document.getElementById('e_num'); if (er) er.textContent = ''; }
+  };
+  try {
+    /* Photon: gratuito, sem chave e com nome de rua. */
+    const r = await fetch('https://photon.komoot.io/reverse?lon=' + lo + '&lat=' + la + '&limit=5', { headers: { 'Accept': 'application/json' } });
+    if (r.ok) {
+      const j = await r.json(), fs = j && j.features || [];
+      const f = fs.find(x => x.properties && x.properties.street) || fs.find(x => x.properties && x.properties.osm_key === 'highway') || fs[0];
+      const p = f && f.properties || {};
+      const road = p.street || (p.osm_key === 'highway' ? p.name : '') || '';
+      const bairro = p.district || p.city || p.state || '';
+      if (road || bairro) { apt(road, bairro, p.housenumber || ''); return; }
+    }
+  } catch (e) {}
+  try {
+    /* Reserva: Nominatim se o Photon nao tiver a rua cadastrada. */
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + la + '&lon=' + lo + '&addressdetails=1&accept-language=pt-BR', { headers: { 'Accept': 'application/json' } });
+    if (!r.ok || seq !== GEOSEQ) return;
+    const j = await r.json(), a = j && j.address || {};
+    const road = a.road || a.pedestrian || a.footway || a.path || a.street || '';
+    const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.village || a.town || a.city || '';
+    apt(road, bairro, a.house_number || '');
   } catch (e) {}
 }
 function initCliMap() {

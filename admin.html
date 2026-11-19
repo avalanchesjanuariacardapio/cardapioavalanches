@@ -988,15 +988,32 @@ async function eaBusca(){
   const btn=document.querySelector('[data-a="eabusca"]');if(btn){btn.disabled=true;btn.textContent='Buscando...'}
   try{
     const la=+$('en_lat')?.value||+ENT.lat||-22.8808,lo=+$('en_lng')?.value||+ENT.lng||-43.1940;
-    const base='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&addressdetails=1';
-    const qs=[base+'&viewbox='+(lo-.8)+','+(la+.8)+','+(lo+.8)+','+(la-.8)+'&bounded=0&q='+encodeURIComponent(q),
-              base+'&q='+encodeURIComponent(q+', Brasil')];
-    let it=null,netErr=false;
-    for(const u of qs){ try{ const r=await fetch(u,{headers:{'Accept':'application/json'}}); if(!r.ok){netErr=true;continue} const j=await r.json(); if(j&&j[0]){it=j[0];break} }catch(e){netErr=true} }
-    if(!it){ if(netErr) return toast('Sem conexão para buscar. Verifique a internet.'); return toast('Bairro não encontrado. Tente incluir a cidade.'); }
-    if(EAMAP&&EAMAP._put)EAMAP._put(+it.lat,+it.lon,true);
-    const a=it.address||{},nome=a.suburb||a.neighbourhood||a.quarter||a.city_district||q;
-    if($('ea_n')&&($('ea_n').value.trim()==q||!$('ea_n').value.trim()))$('ea_n').value=String(nome).slice(0,40);
+    /* Photon: gratuito e sem chave. Prefere o resultado mais perto da loja. */
+    let hit=null;
+    try{
+      const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=8',{headers:{'Accept':'application/json'}});
+      if(r.ok){
+        const j=await r.json(),fs=(j&&j.features)||[];
+        const dist=f=>{const c=f.geometry&&f.geometry.coordinates||[0,0];return Math.pow(c[0]-lo,2)+Math.pow(c[1]-la,2)};
+        hit=fs.slice().sort((a,b)=>dist(a)-dist(b))[0]||null;
+      }
+    }catch(e){}
+    let lat,lon,nome;
+    if(hit){
+      const c=hit.geometry.coordinates,p=hit.properties||{};
+      lon=+c[0];lat=+c[1];nome=String(p.district||p.city||p.name||q).slice(0,40);
+    }else{
+      /* Reserva: Nominatim com a viewbox antiga, sem mudar configuracoes. */
+      const base='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&addressdetails=1';
+      const qs=[base+'&viewbox='+(lo-.8)+','+(la+.8)+','+(lo+.8)+','+(la-.8)+'&bounded=0&q='+encodeURIComponent(q),
+                base+'&q='+encodeURIComponent(q+', Brasil')];
+      let it=null,netErr=false;
+      for(const u of qs){ try{ const r=await fetch(u,{headers:{'Accept':'application/json'}}); if(!r.ok){netErr=true;continue} const j=await r.json(); if(j&&j[0]){it=j[0];break} }catch(e){netErr=true} }
+      if(!it){ if(netErr) return toast('Sem conexão para buscar. Verifique a internet.'); return toast('Bairro não encontrado. Tente incluir a cidade.'); }
+      lat=+it.lat;lon=+it.lon;const a=it.address||{};nome=String(a.suburb||a.neighbourhood||a.quarter||a.city_district||q).slice(0,40);
+    }
+    if(EAMAP&&EAMAP._put)EAMAP._put(lat,lon,true);
+    if($('ea_n')&&($('ea_n').value.trim()==q||!$('ea_n').value.trim()))$('ea_n').value=nome;
     toast('Local encontrado no mapa','ok');
   }catch(e){toast('Não foi possível buscar o bairro')}
   finally{if(btn){btn.disabled=false;btn.innerHTML=ICO.pin+'Buscar bairro no mapa'}}
