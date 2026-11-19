@@ -9,6 +9,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.climap{height:190px;width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--glass);margin:2px 0 10px}
+.locmsg{font-size:12px;line-height:1.4;color:var(--muted);margin:0 2px 8px;min-height:17px}
+.locmsg.ok{color:var(--ok);font-weight:600}
+.locmsg.bad{color:var(--bad);font-weight:600}
+.leaflet-control-attribution{background:rgba(0,0,0,.55)!important;color:#bbb!important;font-size:9px!important}
+.leaflet-control-attribution a{color:#ddd!important}
+.leaflet-bar a{background:#1b1b21!important;color:#f6f2ee!important;border-color:#333!important}
+</style>
 <style>
 :root{--o:#ff6a00;--o2:#ffa04d;--bg:#0b0b0c;--glass:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--text:#f6f2ee;--muted:#a59f98;--ok:#3ddc84;--bad:#ff5a4f;--font:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -256,6 +266,11 @@ input,textarea,select{font-size:16px}
     <div class="err" id="e_addr"></div>
     <input id="houseNumber" maxlength="100" class="field" placeholder="Número da casa e Referência *">
     <div class="err" id="e_num"></div>
+    <div class="h3">Local da entrega</div>
+    <div id="cliMap" class="climap"></div>
+    <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
+    <div id="locMsg" class="locmsg">Toque no mapa para marcarmos onde você está.</div>
+    <div class="err" id="e_loc"></div>
     <input id="clientName" maxlength="80" class="field" placeholder="Seu Nome *" autocomplete="name">
     <div class="err" id="e_name"></div>
     <input id="clientPhone" maxlength="20" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
@@ -311,6 +326,8 @@ input,textarea,select{font-size:16px}
 const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do painel)
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/' + FB_PROJECT + '/databases/(default)/documents';
 let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
+let ENT = { fee: null, lat: null, lng: null, raio: 0, restrito: false, areas: [] };
+let CLIENT_GEO = null, CLIMAP = null, CLIMARK = null;
 let OPEN_H = 19, CLOSE_H = 23, FORCE = 'auto', STORE = 'Avalanches'; // valores padrão; o painel online sobrescreve
 const hh = h => String(h).padStart(2, '0') + ':00';
 function applyHours() {
@@ -595,7 +612,7 @@ function updateCart() {
   el('discRow').style.display = COUPON ? 'flex' : 'none';
   el('discCode').textContent = COUPON ? '(' + COUPON.code + ')' : '';
   el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) : '';
-  el('feeText').textContent = fmt(feeNow()); el('heroFee').textContent = fmt(CONFIG.fee);
+  el('feeText').textContent = fmt(feeNow()); el('heroFee').textContent = fmt(taxaAtual());
   el('totalText').textContent = fmt(cartTotal());
   renderCash();
   save();
@@ -617,7 +634,8 @@ el('cartItems').onclick = e => {
   if (!Object.keys(CART).length) closeCart();
 };
 function openCart() {
-  renderCartItems(); el('cartPage').classList.add('open');
+  renderCartItems(); el('cartPage').classList.add('open'); initCliMap(); renderLoc();
+  setTimeout(() => { try { CLIMAP.invalidateSize(); } catch (e) {} }, 120);
 }
 function closeCart() { el('cartPage').classList.remove('open'); }
 el('cartbar').onclick = openCart;
@@ -691,9 +709,101 @@ function cupMark(code, rev) {
   try { localStorage.setItem('avl_cup_used', j); } catch (e) {}
   try { document.cookie = 'avl_cu=' + encodeURIComponent(j) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {}
 }
+/* ---------- Entrega por mapa / áreas permitidas e bloqueadas ---------- */
+const toRad = d => d * Math.PI / 180;
+function distKm(a, b, c, d) {
+  const x = toRad(c - a), y = toRad(d - b);
+  const h = Math.sin(x / 2) ** 2 + Math.cos(toRad(a)) * Math.cos(toRad(c)) * Math.sin(y / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+function areaStatus(lat, lng) {
+  const e = ENT, areas = Array.isArray(e.areas) ? e.areas : [];
+  if (!(+e.raio > 0 || e.restrito || areas.length)) return { ok: true, txt: '' };
+  if (Number.isFinite(+e.lat) && Number.isFinite(+e.lng) && +e.raio > 0 && distKm(+e.lat, +e.lng, lat, lng) > +e.raio)
+    return { ok: false, txt: 'Não entregamos nessa região: está fora da nossa área.' };
+  const inside = areas.filter(a => distKm(+a.lat || 0, +a.lng || 0, lat, lng) <= Math.max(.1, +a.raio || 1));
+  const blocked = inside.find(a => a.bloqueado);
+  if (blocked) return { ok: false, txt: 'Não entregamos no bairro ' + (blocked.nome || 'indicado') + '.' };
+  if (e.restrito && !inside.some(a => !a.bloqueado)) return { ok: false, txt: 'Não entregamos nessa região.' };
+  return { ok: true, txt: 'Entregamos nesse local!' };
+}
+function renderLoc() {
+  const box = document.getElementById('locMsg'); if (!box) return;
+  if (!CLIENT_GEO) { box.className = 'locmsg'; box.textContent = 'Toque no mapa ou use sua localização para confirmarmos a entrega.'; return; }
+  const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng);
+  box.className = 'locmsg ' + (s.ok ? 'ok' : 'bad');
+  box.textContent = (s.ok ? '✓ ' : '✕ ') + (s.txt || 'Entregamos nesse local!');
+  const err = document.getElementById('e_loc'); if (err && s.ok) err.textContent = '';
+}
+function drawCliAreas() {
+  if (!window.L || !CLIMAP) return;
+  if (CLIMAP._areas) CLIMAP._areas.forEach(a => CLIMAP.removeLayer(a));
+  CLIMAP._areas = [];
+  if (+ENT.raio > 0 && Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng))
+    CLIMAP._areas.push(L.circle([+ENT.lat, +ENT.lng], +ENT.raio * 1000, { color: '#ff6a00', weight: 2, fillColor: '#ff6a00', fillOpacity: .06 }).addTo(CLIMAP));
+  (Array.isArray(ENT.areas) ? ENT.areas : []).forEach(a => {
+    const c = a.bloqueado ? '#ff5d52' : '#34d399';
+    CLIMAP._areas.push(L.circle([+a.lat || 0, +a.lng || 0], Math.max(.1, +a.raio || 1) * 1000, { color: c, weight: 2, fillColor: c, fillOpacity: .08 }).addTo(CLIMAP));
+  });
+}
+function setPin(la, lo) {
+  CLIENT_GEO = { lat: la, lng: lo };
+  if (CLIMARK && CLIMAP) CLIMAP.removeLayer(CLIMARK);
+  if (window.L && CLIMAP) {
+    CLIMARK = L.marker([la, lo], { draggable: true }).addTo(CLIMAP);
+    CLIMARK.on('dragend', e => { const p = e.target.getLatLng(); setPin(p.lat, p.lng); });
+  }
+  const err = document.getElementById('e_loc'); if (err) err.textContent = '';
+  renderLoc();
+}
+function initCliMap() {
+  if (!window.L || CLIMAP || !document.getElementById('cliMap')) return;
+  CLIMAP = L.map('cliMap', { scrollWheelZoom: false, zoomControl: false }).setView([Number(ENT.lat) || -22.8808, Number(ENT.lng) || -43.1940], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(CLIMAP);
+  CLIMAP.on('click', e => setPin(e.latlng.lat, e.latlng.lng));
+  drawCliAreas(); setTimeout(() => { try { CLIMAP.invalidateSize(); } catch (e) {} }, 150);
+}
+const locLink = () => CLIENT_GEO ? ('https://www.google.com/maps/search/?api=1&query=' + CLIENT_GEO.lat.toFixed(6) + '%2C' + CLIENT_GEO.lng.toFixed(6)) : '';
+async function loadAreas() {
+  let ok = false;
+  try {
+    const r = await fetch(FS_BASE + '/cardapio/entregas', { cache: 'no-store' });
+    if (r.ok) {
+      const f = (await r.json()).fields, e = f && f.json && JSON.parse(f.json.stringValue);
+      if (e && typeof e === 'object') {
+        ENT = { fee: null, lat: null, lng: null, raio: 0, restrito: false, areas: [] }; Object.assign(ENT, e);
+        ENT.areas = Array.isArray(ENT.areas) ? ENT.areas : []; ok = true;
+        try { localStorage.setItem('avl_ent', JSON.stringify(ENT)); } catch (x) {}
+      }
+    }
+  } catch (e) {}
+  if (!ok) try {
+    const c = localStorage.getItem('avl_ent'); if (c) {
+      const e = JSON.parse(c); if (e && typeof e === 'object') {
+        ENT = { fee: null, lat: null, lng: null, raio: 0, restrito: false, areas: [] }; Object.assign(ENT, e);
+        ENT.areas = Array.isArray(ENT.areas) ? ENT.areas : [];
+      }
+    }
+  } catch (e) {}
+  if (!Number.isFinite(+ENT.fee) || +ENT.fee < 0) ENT.fee = CONFIG.fee;
+  initCliMap(); drawCliAreas(); renderLoc(); updateCart();
+}
+(function () {
+  const b = document.getElementById('cliGeo');
+  if (!b) return;
+  b.onclick = () => {
+    if (!navigator.geolocation) return showToast('Seu aparelho não tem localização.');
+    b.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      p => { b.disabled = false; setPin(p.coords.latitude, p.coords.longitude); try { CLIMAP.flyTo([p.coords.latitude, p.coords.longitude], 15); } catch (e) {} },
+      () => { b.disabled = false; showToast('Não consegui pegar sua localização. Toque no mapa.'); },
+      { enableHighAccuracy: true, timeout: 12000 });
+  };
+})();
 const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);
 const discount = sub => !COUPON ? 0 : COUPON.tipo === 'pct' ? Math.round(sub * Math.min(COUPON.valor, 100)) / 100 : COUPON.tipo === 'fixo' ? Math.min(COUPON.valor, sub) : 0;
-const feeNow = () => COUPON && COUPON.tipo === 'frete' ? 0 : CONFIG.fee;
+const taxaAtual = () => Number.isFinite(+ENT.fee) && +ENT.fee >= 0 ? +ENT.fee : CONFIG.fee;
+const feeNow = () => COUPON && COUPON.tipo === 'frete' ? 0 : taxaAtual();
 const cartTotal = () => { const sb = cartSub(); return Math.max(0, sb - discount(sb)) + feeNow(); };
 function renderCash() {
   const box = el('cashChange'); box.hidden = PAYMENT !== 'dinheiro';
@@ -731,7 +841,7 @@ const clean = (s, max) => String(s).replace(/[*_~`]/g, '').replace(/\s+/g, ' ').
 function fail(inputId, errId, msg) { el(errId).textContent = msg; if (inputId) el(inputId).classList.add('bad'); return false; }
 function validate() {
   ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).classList.remove('bad'));
-  ['e_addr', 'e_num', 'e_name', 'e_phone', 'e_pay', 'e_cash'].forEach(i => el(i).textContent = '');
+  ['e_addr', 'e_num', 'e_name', 'e_phone', 'e_pay', 'e_cash', 'e_loc'].forEach(i => el(i).textContent = '');
   const checks = [
     [!el('clientAddress').value.trim(), 'clientAddress', 'e_addr', 'Informe rua e bairro.'],
     [!el('houseNumber').value.trim(), 'houseNumber', 'e_num', 'Informe o número e uma referência.'],
@@ -741,6 +851,9 @@ function validate() {
   ];
   let first = null;
   checks.forEach(c => { if (c[0]) { fail(c[1], c[2], c[3]); first = first || el(c[2]); } });
+  const needLoc = +ENT.raio > 0 || ENT.restrito || (Array.isArray(ENT.areas) && ENT.areas.length > 0);
+  if (needLoc && !CLIENT_GEO) { fail(null, 'e_loc', 'Marque sua localização no mapa para continuarmos.'); first = first || el('e_loc'); }
+  else if (CLIENT_GEO) { const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng); if (!s.ok) { fail(null, 'e_loc', s.txt); first = first || el('e_loc'); } }
   const total = cartTotal();
   const given = parseFloat(el('cashGiven').value);
   if (PAYMENT === 'dinheiro' && !NOCHG && !el('cashGiven').value) { fail(null, 'e_cash', 'Informe se precisa de troco.'); first = first || el('e_cash'); }
@@ -853,8 +966,8 @@ el('confirmBtn').onclick = async () => {
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
   const LN = '━━━━━━━━━━━━━━━━━━', payName = { dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão' }[PAYMENT] || PAYMENT;
   const when = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*\n🧾 *Pedido #${oid.slice(-5)}* · ${when}\n${LN}\n👤 *CLIENTE*\n${name}\n📱 ${phTxt}\n${LN}\n📍 *ENTREGA*\n${addr}, ${num}\n${LN}\nItens e valores: veja no painel, pelo código do pedido.`;
-  ORDER = { id: oid, nome: name, fone: '55' + ph, end: addr, num, loc: '', pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN, prazo: PRAZO,
+  const txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*\n🧾 *Pedido #${oid.slice(-5)}* · ${when}\n${LN}\n👤 *CLIENTE*\n${name}\n📱 ${phTxt}\n${LN}\n📍 *ENTREGA*\n${addr}, ${num}\n${LN}\nItens e valores: veja no painel, pelo código do pedido.${CLIENT_GEO ? '\n🗺️ Mapa: ' + locLink() : ''}`;
+  ORDER = { id: oid, nome: name, fone: '55' + ph, end: addr, num, loc: locLink(), pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN, prazo: PRAZO,
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
@@ -912,6 +1025,7 @@ document.addEventListener('keydown', e => {
   let base; try { base = await loadCloud(); } catch (e) {}
   if (base && linkCupCode()) setTimeout(() => showLinkCupom(base), 900);
   if (!base) revealSlots();
+  loadAreas();
   buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
   if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
   render(); updateCart(); unboot();

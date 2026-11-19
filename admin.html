@@ -4,6 +4,17 @@
 <meta name="robots" content="noindex"><title>Painel do Cardápio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.enmap{height:230px;border-radius:14px;overflow:hidden;border:1px solid var(--l);background:var(--s2);margin:8px 0 12px}
+.enmap.mini{height:170px}
+.enrow .n{cursor:pointer}
+.enchk{display:flex;align-items:center;gap:9px;margin:12px 0;font-weight:500;line-height:1.35}
+.enchk input{width:18px;height:18px;margin:0;accent-color:var(--o);flex:none}
+.leaflet-bar a{background:var(--s1)!important;color:var(--t)!important;border-color:var(--l)!important}
+.leaflet-control-attribution{background:rgba(0,0,0,.55)!important;color:#bbb!important;font-size:9px!important}
+.leaflet-control-attribution a{color:#ddd!important}
+</style>
 <link rel="manifest" href="admin.webmanifest"><link rel="icon" type="image/png" href="logo-app.png"><link rel="apple-touch-icon" href="logo-app.png"><meta name="theme-color" content="#0b0b0c"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Painel">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('avl_theme')==='light'?'light':'dark'}catch(e){}</script>
 <style>
@@ -556,6 +567,13 @@ items:IT.map(a=>({id:a[0],cat:a[1],name:a[2],desc:a[3],price:a[4],image:a[5],ati
 addons:[{id:'a_carne',name:'Carne',price:4},{id:'a_bacon',name:'Bacon',price:4},{id:'a_ovo',name:'Ovo',price:3}]};
 let D;try{D=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!D||!D.items)D=JSON.parse(JSON.stringify(DEF));
+{const L0=D.loja||DEF.loja;for(const k in DEF.loja)if(D.loja[k]===undefined)D.loja[k]=DEF.loja[k];D.loja.fee=Number.isFinite(+L0.fee)?+L0.fee:DEF.loja.fee}
+const DEFE={fee:+D.loja.fee||4.99,lat:-22.8808,lng:-43.1940,raio:5,restrito:false,areas:[]};
+let ENT;try{ENT=JSON.parse(localStorage.getItem('avl_ent'))}catch(e){}
+if(!ENT||typeof ENT!=='object')ENT=JSON.parse(JSON.stringify(DEFE));
+if(!Array.isArray(ENT.areas))ENT.areas=[];
+if(!Number.isFinite(+ENT.fee)||+ENT.fee<0)ENT.fee=DEFE.fee;
+const taxaEntrega=()=>Number.isFinite(+ENT.fee)&&+ENT.fee>=0?+ENT.fee:(+D.loja.fee||0);
 const $=id=>document.getElementById(id),uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const zq=s=>String(s).replace(/["'<>\s()\\]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
@@ -725,10 +743,12 @@ const ICO={
   sun:sv('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
   moon:sv('<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>'),
   bell:sv('<path d="M6 16v-6a6 6 0 0 1 12 0v6l2 2H4z"/><path d="M10 20h4"/>'),
-  sound:sv('<path d="M5 10v4h3l4 3V7L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/>')
+  sound:sv('<path d="M5 10v4h3l4 3V7L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/>'),
+  delivery:sv('<path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/>'),
+  pin:sv('<path d="M12 22s7-7.4 7-13a7 7 0 1 0-14 0c0 5.6 7 13 7 13z"/><circle cx="12" cy="9" r="2.6"/>')
 };
 /* Menu único: todos os lugares ficam nos 3 pontinhos (mobile) e na sidebar (desktop) */
-const MORETABS=[['home',ICO.home,'Início','Seu painel e resumo'],['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['menu',ICO.menu,'Cardápio','Itens, fotos e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['zap',ICO.whats,'Chamado WhatsApp','Cupons e mensagens no WhatsApp'],['fin',ICO.money,'Financeiro','Valores, promoções e total'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['add',ICO.add,'Adicionais','Opcionais dos itens'],['loja',ICO.loja,'Minha loja','Horários e contato']];
+const MORETABS=[['home',ICO.home,'Início','Seu painel e resumo'],['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['entregas',ICO.delivery,'Entregas','Taxa, bairros e áreas'],['menu',ICO.menu,'Cardápio','Itens, fotos e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['zap',ICO.whats,'Chamado WhatsApp','Cupons e mensagens no WhatsApp'],['fin',ICO.money,'Financeiro','Valores, promoções e total'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['add',ICO.add,'Adicionais','Opcionais dos itens'],['loja',ICO.loja,'Minha loja','Horários e contato']];
 const ALLTABS=MORETABS;
 const desk=()=>window.matchMedia&&matchMedia('(min-width:960px)').matches;
 function syncMais(){
@@ -859,13 +879,80 @@ function moreSheet(){
    $('back').dataset.atalhos='1';$('back').classList.add('full');syncMais();
    
 }
+/* ---------- Entregas: taxa, área e bairros ---------- */
+let ENMAP=null,EAMAP=null,EAEDIT=null,EABLOQ=true;
+function enTiles(m){L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m)}
+function enCircles(m){
+  if(!window.L||!m)return;
+  const c=[+ENT.lat||0,+ENT.lng||0];
+  if(+ENT.raio>0)L.circle(c,+ENT.raio*1000,{color:'#ff6a00',weight:2,fillColor:'#ff6a00',fillOpacity:.07}).addTo(m);
+  L.marker(c).addTo(m).bindTooltip('Minha loja',{permanent:true,direction:'top'});
+  (ENT.areas||[]).forEach(a=>{
+    const ac=[+a.lat||0,+a.lng||0],cor=a.bloqueado?'#ff5d52':'#34d399';
+    L.circle(ac,Math.max(.1,+a.raio||1)*1000,{color:cor,weight:2,fillColor:cor,fillOpacity:.1}).addTo(m).bindTooltip(a.nome,{permanent:true,direction:'top'});
+    L.marker(ac).addTo(m).on('click',()=>enSheet(String(a.id)));
+  });
+}
+function initEntMap(){
+  if(ENMAP){try{ENMAP.remove()}catch(e){}ENMAP=null}
+  if(!window.L||tab!='entregas'||!$('en_map'))return;
+  ENMAP=L.map('en_map',{scrollWheelZoom:false,zoomControl:true}).setView([+ENT.lat||-22.8808,+ENT.lng||-43.1940],13);
+  enTiles(ENMAP);enCircles(ENMAP);
+  ENMAP.on('click',e=>{$('en_lat').value=e.latlng.lat.toFixed(6);$('en_lng').value=e.latlng.lng.toFixed(6);toast('Ponto da loja marcado. Salve a área.')});
+  setTimeout(()=>{try{ENMAP.invalidateSize()}catch(e){}},140);
+}
+function initEaMap(){
+  if(EAMAP){try{EAMAP.remove()}catch(e){}EAMAP=null}
+  if(!window.L||!$('ea_map'))return;
+  const la=+$('ea_lat').value||+ENT.lat||-22.8808,lo=+$('ea_lng').value||+ENT.lng||-43.1940;
+  EAMAP=L.map('ea_map',{scrollWheelZoom:false,zoomControl:false}).setView([la,lo],14);
+  enTiles(EAMAP);
+  const mk=L.marker([la,lo]).addTo(EAMAP);
+  const put=(a,b)=>{$('ea_lat').value=(+a).toFixed(6);$('ea_lng').value=(+b).toFixed(6);mk.setLatLng([a,b]);
+    if(EAMAP._c)EAMAP.removeLayer(EAMAP._c);
+    EAMAP._c=L.circle([a,b],Math.max(.1,+$('ea_r').value||1)*1000,{color:'#ff6a00',weight:2,fillOpacity:.08}).addTo(EAMAP)};
+  put(la,lo);
+  EAMAP.on('click',e=>put(e.latlng.lat,e.latlng.lng));
+  $('ea_r').addEventListener('input',()=>put(+$('ea_lat').value||0,+$('ea_lng').value||0));
+  setTimeout(()=>{try{EAMAP.invalidateSize()}catch(e){}},140);
+}
+function entregasView(){
+  const a=ENT.areas||[],linha=x=>`<div class="row enrow"><div class="n" data-a="enedit" data-v="${esc(String(x.id))}"><b style="color:${x.bloqueado?'var(--bad)':'var(--ok)'}">${x.bloqueado?ICO.close:ICO.check} ${esc(x.nome)}</b><small>${x.bloqueado?'Bloqueado':'Liberado'} · raio ${(+x.raio||1).toFixed(1).replace('.',',')} km · ${(+x.lat).toFixed(4)}, ${(+x.lng).toFixed(4)}</small></div><button class="btn ic ${x.bloqueado?'danger':''}" data-a="entog" data-v="${esc(String(x.id))}" title="Liberar ou bloquear">${x.bloqueado?ICO.check:ICO.close}</button><button class="btn ic danger" data-a="endel" data-v="${esc(String(x.id))}" title="Excluir">${ICO.trash}</button></div>`;
+  return `<div class="card"><h3>${ICO.delivery}Taxa de entrega</h3><p class="sub">Valor cobrado no site do cliente. O cupom “frete grátis” continua zerando a taxa.</p><label>Taxa de entrega (R$)<input id="en_fee" type="number" min="0" step="0.01" value="${ENT.fee}"></label><button class="btn pri full" data-a="ensave">Salvar taxa de entrega</button></div>
+  <div class="card"><h3>${ICO.pin}Área de entrega</h3><p class="sub">Toque no mapa para marcar a loja e defina até onde você entrega.</p><div id="en_map" class="enmap"></div>
+  <div class="two"><label>Latitude da loja<input id="en_lat" type="number" step="0.000001" value="${ENT.lat}"></label><label>Longitude da loja<input id="en_lng" type="number" step="0.000001" value="${ENT.lng}"></label></div>
+  <button class="btn full" data-a="engeo">${ICO.pin}Usar minha localização como loja</button>
+  <label>Distância máxima em km (0 = sem limite)<input id="en_raio" type="number" min="0" step="0.5" value="${ENT.raio}"></label>
+  <label class="enchk"><input type="checkbox" id="en_restrito" ${ENT.restrito?'checked':''}><span>Entregar <b>somente</b> nos bairros liberados abaixo</span></label>
+  <p class="sub">Bairros bloqueados nunca recebem pedido, mesmo dentro do raio.</p><button class="btn pri full" data-a="ensave">Salvar área de entrega</button></div>
+  <div class="card"><h3>Bairros e regiões</h3><p class="sub">Marque como bloqueado os lugares perigosos: o cliente não consegue finalizar o pedido neles.</p>
+  ${a.length?'<div data-sort="area">'+a.map(linha).join('')+'</div>':'<p class="sub">Nenhum bairro cadastrado ainda.</p>'}
+  <button class="btn pri full" data-a="ennew">${ICO.plus}Novo bairro</button></div>`;
+}
+function enSheet(id){
+  EAEDIT=id||null;
+  const x=id?ENT.areas.find(a=>String(a.id)==String(id)):null,d=x||{nome:'',lat:+ENT.lat,lng:+ENT.lng,raio:1,bloqueado:true};
+  EABLOQ=!!d.bloqueado;
+  $('sheet').innerHTML=`<h3>${x?'Editar bairro':'Novo bairro'}</h3>
+  <label>Nome do bairro<input id="ea_n" maxlength="40" value="${esc(d.nome)}" placeholder="Ex.: Centro"></label>
+  <div class="chp"><button class="btn ${!EABLOQ?'pri':''}" data-a="eab" data-v="0">Liberado</button><button class="btn ${EABLOQ?'pri':''}" data-a="eab" data-v="1">Bloqueado</button></div>
+  <p class="sub">Toque no mapa para marcar o centro do bairro.</p><div id="ea_map" class="enmap mini"></div>
+  <div class="two"><label>Latitude<input id="ea_lat" type="number" step="0.000001" value="${d.lat}"></label><label>Longitude<input id="ea_lng" type="number" step="0.000001" value="${d.lng}"></label></div>
+  <label>Raio do bairro em km<input id="ea_r" type="number" min="0.1" step="0.1" value="${d.raio||1}"></label>
+  <button class="btn pri full" data-a="easave">Salvar bairro</button><button class="btn full" data-a="scancel">Cancelar</button>${x?'<button class="btn full danger" data-a="endel" data-v="'+esc(String(x.id))+'">Excluir bairro</button>':''}`;
+  openSheet(x?'Editar bairro':'Novo bairro');initEaMap();
+}
+function saveEnt(msg){
+  try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(e){}
+  if(ok&&db)setDoc(doc(db,'cardapio','entregas'),{json:JSON.stringify(ENT)}).then(()=>{if(msg)toast(msg,'ok')}).catch(x=>toast('Erro ao salvar entregas: '+(x.code||x.message)));
+}
 function fld(l,k,type='text',x=''){return `<label>${l}<input data-f="${k}" type="${type}" value="${esc(D.loja[k])}" ${x}></label>`}
 function hours(k){return `<select data-f="${k}">${[...Array(24).keys()].map(h=>`<option value="${h}" ${D.loja[k]==h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select>`}
 function row(it){return `<div class="row ${it.ativo===false?'off':''}" data-sid="${esc(it.id)}">${GRIP}<div class="th" data-a="edit" data-v="${esc(it.id)}" style="background-image:url('${ps(it).replace(/'/g,'%27')}')"></div><div class="n" data-a="edit" data-v="${esc(it.id)}"><b>${esc(it.name)}</b><small>${pTxt(it)}${it.ativo===false?' · esgotado':''} · toque para editar</small></div><input type="checkbox" class="sw" data-tog="${esc(it.id)}" ${it.ativo!==false?'checked':''} aria-label="Disponível"></div>`}
 function msecHead(){return `<div class="msec"><button data-a="msec" data-v="cardapio" class="${MSEC=='cardapio'?'on':''}">Cardápio</button><button data-a="msec" data-v="adicionais" class="${MSEC=='adicionais'?'on':''}">Adicionais</button><button data-a="msec" data-v="poster" class="${MSEC=='poster'?'on':''}">Poster</button></div>`}function hideSplash(){const s=$('splash');if(s){s.classList.add('out');setTimeout(()=>s.remove(),0)}}function view(){
  hideSplash();
  nav();let h='';if(tab!='rel'&&tab!='fin'&&repU){repU();repU=null}
- if(tab=='loja')h=profCard()+`<div class="card"><h3>Dados da loja</h3>${fld('Nome da loja','nome')}${fld('WhatsApp dos pedidos (com 55 + DDD)','phone','tel')}<div class="two">${fld('Taxa de entrega (R$)','fee','number','step="0.01" min="0"')}<label>Chave PIX<input data-f="pixKey" value="${esc(D.loja.pixKey)}"></label></div></div>
+ if(tab=='loja')h=profCard()+`<div class="card"><h3>Dados da loja</h3>${fld('Nome da loja','nome')}${fld('WhatsApp dos pedidos (com 55 + DDD)','phone','tel')}<label>Chave PIX<input data-f="pixKey" value="${esc(D.loja.pixKey)}"></label></div>
  
  <div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div class="n" style="flex:1"><b>${ICO.clock}Tempo de preparo</b><small class="sub" style="display:block">Aparece no site para os clientes</small></div><button class="btn ic" data-a="pz" data-v="-5">−</button><b style="min-width:56px;text-align:center">${PRAZO} min</b><button class="btn ic" data-a="pz" data-v="5">+</button></div><div class="card"><h3>Horário de funcionamento</h3><div class="two"><label>Abre às${hours('open')}</label><label>Fecha às${hours('close')}</label></div>
  <label>Situação da loja<select data-f="modo"><option value="auto" ${D.loja.modo=='auto'?'selected':''}>Automática (pelo horário)</option><option value="aberto" ${D.loja.modo=='aberto'?'selected':''}>Forçar ABERTA agora</option><option value="fechado" ${D.loja.modo=='fechado'?'selected':''}>Forçar FECHADA (hoje não abro)</option></select></label></div>`;
@@ -874,12 +961,12 @@ function msecHead(){return `<div class="msec"><button data-a="msec" data-v="card
    } else if(MSEC=='adicionais'){h+='<div class="msec-anim">'+addH()+'</div>'}
    else {h+='<div class="msec-anim">'+posterCard()+'</div>'}
   }
- if(tab=='zap')h=zapView();
+ if(tab=='zap')h=zapView();if(tab=='entregas')h=entregasView();
  if(tab=='add')h=addH();
  if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>${ICO.pub}Publicar mudanças</button></div><div class="card"><h3>Configurações</h3><p class="sub">Conta, tema, som, avisos e dados do painel.</p><button class="btn pri full" data-a="config">${ICO.gear}Abrir Configurações</button><button class="btn full" data-a="reload">Recarregar dados do site</button></div>`;
  if(tab=='home')h=homeHTML();
- if(tab=='rel'){if(!repU)startRep();h=relHTML()}if(tab=='fin'){if(!repU)startRep();h=finHTML()}if(tab=='cli'){if(!CLOAD&&(!CLT||Date.now()-CLT>12e4))loadCli();h=cliHTML()}if(tab=='pedidos')h=pedidosView();if(tab=='cup')h=cupView();if(tab=='loja')h+=pubH();
- $('main').innerHTML=h;chrome();tick()}
+ if(tab=='rel'){if(!repU)startRep();h=relHTML()}if(tab=='fin'){if(!repU)startRep();h=finHTML()}if(tab=='cli'){if(!CLOAD&&(!CLT||Date.now()-CLT>12e4))loadCli();h=cliHTML()}if(tab=='pedidos')h=pedidosView();if(tab=='cup')h=cupView();if(tab=='loja'||tab=='entregas')h+=pubH();
+ $('main').innerHTML=h;chrome();tick();if(tab=='entregas')initEntMap()}
 /* Botão de arquivo "inteligente": mostra o nome do arquivo escolhido */
 const fb=(id,ico,t,hint)=>`<label class="btn full filebtn" for="${id}"><i>${ico}</i><span class="ft"><b>${t}</b><small class="fname">${hint||'Toque para escolher uma imagem'}</small></span><input type="file" accept="image/*" id="${id}" hidden></label>`;
 function sheet(){CURO=null;const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Novo item':'Editar item'}</h3><div class="pic" id="pv">${d.image?`<img src="${esc(ps(d))}" onerror="this.remove()">`:'Sem foto'}</div>${fb('ph',ICO.camera,'Foto do item',d.image?'Toque para trocar a foto':'Toque para escolher uma foto')}${d.image?`<button class="btn full" data-a="reframe" style="margin:0 0 12px">${ICO.edit}Ajustar enquadramento</button>`:''}
@@ -958,7 +1045,22 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.4,960,false,r=>{D.loja.poster=r;save();view()});
  else if(a=='dpo'){if(await askConfirm('Remover o poster do cardápio?')){delete D.loja.poster;delete D.loja.posterItem;save();view()}}
  else if(a=='pod'){$('po_a').value=v=='-1'?'':ymd(+v);$('po_e').checked=true;poSave()}
- else if(a=='publish')publish();
+ else if(a=='ensave'){ENT.fee=Math.max(0,+$('en_fee').value||0);const la=+$('en_lat').value,lo=+$('en_lng').value;
+   if(Number.isFinite(la)&&Number.isFinite(lo)&&(la||lo)){ENT.lat=la;ENT.lng=lo}
+   ENT.raio=Math.max(0,+$('en_raio').value||0);ENT.restrito=!!$('en_restrito').checked;saveEnt('Área de entrega salva');view()}
+  else if(a=='engeo'){if(!navigator.geolocation)return toast('Localização não disponível neste aparelho');
+   navigator.geolocation.getCurrentPosition(p=>{$('en_lat').value=p.coords.latitude.toFixed(6);$('en_lng').value=p.coords.longitude.toFixed(6);if(ENMAP)ENMAP.flyTo([p.coords.latitude,p.coords.longitude],15);toast('Localização marcada')},()=>toast('Não consegui pegar sua localização'),{enableHighAccuracy:true,timeout:12000})}
+  else if(a=='ennew'){enSheet()}
+  else if(a=='enedit'){enSheet(v)}
+  else if(a=='eab'){EABLOQ=v=='1';document.querySelectorAll('[data-a="eab"]').forEach(x=>x.classList.toggle('pri',x.dataset.v==v))}
+  else if(a=='easave'){const nome=($('ea_n').value||'').trim();if(!nome)return toast('Digite o nome do bairro');
+   const la=+$('ea_lat').value,lo=+$('ea_lng').value;if(!Number.isFinite(la)||!Number.isFinite(lo)||(!la&&!lo))return toast('Marque o ponto do bairro no mapa');
+   const obj={id:EAEDIT||('ar_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),nome:nome.slice(0,40),lat:la,lng:lo,raio:Math.max(.1,+$('ea_r').value||1),bloqueado:EABLOQ};
+   if(EAEDIT){const i=ENT.areas.findIndex(x=>String(x.id)==String(EAEDIT));if(i>=0)ENT.areas[i]=obj;else ENT.areas.push(obj)}else ENT.areas.push(obj);
+   EAEDIT=null;saveEnt('Bairro salvo');if($('back').classList.contains('open'))closeBack($('back'));view()}
+  else if(a=='entog'){const x=ENT.areas.find(z=>String(z.id)==String(v));if(x){x.bloqueado=!x.bloqueado;saveEnt();view()}}
+  else if(a=='endel'){if(await askConfirm('Excluir este bairro da área de entrega?')){ENT.areas=ENT.areas.filter(z=>String(z.id)!=String(v));EAEDIT=null;saveEnt('Bairro excluído');if($('back').classList.contains('open'))closeBack($('back'));view()}}
+  else if(a=='publish')publish();
  else if(a=='login')signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value).catch(()=>toast('E-mail ou senha incorretos'));
  else if(a=='out'){closeBack($('back'));signOut(auth)}
  else if(a=='reload'){if(await askConfirm('Descartar mudanças não publicadas?')){closeBack($('back'));dirty=false;localStorage.removeItem('avl_dirty');pull().then(view)}}
@@ -1009,7 +1111,7 @@ function chk(o){const d=o.o,w=[],r2=x=>Math.round(x*100)/100;let sub=0,calc=true
  if(d.cupom&&!c)w.push('Cupom '+d.cupom+' não encontrado na lista');
  if(calc){if(c){const e=c.tipo=='pct'?Math.round(sub*Math.min(+c.valor,100))/100:c.tipo=='fixo'?Math.min(+c.valor,sub):0;if(d.desc>e+.05)w.push('Desconto '+brl(d.desc)+' maior que o do cupom ('+brl(e)+')')}
   const ex=Math.max(0,sub-d.desc)+d.taxa;if(Math.abs(d.total-ex)>.05)w.push('Total '+brl(d.total)+' não bate com os itens (esperado '+brl(ex)+')')}
- const fee=c&&c.tipo=='frete'?0:+D.loja.fee||0;if(String(d.end||'').trim()&&d.taxa<fee-.011)w.push('Taxa de entrega '+brl(d.taxa)+' menor que a do cardápio ('+brl(fee)+')');
+ const fee=c&&c.tipo=='frete'?0:taxaEntrega();if(String(d.end||'').trim()&&d.taxa<fee-.011)w.push('Taxa de entrega '+brl(d.taxa)+' menor que a do cardápio ('+brl(fee)+')');
  return w}
 /* Valor correto do pedido, recalculado aqui com o cardápio, cupons e taxa reais. O total que o navegador do cliente envia NÃO é confiável. */
 function fixOrder(o){const d=o.o,r2=x=>Math.round(x*100)/100;let sub=0;const itens=[];
@@ -1022,7 +1124,7 @@ function fixOrder(o){const d=o.o,r2=x=>Math.round(x*100)/100;let sub=0;const ite
  const dia=new Date(+o.t||Date.now()).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}),c=d.cupom?CUP.find(x=>x.code==d.cupom):null,
   cok=!!c&&c.ativo!==false&&!(c.ate&&dia>c.ate)&&sub>=(+c.min||0),
   maxd=!cok?0:c.tipo=='pct'?Math.round(sub*Math.min(+c.valor,100))/100:c.tipo=='fixo'?Math.min(+c.valor,sub):0,
-  desc=r2(Math.min(Math.max(d.desc,0),maxd)),fee=cok&&c.tipo=='frete'?0:(+D.loja.fee||0),
+  desc=r2(Math.min(Math.max(d.desc,0),maxd)),fee=cok&&c.tipo=='frete'?0:taxaEntrega(),
   taxa=String(d.end||'').trim()?r2(Math.max(d.taxa,fee)):d.taxa;
  return {...d,itens,desc,taxa,total:r2(Math.max(0,sub-desc)+taxa)}}
 /* Pedido em andamento: usa o valor recalculado. Pedido já encerrado: usa o que ficou gravado. */
@@ -1518,8 +1620,8 @@ function poSave(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)retur
  else{delete it.promo;e.textContent=''}
  save()}
 let lastTab='';
-const TT={home:'Início',cli:'Clientes',rel:'Relatórios',fin:'Financeiro',pedidos:'Pedidos',menu:'Cardápio',cup:'Cupons',zap:'Chamado WhatsApp',add:'Adicionais',loja:'Minha loja',pub:'Publicar'};
-const SUB={home:'Seu negócio em um só lugar',cli:'Histórico e fidelização',rel:'Faturamento e vendas',pedidos:'Acompanhe e despache em tempo real',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',zap:'Cupons exclusivos e mensagens prontas',fin:'Para onde vai o dinheiro das vendas',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
+const TT={home:'Início',cli:'Clientes',rel:'Relatórios',fin:'Financeiro',pedidos:'Pedidos',entregas:'Entregas',menu:'Cardápio',cup:'Cupons',zap:'Chamado WhatsApp',add:'Adicionais',loja:'Minha loja',pub:'Publicar'};
+const SUB={home:'Seu negócio em um só lugar',cli:'Histórico e fidelização',rel:'Faturamento e vendas',pedidos:'Acompanhe e despache em tempo real',entregas:'Taxa, bairros e áreas de entrega',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',zap:'Cupons exclusivos e mensagens prontas',fin:'Para onde vai o dinheiro das vendas',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
 function openNow(){const L=D.loja,h=new Date().getHours(),a=+L.open,c=+L.close;return L.modo=='aberto'?true:L.modo=='fechado'?false:(a<c?(h>=a&&h<c):(h>=a||h<c))}
 function chrome(){$('ttl').textContent=TT[tab]||'';$('hs').textContent=SUB[tab]||'';
  if(lastTab!=tab){lastTab=tab;window.scrollTo&&window.scrollTo({top:0,left:0,behavior:'instant'})}}
@@ -1529,7 +1631,8 @@ window.matchMedia&&matchMedia('(min-width:960px)').addEventListener('change',e=>
 async function pull(){
  if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[]}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
 
- try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists()){PRAZO=+x.data().prazo||40;try{ES={...ES,...JSON.parse(x.data().esp||'{}')}}catch(e){}}}catch(e){}
+ try{const x=await getDoc(doc(db,'cardapio','entregas'));if(x.exists()){const e=JSON.parse(x.data().json);if(e&&typeof e==='object'){ENT={...ENT,...e};ENT.areas=Array.isArray(ENT.areas)?ENT.areas:[];try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(z){}}}}catch(e){}
+  try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists()){PRAZO=+x.data().prazo||40;try{ES={...ES,...JSON.parse(x.data().esp||'{}')}}catch(e){}}}catch(e){}
  try{const x=await getDocs(collection(db,'cupons'));CUP=x.docs.map(y=>{try{return {code:y.id,...JSON.parse(y.data().json)}}catch(e){return null}}).filter(Boolean)}catch(e){}
  await Promise.all([...D.items,{id:'_perfil',image:D.loja.perfil},{id:'_capa',image:D.loja.capa},{id:'_poster',image:D.loja.poster}].filter(i=>(i.image||'').startsWith('cloud:')&&!PH[i.id]).map(async i=>{try{const x=await getDoc(doc(db,'fotos',i.id));if(x.exists())PH[i.id]=x.data().d}catch(e){}}))}
 async function publish(opt){
@@ -1539,6 +1642,7 @@ async function publish(opt){
   for(let i=0;i<D.items.length;i++){const it=D.items[i];if((it.image||'').startsWith('data:')){const v=Date.now().toString(36)+i;await setDoc(doc(db,'fotos',it.id),{d:it.image,v});PH[it.id]=it.image;it.image='cloud:'+v;out.items[i].image=it.image}}
   for(const k of ['perfil','capa','poster']){const v0=D.loja[k];if((v0||'').startsWith('data:')){const v=Date.now().toString(36)+k;await setDoc(doc(db,'fotos','_'+k),{d:v0,v});PH['_'+k]=v0;D.loja[k]='cloud:'+v;out.loja[k]=D.loja[k]}}
   await setDoc(doc(db,'cardapio','config'),{json:JSON.stringify(out)});
+   await setDoc(doc(db,'cardapio','entregas'),{json:JSON.stringify(ENT)});
   dirty=false;localStorage.removeItem('avl_dirty');try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}if(!sil)toast('Publicado! Já está no ar.')
  }catch(e){toast('Erro ao publicar: '+(e.code||e.message))}
  if(!(opt&&opt.keep))view()}
