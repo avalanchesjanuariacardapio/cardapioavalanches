@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0c"><meta name="color-scheme" content="dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="light dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Cardápio digital da Avalanches. Escolha seu lanche e envie o pedido pelo WhatsApp.">
 <title>Avalanches — Cardápio Digital</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +43,15 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .facts{display:flex;flex-wrap:wrap;gap:8px;padding:16px 18px 18px;color:var(--muted);font-size:13px}
 .facts span{background:var(--glass);border:1px solid var(--line);border-radius:99px;padding:6px 13px}
 .facts b{color:var(--o2)}
+.helpwa{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid rgba(255,106,0,.38);background:rgba(255,106,0,.12);color:var(--o2);font:700 12px var(--font);text-decoration:none;white-space:nowrap}
+.helpwa svg{width:15px;height:15px;fill:currentColor}
+.thanks{margin:30px 18px 40px;padding:24px 18px;text-align:center;border-radius:18px;background:var(--glass);border:1px solid var(--line)}
+.thanks h2{margin:0 0 6px;font:800 17px var(--font);color:var(--text)}
+.thanks p{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.5}
+.thanks .social{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.thanks .social a{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);text-decoration:none;font:700 13px var(--font)}
+.thanks .social svg{width:18px;height:18px;flex:none}
+.thanks .social .ig{color:#e1306c}.thanks .social .wa{color:#25d366}
 .banner{display:none;margin:0 18px 6px;padding:12px 14px;border-radius:14px;background:rgba(255,106,0,.14);border:1px solid rgba(255,106,0,.4);color:#ffd2b0;font-size:14px}
 .closed .banner{display:none}
 .bar{position:sticky;top:0;z-index:20;background:rgba(11,11,12,.96);padding:calc(10px + env(safe-area-inset-top)) 18px 0}
@@ -179,7 +188,7 @@ input,textarea,select{font-size:16px}
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span></div>
+    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span><a id="helpWa" class="helpwa" href="https://wa.me/5534984405375?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/><path d="M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z"/></svg>Ajuda</a></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
 
@@ -193,6 +202,14 @@ input,textarea,select{font-size:16px}
   </div>
   <button type="button" class="poster" id="poster" aria-label="Ver promoção"><img id="posterImg" data-pid="_poster" alt="" decoding="async" onerror="this.style.display='none'"></button>
   <section id="menuList" aria-live="polite"></section>
+  <section class="thanks">
+    <h2>Obrigado por pedir com a gente! ❤️</h2>
+    <p>Fique por dentro das novidades e cupons. É só nos seguir e chamar no WhatsApp.</p>
+    <div class="social">
+      <a id="igLink" href="https://www.instagram.com/avalanchesjanu/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" class="ig"><path fill="currentColor" d="M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2zm0 2A3.8 3.8 0 0 0 4 7.8v8.4A3.8 3.8 0 0 0 7.8 20h8.4a3.8 3.8 0 0 0 3.8-3.8V7.8A3.8 3.8 0 0 0 16.2 4H7.8zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3.2a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/></svg><span id="igUser">@avalanchesjanu</span></a>
+      <a id="waLink" href="https://wa.me/5534984405375" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" class="wa"><path fill="currentColor" d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/><path fill="currentColor" d="M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z"/></svg><span id="waNumber">(34) 98440-5375</span></a>
+    </div>
+  </section>
 </main>
 
 <button class="cartbar" id="cartbar" aria-label="Abrir sacola">
@@ -442,6 +459,11 @@ function setPoster(l) {
 function applyData(d) {
   const l = d.loja || {};
   CONFIG = { phone: String(l.phone || CONFIG.phone).replace(/\D/g, '') || CONFIG.phone, fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey: l.pixKey || CONFIG.pixKey };
+  const n = CONFIG.phone, fmt = n.length >= 11 ? `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}` : n;
+  const waFmt = `https://wa.me/${n}?text=${encodeURIComponent('Olá! Preciso de ajuda com meu pedido.')}`;
+  const hw = document.getElementById('helpWa'); if (hw) hw.href = waFmt;
+  const wl = document.getElementById('waLink'); if (wl) wl.href = `https://wa.me/${n}`;
+  const wn = document.getElementById('waNumber'); if (wn) wn.textContent = fmt;
   OPEN_H = Number.isFinite(+l.open) ? +l.open : OPEN_H; CLOSE_H = Number.isFinite(+l.close) ? +l.close : CLOSE_H;
   FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
