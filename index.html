@@ -267,10 +267,10 @@ input,textarea,select{font-size:16px}
     <input id="houseNumber" maxlength="100" class="field" placeholder="Número da casa e Referência *">
     <div class="err" id="e_num"></div>
     <div class="h3">Local da entrega</div>
-    <div id="cliMap" class="climap"></div>
     <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
     <div id="locMsg" class="locmsg">Toque no mapa para marcarmos onde você está.</div>
     <div class="err" id="e_loc"></div>
+    <div id="cliMap" class="climap"></div>
     <input id="clientName" maxlength="80" class="field" placeholder="Seu Nome *" autocomplete="name">
     <div class="err" id="e_name"></div>
     <input id="clientPhone" maxlength="20" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
@@ -735,16 +735,10 @@ function renderLoc() {
   box.textContent = (s.ok ? '✓ ' : '✕ ') + (s.txt || 'Entregamos nesse local!');
   const err = document.getElementById('e_loc'); if (err && s.ok) err.textContent = '';
 }
-const lojaCliIcon=()=>window.L&&L.divIcon({className:'loja-pin',html:'<div style="width:30px;height:30px;border-radius:10px;background:#ff6a00;border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V8l2-4h14l2 4v2"/><path d="M4 10v10h16V10"/><path d="M9 20v-6h6v6"/><path d="M3 10a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/></svg></div>',iconSize:[30,30],iconAnchor:[15,30],tooltipAnchor:[0,-30]});
 function drawCliAreas() {
   if (!window.L || !CLIMAP) return;
   if (CLIMAP._areas) CLIMAP._areas.forEach(a => CLIMAP.removeLayer(a));
   CLIMAP._areas = [];
-  const hasLoja = Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng) && !(+ENT.lat===0 && +ENT.lng===0) && ENT.lat != null && ENT.lng != null && ENT.lat !== '';
-  if (hasLoja) {
-    if (+ENT.raio > 0) CLIMAP._areas.push(L.circle([+ENT.lat, +ENT.lng], +ENT.raio * 1000, { color: '#ff6a00', weight: 2, fillColor: '#ff6a00', fillOpacity: .06 }).addTo(CLIMAP));
-    CLIMAP._areas.push(L.marker([+ENT.lat, +ENT.lng], { icon: lojaCliIcon(), interactive: false, zIndexOffset: 800 }).addTo(CLIMAP).bindTooltip('Minha loja', { permanent: true, direction: 'top', offset: [0, -26] }));
-  }
   (Array.isArray(ENT.areas) ? ENT.areas : []).forEach(a => {
     const c = a.bloqueado ? '#ff5d52' : '#34d399';
     CLIMAP._areas.push(L.circle([+a.lat || 0, +a.lng || 0], Math.max(.1, +a.raio || 1) * 1000, { color: c, weight: 2, fillColor: c, fillOpacity: .08 }).addTo(CLIMAP));
