@@ -839,6 +839,7 @@ function cfgSheet(){
  const s=$('sheet'),top=s?s.scrollTop:0;
  const email=user&&user.email||'Administrador',nome=esc(email.split('@')[0]),ini=esc(email.trim().slice(0,1).toUpperCase());
  const uid=user&&user.uid||'',pend=dirty?'Sim':'Não';
+ const NAT=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
  s.innerHTML=`<h3>Configurações</h3>
  <div class="cfg-user"><span class="av">${ini}</span><span class="u"><b>${esc(email)}</b><small>Administrador</small></span><span class="cfg-badge">Admin</span></div>
  <div class="card"><h3>${ICO.gear}Aparência</h3><p class="sub">Escolha como o painel aparece neste aparelho.</p>
@@ -847,13 +848,10 @@ function cfgSheet(){
    <button class="theme-btn ${TEMA=='light'?'on':''}" data-a="theme" data-v="light">${ICO.sun}Claro</button>
   </div></div>
  <div class="card"><h3>${ICO.bell}Avisos</h3>
-  <p class="sub" style="margin:-4px 0 8px">Novos pedidos avisam sozinhos quando o celular permite notificações.</p>
-  <button class="cfg-row" data-a="som"><i>${ICO.sound}</i><span><b>Som dos novos pedidos</b><small>${SOM?'Ativado':'Desativado'}</small></span><span class="mini-sw ${SOM?'on':''}"></span></button>
-  <button class="cfg-row" data-a="toque"><i>${ICO.sound}</i><span><b>Toque dos novos pedidos</b><small>${esc(TOQUES[TOQUE])} · toque para escolher</small></span>${ICO.send}</button>
-  <button class="cfg-row" data-a="testsom"><i>${ICO.sound}</i><span><b>Testar som</b><small>Ouça como ficará o aviso</small></span>${ICO.send}</button>
-
+  <p class="sub" style="margin:-4px 0 8px">${NAT?'Toque dos pedidos que chegam por push neste celular. Toque numa opção para ouvir e escolher.':'Novos pedidos avisam sozinhos quando o navegador permite notificações.'}</p>
+  ${tomChips()}
+  ${ntfBtn()}
   <button class="cfg-row" data-a="wake"><i>${ICO.sun}</i><span><b>Manter a tela ligada</b><small>${WAKE?'Ativado · o painel não dorme enquanto estiver aberto':'Desativado · evita que a tela desligue'}</small></span><span class="mini-sw ${WAKE?'on':''}"></span></button>
-
  </div>
  <div class="card"><h3>${ICO.pub}Dados</h3>
    <div class="lr"><span>Mudanças</span><b>Salvas automaticamente</b></div>
@@ -866,13 +864,6 @@ function cfgSheet(){
  <p class="sub" style="text-align:center;margin:14px 0 0">Painel administrativo · configurações locais</p>`;
  openSheet('Configurações');
  s.scrollTop=top;
-}
-function toqueSheet(){
- const s=$('sheet');
- s.innerHTML='<p class="sub" style="margin:-2px 0 10px">Escolha o som dos novos pedidos. Ao escolher, você ouve uma amostra.</p>'
-  +Object.keys(TOQUES).map(k=>`<button class="cfg-row ${k==TOQUE?'sel':''}" data-a="toqueop" data-v="${k}"><i>${ICO.sound}</i><span><b>${esc(TOQUES[k])}</b><small>${k==TOQUE?'Selecionado agora':'Toque para escolher e ouvir'}</small></span>${k==TOQUE?'<span class="cfg-badge">Atual</span>':ICO.send}</button>`).join('')
-  +`<button class="btn full" data-a="toqueteste">${ICO.sound}Testar toque escolhido</button>`;
- openSheet('Toque dos pedidos');
 }
 function moreSheet(){
  const email=user&&user.email||'Administrador',nome=esc(email),ini=esc(email.trim().slice(0,1).toUpperCase());
@@ -1044,12 +1035,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='config'){cfgSheet();if(desk())toggleSide(false)}
  else if(a=='msec'){MSEC=v;view()}
  else if(a=='theme'){TEMA=v;applyTheme();try{localStorage.setItem('avl_theme',v)}catch(e){}cfgSheet();toast(v=='light'?'Tema claro ativado':'Tema escuro ativado')}
- else if(a=='som'){SOM=!SOM;try{localStorage.setItem('avl_som',SOM?'1':'0')}catch(e){}cfgToggle('som',SOM,SOM?'Ativado':'Desativado');toast(SOM?'Som ativado':'Som desativado')}
   else if(a=='wake'){WAKE=!WAKE;try{localStorage.setItem('avl_wake',WAKE?'1':'0')}catch(e){}if(WAKE)wl();else stopWake();cfgToggle('wake',WAKE,WAKE?'Ativado · o painel não dorme enquanto estiver aberto':'Desativado · evita que a tela desligue');toast(WAKE?'Tela ligada ativada':'Tela ligada desativada')}
- else if(a=='testsom'){if(SOM){ring();toast('Som de teste tocado')}else toast('Som está desativado')}
- else if(a=='toque'){toqueSheet()}
- else if(a=='toqueop'){if(!TOQUES[v])return;TOQUE=v;try{localStorage.setItem('avl_toque',v)}catch(e){}ring(true);toqueSheet();toast('Toque: '+TOQUES[v],'ok')}
- else if(a=='toqueteste'){ring(true);toast('Toque de teste tocado')}
  else if(a=='new'){draft={id:uid('i_'),cat:(v&&D.cats.some(c=>c.id==v)?v:D.cats[0]?.id)||'',name:'',desc:'',price:0,image:'',ativo:true,_new:true};sheet()}
  else if(a=='edit'){draft={...D.items.find(i=>i.id==v)};sheet()}
  else if(a=='scancel'||a=='sheetback'){const bk=$('back');if(bk&&bk.dataset.atalhos=='1'){fechaAtalhos(bk)}else{if(EAMAP){try{EAMAP.remove()}catch(e){}EAMAP=null}if(bk)delete bk.dataset.atalhos;closeBack(bk)}}
@@ -1098,7 +1084,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
     try{localStorage.setItem('avl_tom',String(i))}catch(e){}
     try{if(window.AVLTheme&&window.AVLTheme.setTomPedido)window.AVLTheme.setTomPedido(i)}catch(e){}
     try{if(window.AVLTheme&&window.AVLTheme.tocarTom)window.AVLTheme.tocarTom(i)}catch(e){}
-    view();toast('Toque '+(i+1)+' selecionado','ok');
+    if($('sheet')&&$('sheet').querySelector('.cfg-user'))cfgSheet();else view();toast('Toque '+(i+1)+' selecionado','ok');
   }
  else if(a=='seg'){OS=v;view()}
  else if(a=='nh'){NOVHIDE=true;nov()}
@@ -1231,16 +1217,16 @@ function homeHTML(){
  </div>
  ${dirty?`<div class="card" style="border-color:rgba(251,191,36,.4);margin-top:12px"><p class="sub" style="margin:0">Você tem mudanças no cardápio ainda não publicadas.</p><button class="btn pri full" style="margin-top:10px" data-a="publish">${ICO.pub}Publicar agora</button></div>`:''}`;
 }
-function tomCard(){
+function tomChips(){
   if(!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))return '';
   let sel=0;try{sel=Math.max(0,Math.min(6,+(localStorage.getItem('avl_tom')||0)))}catch(e){}
   const N=['Padrão','Sino','Ding-Dong','Agudo','Cristal','Alerta','Marimba'];
-  return `<div class="card"><h3>🔔 Toque dos pedidos (app)</h3><p class="sub" style="margin:-6px 0 10px">Escolha o som dos pedidos que chegam por push neste celular. Toque para ouvir e selecionar.</p><div class="chp" style="flex-wrap:wrap">${N.map((n,i)=>`<button class="btn ${sel==i?'pri':''}" data-a="tom" data-v="${i}" style="flex:1 1 88px;min-width:88px;min-height:38px;font-size:12.5px">${sel==i?'✓ ':''}${i+1}. ${n}</button>`).join('')}</div><p class="sub" style="margin:10px 0 0">A escolha fica salva só neste aparelho. Pedidos, cupons e taxas não são alterados.</p></div>`;
+  return `<div class="chp" style="margin:0 0 6px">${N.map((n,i)=>`<button class="btn ${sel==i?'pri':''}" data-a="tom" data-v="${i}" style="flex:1 1 78px;min-width:78px;min-height:34px;font-size:12px">${sel==i?'✓ ':''}${i+1}. ${n}</button>`).join('')}</div><p class="sub" style="margin:0 0 8px">Selecionado: <b style="color:var(--t)">${N[sel]}</b> · vale só para este aparelho.</p>`;
 }
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
  const T=[['ativos','Ativos',act.length],['novo','Novos',by('novo').length],['preparo','Preparo',by('preparo').length],['entrega','Entrega',by('entrega').length],['fim','Finalizados',0]];
  const list=OS=='ativos'?act:OS=='fim'?ORD.filter(o=>!NEXT[o.status]).slice(0,30):by(OS).sort((a,b)=>dl(a)-dl(b));
- return tomCard()+`<div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
+ return `<div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
 function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=true;nov();const d=V(o),n=NEXT[o.status],w=waNum(d),e=esc(o.id),tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
  $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?'':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
  <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
