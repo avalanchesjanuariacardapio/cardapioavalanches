@@ -242,6 +242,25 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none;letter-spacing:0}
 .filebtn.sel{border-color:rgba(52,211,153,.45)}.filebtn.sel .fname{color:var(--ok)}
 
+/* ---------- Chamado WhatsApp ---------- */
+.zap-hero{display:flex;align-items:center;gap:13px;padding:16px;
+ background:linear-gradient(135deg,rgba(37,211,102,.13),rgba(255,106,0,.1) 60%,transparent)}
+.zap-hero .zi{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none;
+ background:rgba(37,211,102,.16);color:#3ddc84}
+.zap-hero .zi svg{width:26px;height:26px}
+.zap-hero h3{margin:0 0 3px}.zap-hero p{margin:0}
+.zap-step{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.zap-step b{width:22px;height:22px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;
+ background:rgba(255,106,0,.15);color:var(--o2);font-size:11px}
+.zap-prev{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid var(--l);
+ color:var(--t);font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.zap-link{display:flex;gap:8px;align-items:center}.zap-link input{flex:1;min-width:0;font-size:11.5px;color:var(--m)}
+.zap-link button{flex:none}
+.zap-img{max-width:100%;max-height:170px;border-radius:12px;display:block;margin:10px auto 0;border:1px solid var(--l)}
+.zap-hist{border-top:1px solid var(--l);padding:9px 0}.zap-hist:last-child{border-bottom:0}
+[data-theme="light"] .zap-hero{background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(255,106,0,.08) 60%,transparent)}
+[data-theme="light"] .zap-prev{background:#f5f6f8}
+
 /* ---------- Sheets / modais ---------- */
 .back{position:fixed;inset:0;z-index:80;display:none;align-items:flex-end;justify-content:center;
  background:rgba(4,4,6,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -507,10 +526,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const zq=s=>String(s).replace(/["'<>\s()\\]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
 const ps=it=>{const u=it.image||'';return u.startsWith('data:')?zq(u):u.startsWith('cloud:')?zq(PH[it.id]||''):encodeURI(u)};
 const brl=v=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
-let tab='home',prevTab='home',draft=null,dirty=!!localStorage.getItem('avl_dirty'),user=null,PH={},ORD=[],NEWC=0,CUP=[],cd=null,unsub=null,PRAZO=40,OPENO=new Set(),OS='ativos',CURO=null,NOVHIDE=false;
+let tab='home',prevTab='home',HIST=[],draft=null,dirty=!!localStorage.getItem('avl_dirty'),user=null,PH={},ORD=[],NEWC=0,CUP=[],cd=null,unsub=null,PRAZO=40,OPENO=new Set(),OS='ativos',CURO=null,NOVHIDE=false;
 const TOQUES={sino:'Sino (padrão)',campainha:'Campainha',alerta:'Alerta',melodia:'Melodia'};
 let TEMA=localStorage.getItem('avl_theme')==='light'?'light':'dark',SOM=localStorage.getItem('avl_som')!=='0',
- TOQUE=localStorage.getItem('avl_toque')||'sino';if(!TOQUES[TOQUE])TOQUE='sino';
+ TOQUE=localStorage.getItem('avl_toque')||'sino',WAKE=localStorage.getItem('avl_wake')==='1',wakeLock=null;
+if(!TOQUES[TOQUE])TOQUE='sino';
 function applyTheme(){
  document.documentElement.dataset.theme=TEMA;
  const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content',TEMA==='light'?'#eef0f3':'#0b0b0c');
@@ -539,6 +559,7 @@ const ICO={
  cup:sv('<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>'),
  rel:sv('<path d="M4 20V11M10 20V4M16 20v-6M3 20h18"/>'),
  money:sv('<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 12h.01M17.5 12h.01"/>'),
+ whats:sv('<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5z"/><path d="M9 10.5c.2 2.4 2.1 4.3 4.5 4.5l.8-1.4-1.8-.9.7-1.6-1.9-.5z"/>'),
  cli:sv('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.5c2 .7 3 2.6 3 5.5"/>'),
  add:sv('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
  loja:sv('<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/>'),
@@ -568,7 +589,7 @@ const ICO={
   sound:sv('<path d="M5 10v4h3l4 3V7L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/>')
 };
 /* Menu único: todos os lugares ficam nos 3 pontinhos (mobile) e na sidebar (desktop) */
-const MORETABS=[['home',ICO.home,'Início','Seu painel e resumo'],['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['menu',ICO.menu,'Cardápio','Itens, fotos e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['fin',ICO.money,'Financeiro','Valores, promoções e total'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['add',ICO.add,'Adicionais','Opcionais dos itens'],['loja',ICO.loja,'Minha loja','Horários e contato'],['pub',ICO.pub,'Publicar','Enviar mudanças']];
+const MORETABS=[['home',ICO.home,'Início','Seu painel e resumo'],['pedidos',ICO.orders,'Pedidos','Acompanhar pedidos'],['menu',ICO.menu,'Cardápio','Itens, fotos e preços'],['cup',ICO.cup,'Cupons','Descontos ativos'],['zap',ICO.whats,'Chamado WhatsApp','Cupons e mensagens no WhatsApp'],['fin',ICO.money,'Financeiro','Valores, promoções e total'],['rel',ICO.rel,'Relatórios','Vendas e faturamento'],['cli',ICO.cli,'Clientes','Histórico e VIP'],['add',ICO.add,'Adicionais','Opcionais dos itens'],['loja',ICO.loja,'Minha loja','Horários e contato'],['pub',ICO.pub,'Publicar','Enviar mudanças']];
 const ALLTABS=MORETABS;
 const desk=()=>window.matchMedia&&matchMedia('(min-width:960px)').matches;
 function syncMais(){
@@ -689,6 +710,8 @@ function cfgSheet(){
   <button class="cfg-row" data-a="toque"><i>${ICO.sound}</i><span><b>Toque dos novos pedidos</b><small>${esc(TOQUES[TOQUE])} · toque para escolher</small></span>${ICO.send}</button>
   <button class="cfg-row" data-a="testsom"><i>${ICO.sound}</i><span><b>Testar som</b><small>Ouça como ficará o aviso</small></span>${ICO.send}</button>
   ${ntfBtn()}
+  <button class="cfg-row" data-a="wake"><i>${ICO.sun}</i><span><b>Manter a tela ligada</b><small>${WAKE?'Ativado · o painel não dorme enquanto estiver aberto':'Desativado · evita que a tela desligue'}</small></span><span class="mini-sw ${WAKE?'on':''}"></span></button>
+  <p class="sub" style="margin:-2px 0 8px">O aviso de prioridade alta e a tela ligada valem enquanto o painel estiver aberto. Navegadores não permitem manter um site rodando em segundo plano após fechar a aba; para isso é preciso instalar o painel como app e receber push do servidor.</p>
  </div>
  <div class="card"><h3>${ICO.pub}Dados</h3>
   <div class="lr"><span>Alterações pendentes</span><b>${pend}</b></div>
@@ -732,6 +755,7 @@ function view(){
  <label>Situação da loja<select data-f="modo"><option value="auto" ${D.loja.modo=='auto'?'selected':''}>Automática (pelo horário)</option><option value="aberto" ${D.loja.modo=='aberto'?'selected':''}>Forçar ABERTA agora</option><option value="fechado" ${D.loja.modo=='fechado'?'selected':''}>Forçar FECHADA (hoje não abro)</option></select></label></div>`;
  if(tab=='menu'){h=`${posterCard()}<div class="card"><h3>Categorias</h3><p class="sub" style="margin:-6px 0 8px">Segure em ⠿ e arraste para reordenar</p><div data-sort="cat">${D.cats.map((c,i)=>`<div class="row" data-sid="${esc(c.id)}">${GRIP}<div class="n"><input data-c="${i}" data-p="name" value="${esc(c.name)}" style="margin:0"><label class="chk" style="margin:6px 0 0"><input type="checkbox" data-c="${i}" data-p="extras" ${c.extras?'checked':''}>Oferecer adicionais</label></div><button class="btn ic danger" data-a="delcat" data-v="${i}">✕</button></div>`).join('')}</div><button class="btn full" data-a="addcat">${ICO.plus}Nova categoria</button></div>`;
   D.cats.forEach(c=>{const l=D.items.filter(i=>i.cat==c.id);h+=`<div class="card"><h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span><span style="display:flex;gap:6px;flex:none"><button class="btn pri" style="min-height:36px;font-size:13px;padding:0 12px" data-a="new" data-v="${esc(c.id)}">${ICO.plus}Novo item</button><button class="btn" style="min-height:36px;font-size:13px;padding:0 12px" data-a="catpromo" data-v="${esc(c.id)}">${ICO.cup}Promoção</button></span></h3><div data-sort="item" data-cat="${esc(c.id)}">${l.map(row).join('')}</div>${l.length?'':'<p class="sub">Nenhum item.</p>'}</div>`})}
+ if(tab=='zap')h=zapView();
  if(tab=='add')h=addH();
  if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>${ICO.pub}Publicar mudanças</button></div><div class="card"><h3>Configurações</h3><p class="sub">Conta, tema, som, avisos e dados do painel.</p><button class="btn pri full" data-a="config">${ICO.gear}Abrir Configurações</button><button class="btn full" data-a="reload">Recarregar dados do site</button></div>`;
  if(tab=='home')h=homeHTML();
@@ -751,13 +775,14 @@ function sheet(){CURO=null;const d=draft;$('sheet').innerHTML=`<h3>${d._new?'Nov
 function shrink(f,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,560/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.72))};im.onerror=()=>toast('Foto inválida');im.src=r.result};r.readAsDataURL(f)}
 function move(id,dir){const it=D.items.find(i=>i.id==id),same=D.items.filter(i=>i.cat==it.cat),k=same.indexOf(it),o=same[k+dir];if(!o)return;const a=D.items.indexOf(it),b=D.items.indexOf(o);[D.items[a],D.items[b]]=[D.items[b],D.items[a]];save();view()}
 document.addEventListener('click',e=>{if(e.target.id=='back')closeBack($('back'));const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v;
- if(a=='tab'){if($('back').classList.contains('open'))closeBack($('back'));if(desk())toggleSide(false);if(v!=tab){prevTab=tab;tab=v}view()}
- else if(a=='topback'){const t=prevTab&&prevTab!=tab?prevTab:'home';prevTab=tab;tab=t;view()}
+ if(a=='tab'){if($('back').classList.contains('open'))closeBack($('back'));if(desk())toggleSide(false);if(v!=tab){HIST.push(tab);if(HIST.length>20)HIST.shift();prevTab=tab;tab=v}view()}
+ else if(a=='topback'){const t=HIST.length?HIST.pop():'home';prevTab=t;tab=t;view()}
  else if(a=='more'){if(desk())toggleSide();else moreSheet()}
  else if(a=='sideclose'){toggleSide(false)}
  else if(a=='config'){cfgSheet();if(desk())toggleSide(false)}
  else if(a=='theme'){TEMA=v;applyTheme();try{localStorage.setItem('avl_theme',v)}catch(e){}cfgSheet();toast(v=='light'?'Tema claro ativado':'Tema escuro ativado')}
  else if(a=='som'){SOM=!SOM;try{localStorage.setItem('avl_som',SOM?'1':'0')}catch(e){}cfgSheet();toast(SOM?'Som ativado':'Som desativado')}
+  else if(a=='wake'){WAKE=!WAKE;try{localStorage.setItem('avl_wake',WAKE?'1':'0')}catch(e){}if(WAKE)wl();else stopWake();cfgSheet();toast(WAKE?'Tela ligada ativada':'Tela ligada desativada')}
  else if(a=='testsom'){if(SOM){ring();toast('Som de teste tocado')}else toast('Som está desativado')}
  else if(a=='toque'){toqueSheet()}
  else if(a=='toqueop'){if(!TOQUES[v])return;TOQUE=v;try{localStorage.setItem('avl_toque',v)}catch(e){}ring(true);toqueSheet();toast('Toque: '+TOQUES[v],'ok')}
@@ -797,6 +822,14 @@ document.addEventListener('click',e=>{if(e.target.id=='back')closeBack($('back')
  else if(a=='gen'){cread();cd.code=gen();csheet()}
  else if(a=='vd'){cread();cd.ate=v=='-1'?'':ymd(+v);csheet()}
  else if(a=='csave')csave();
+ else if(a=='zmsg'){zread();ZD.msg=+v||0;const h=$('z_tmpl');if(h)h.value=ZD.msg;zsave();zapRender()}
+ else if(a=='zvd'){zread();ZD.ate=v=='-1'?'':ymd(+v);zsave();zapRender()}
+ else if(a=='zgen'){zread();ZD.code=zcode();zsave();zapRender()}
+ else if(a=='zcopylink'){zread();zclip(zlink(ZD.code),'Link copiado')}
+ else if(a=='zagain'){const x=ZH.find(y=>y.code==v);if(x){Object.assign(ZD,x.cfg||{});ZD.code=x.code;zsave();zapRender();toast('Cupom e mensagem recolocados','ok')}}
+ else if(a=='zwapp')zwapp();
+ else if(a=='zcopy')zcopy();
+ else if(a=='zshare')zshare();
  else if(a=='cdel'){if(confirm('Excluir este cupom?'))deleteDoc(doc(db,'cupons',cd.code)).then(()=>{CUP=CUP.filter(c=>c.code!=cd.code);closeBack($('back'));view()}).catch(x=>toast('Erro: '+(x.code||x.message)))}
  else if(a=='ord')osheet(v);
  else if(a=='prt')printOrder(v);
@@ -824,9 +857,14 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent=''+cdesc(cd)}
  else if(t.id&&(t.id.startsWith('pr_')||t.id=='s_p')&&draft)promoPrev()
  else if(t.id&&t.id.startsWith('po_')&&D.loja.posterItem)poSave()
- else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save();view()}});
+ else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save();view()}
+ else if(t.id&&t.id.startsWith('z_')&&t.id!='z_img')zrefresh()});
 document.addEventListener('change',e=>{const t=e.target;
  if(t.type=='file'&&t.files[0]){const l=t.closest('label.filebtn'),n=l&&l.querySelector('.fname');if(n){n.textContent=t.files[0].name;l.classList.add('sel')}}
+ if(t.id=='z_img'&&t.files[0]){const f=t.files[0];zCompress(f,u=>{ZD.img=u;zsave();const pv=$('z_imgprev');if(pv)pv.innerHTML='<img class="zap-img" src="'+u+'" alt="Prévia da imagem">'});t.value=''}
+ if(t.id=='z_src'){zread();const c=CUP.find(x=>x.code==t.value);
+  if(c){ZD.tipo=c.tipo;ZD.valor=c.valor;ZD.min=c.min;ZD.ate=c.ate;ZD.msg=4;ZD.custom=c.msg||'Oi! Separei um desconto especial pra você 🎁 Toque aqui e o cupom {cupom} já aparece: {link}'}
+  ZD.code=zcode();zsave();zapRender()}
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
  if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.4,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
  if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
@@ -978,6 +1016,102 @@ function csave(){cread();const code=cd.code;
  if(cd._new)cd.rev=String(Date.now());
  const c={code,...cj(cd)};
  setDoc(doc(db,'cupons',code),{json:JSON.stringify(cj(c))}).then(()=>{CUP=CUP.filter(x=>x.code!=code).concat(c);closeBack($('back'));view();toast('Cupom salvo e já valendo')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+/* ---------- Chamado WhatsApp ---------- */
+const ZLINK='https://avalanchescardapio.netlify.app';
+const ZMSG=[
+ ['Desconto exclusivo','Oi! Separei um desconto especial pra você 🎁 Use o cupom {cupom} até {validade} e faça seu pedido aqui: {link}'],
+ ['Presente da loja','Um mimo pra você: {desconto} no seu pedido. É só tocar aqui e o cupom {cupom} já aparece: {link}'],
+ ['Só hoje','Aproveite {desconto} com o cupom {cupom}. Válido até {validade}. Peça agora: {link}'],
+ ['Convite simples','Tem um cupom esperando por você: {cupom}. Toque aqui para ver e pedir: {link}']
+];
+const ZDEF={tipo:'pct',valor:10,min:0,ate:'',msg:0,custom:'Aproveite {desconto} no seu pedido com o cupom {cupom}. Peça aqui: {link}'};
+let ZD=(()=>{try{return {...ZDEF,...JSON.parse(localStorage.getItem('avl_zap')||'{}')}}catch(e){return {...ZDEF}}})();
+let ZH=[];try{ZH=JSON.parse(localStorage.getItem('avl_zap_hist')||'[]')||[]}catch(e){}
+function zcode(){let c;do{c='ZA'+Math.random().toString(36).slice(2,8).toUpperCase()}while(CUP.some(x=>x.code==c));return c}
+if(!ZD.code)ZD.code=zcode();
+function zsave(){try{localStorage.setItem('avl_zap',JSON.stringify({tipo:ZD.tipo,valor:ZD.valor,min:ZD.min,ate:ZD.ate,msg:ZD.msg,custom:ZD.custom,img:ZD.img||'',code:ZD.code||''}))}catch(e){}}
+function zCompress(file,cb){
+ readF(file,src=>{const im=new Image();
+  im.onload=()=>{const max=1200,s=Math.min(1,max/Math.max(im.naturalWidth||1,im.naturalHeight||1));
+   const c=document.createElement('canvas');c.width=Math.max(1,Math.round((im.naturalWidth||1)*s));c.height=Math.max(1,Math.round((im.naturalHeight||1)*s));
+   c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.82))};
+  im.onerror=()=>cb(src);im.src=src})
+}
+function zclip(txt,ok){
+ const done=()=>toast(ok,'ok'),manual=()=>{try{const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();const r=document.execCommand('copy');ta.remove();r?done():prompt('Copie:',txt)}catch(e){prompt('Copie:',txt)}};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done).catch(manual);else manual();
+}
+function zlink(c){return ZLINK+'?avlcup='+encodeURIComponent(c||'')}
+function zdesc(){return ZD.tipo=='frete'?'frete grátis':ZD.tipo=='pct'?ZD.valor+'% de desconto':brl(ZD.valor)+(ZD.min>0?' acima de '+brl(ZD.min):'')}
+function ztext(){const t=ZD.msg==4?ZD.custom:(ZMSG[ZD.msg]||ZMSG[0])[1];return String(t||'').replace(/\{cupom\}/gi,ZD.code||'').replace(/\{link\}/gi,zlink(ZD.code)).replace(/\{validade\}/gi,ZD.ate?ZD.ate.split('-').reverse().join('/'):'sem validade').replace(/\{desconto\}/gi,zdesc()).trim()}
+function zread(){const g=i=>$(i)?$(i).value:null;
+ if(g('z_t')!=null)ZD.tipo=g('z_t');if(g('z_v')!=null)ZD.valor=Math.max(0,+g('z_v')||0);if(g('z_m')!=null)ZD.min=Math.max(0,+g('z_m')||0);
+ if(g('z_a')!=null)ZD.ate=g('z_a');if(g('z_code')!=null)ZD.code=g('z_code').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);
+ if(g('z_custom')!=null)ZD.custom=g('z_custom');if(g('z_tmpl')!=null)ZD.msg=+g('z_tmpl')||0;zsave()}
+function zrefresh(){zread();const p=$('z_prev'),l=$('z_link'),m=$('z_mprev');
+ if(p)p.textContent=cdesc({tipo:ZD.tipo,valor:ZD.valor,min:ZD.min,ate:ZD.ate});
+ if(l)l.value=zlink(ZD.code);if(m)m.textContent=ztext()}
+function zapView(){
+ if(!ZD.code)ZD.code=zcode();
+ const ativos=CUP.filter(c=>c.ativo!==false&&!(c.ate&&c.ate<ymd(0)));
+ const src=`<select id="z_src"><option value="">Escolher modelo pronto…</option>${ativos.map(c=>`<option value="${esc(c.code)}">${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}<option value="__limpo">Desconto personalizado</option></select>`;
+ const chips=ZMSG.map((t,i)=>`<button class="btn ${ZD.msg==i?'pri':''}" data-a="zmsg" data-v="${i}">${esc(t[0])}</button>`).join('')+`<button class="btn ${ZD.msg==4?'pri':''}" data-a="zmsg" data-v="4">Minha mensagem</button>`;
+ const vd='<div class="chp"><button class="btn" data-a="zvd" data-v="0">Hoje</button><button class="btn" data-a="zvd" data-v="7">7 dias</button><button class="btn" data-a="zvd" data-v="30">30 dias</button><button class="btn" data-a="zvd" data-v="-1">Sem validade</button></div>';
+ const hist=ZH.length?`<div class="card"><h3>Envios recentes</h3>${ZH.map(x=>`<div class="zap-hist"><div class="lr" style="padding:0;border:0"><span><b style="display:inline">${esc(x.code)}</b><small> · ${new Date(x.at).toLocaleString('pt-BR')}</small></span><button class="btn" data-a="zagain" data-v="${esc(x.code)}">Reenviar</button></div></div>`).join('')}</div>`:'';
+ return `<div class="card zap-hero"><div class="zi">${ICO.whats}</div><div><h3>Chamado WhatsApp</h3><p class="sub">Crie um cupom exclusivo, escolha a mensagem e envie com um toque. Cada link mostra o cupom como especial no site e pode ser usado uma vez por cliente.</p></div></div>
+ <div class="card"><div class="zap-step"><b>1</b><b style="width:auto;height:auto;background:none;color:var(--t);font-size:14px">Cupom</b></div>
+  <label>Modelo${src}</label><div class="two"><label>Tipo<select id="z_t"><option value="pct" ${ZD.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${ZD.tipo=='fixo'?'selected':''}>R$ de desconto</option><option value="frete" ${ZD.tipo=='frete'?'selected':''}>Frete grátis</option></select></label><label>Valor<input id="z_v" type="number" min="0" step="0.5" value="${ZD.valor}"></label></div>
+  <label>Código do cupom<div style="display:flex;gap:8px"><input id="z_code" maxlength="20" autocapitalize="characters" value="${esc(ZD.code)}"><button class="btn" data-a="zgen" style="margin-top:4px">${ICO.sparkle}Gerar</button></div></label>
+  <label>Pedido mínimo em R$ (0 = sem mínimo)<input id="z_m" type="number" min="0" step="0.5" value="${ZD.min}"></label>
+  <label>Validade<input id="z_a" type="date" value="${esc(ZD.ate)}"></label>${vd}<p class="sub" id="z_prev">${esc(cdesc(ZD))}</p>
+ </div>
+ <div class="card"><div class="zap-step"><b>2</b><b style="width:auto;height:auto;background:none;color:var(--t);font-size:14px">Mensagem</b></div>
+  <p class="sub" style="margin:-4px 0 8px">Escolha um modelo ou escreva a sua. Não precisa chamar o cliente pelo nome.</p><div class="chp">${chips}</div>
+  <input type="hidden" id="z_tmpl" value="${ZD.msg}"><label>Sua mensagem<textarea id="z_custom" rows="4" maxlength="500">${esc(ZD.custom)}</textarea></label>
+  <p class="sub" style="margin-top:0">Variáveis: <b>{cupom}</b>, <b>{link}</b>, <b>{validade}</b>, <b>{desconto}</b>.</p>
+  <div class="zap-prev" id="z_mprev">${esc(ztext())}</div>
+ </div>
+ <div class="card"><div class="zap-step"><b>3</b><b style="width:auto;height:auto;background:none;color:var(--t);font-size:14px">Imagem (opcional)</b></div>
+  ${fb('z_img',ICO.image,'Adicionar imagem',ZD.img?'Imagem pronta para enviar':'Toque para escolher uma imagem')}
+  <div id="z_imgprev">${ZD.img?`<img class="zap-img" src="${esc(ZD.img)}" alt="Prévia da imagem">`:''}</div>
+  <p class="sub" style="margin-bottom:0">No celular, “Compartilhar com imagem” envia texto e foto juntos quando o app permite. No WhatsApp Web, a imagem é baixada para você anexar.</p>
+ </div>
+ <div class="card"><div class="zap-step"><b>4</b><b style="width:auto;height:auto;background:none;color:var(--t);font-size:14px">Link do cliente</b></div>
+  <div class="zap-link"><input id="z_link" readonly value="${esc(zlink(ZD.code))}"><button class="btn" data-a="zcopylink">${ICO.copy}Copiar</button></div>
+  <p class="sub" style="margin-bottom:0">Ao abrir, o cupom especial aparece na tela do cliente. Válido uma vez por cliente.</p>
+ </div>
+ <div class="card"><button class="btn pri full" data-a="zwapp" style="margin:0 0 8px">${ICO.whats}Abrir WhatsApp</button><button class="btn full" data-a="zshare" style="margin:0 0 8px">${ICO.send}Compartilhar com imagem</button><button class="btn full" data-a="zcopy">${ICO.copy}Copiar mensagem</button></div>${hist}`;
+}
+async function zpublish(){
+ zread();
+ if(!/^[A-Z0-9]{3,20}$/.test(ZD.code||'')){toast('Código: 3 a 20 letras ou números','err');return null}
+ if(ZD.tipo!='frete'&&!(ZD.valor>0)){toast('Informe o valor do desconto','err');return null}
+ if(ZD.tipo=='pct'&&ZD.valor>100){toast('Porcentagem máxima: 100','err');return null}
+ if(CUP.some(x=>x.code==ZD.code)&&!ZH.some(x=>x.code==ZD.code)){
+  const novo=zcode();
+  if(!confirm('O código '+ZD.code+' já existe. Para não alterar o cupom atual, usar o código novo '+novo+'?'))return null;
+  ZD.code=novo;const ci=$('z_code');if(ci)ci.value=novo;zsave();zrefresh();
+ }
+ const msg=ztext(),c={code:ZD.code,tipo:ZD.tipo,valor:ZD.tipo=='frete'?0:ZD.valor,min:ZD.min,ate:ZD.ate,ativo:true,
+  rev:String(Date.now())+Math.random().toString(36).slice(2,6).toUpperCase(),zap:1,msg:msg,tema:'geral',v:Date.now()};
+ const json={...cj(c),zap:1,msg:c.msg,tema:'geral',v:c.v};
+ try{
+  await setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(json)});
+  CUP=CUP.filter(x=>x.code!=c.code).concat(c);
+  ZH=[{code:c.code,at:Date.now(),link:zlink(c.code),cfg:{...ZD,code:c.code}},...ZH.filter(x=>x.code!=c.code)].slice(0,12);
+  try{localStorage.setItem('avl_zap_hist',JSON.stringify(ZH))}catch(e){}
+  return c;
+ }catch(x){toast('Erro: '+(x.code||x.message),'err');return null}
+}
+async function zwapp(){const c=await zpublish();if(!c)return;window.open('https://wa.me/?text='+encodeURIComponent(ztext()),'_blank','noopener');toast('Cupom publicado e WhatsApp aberto','ok');zapRender()}
+async function zcopy(){const c=await zpublish();if(!c)return;zclip(ztext(),'Mensagem copiada')}
+function zdownload(){if(!ZD.img)return;const a=document.createElement('a');a.href=ZD.img;a.download='cupom-avl.png';document.body.appendChild(a);a.click();a.remove()}
+async function zshare(){const c=await zpublish();if(!c)return;const txt=ztext();
+ if(ZD.img&&navigator.share){try{const bl=await(await fetch(ZD.img)).blob(),file=new File([bl],'cupom-avl.png',{type:bl.type||'image/png'});
+  if(!navigator.canShare||navigator.canShare({files:[file],text:txt})){await navigator.share({files:[file],text:txt});toast('Enviado pelo app','ok');return}}catch(e){}}
+ try{await navigator.clipboard.writeText(txt);toast('Mensagem copiada. Anexe a imagem no WhatsApp.','ok')}catch(e){}
+ zdownload();window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener')}
+function zapRender(){if(tab=='zap')$('main').innerHTML=zapView()}
 let CPR='30',CUS={},CULOAD=false,CUERR='';
 const CPN={'0':'Hoje','7':'7 dias','30':'30 dias','all':'Tudo'};
 const isEspK=k=>k==ES.code||(ES.hist||[]).includes(k);
@@ -1188,7 +1322,7 @@ document.addEventListener('change',e=>{const t=e.target;if(t.id=='c_s'){CS=t.val
 function sysNote(t,b,tag,force){
  if(!('Notification' in window)||Notification.permission!='granted')return;
  if(!force&&document.visibilityState=='visible')return;
- const o={body:b,tag:tag,renotify:true,requireInteraction:true,vibrate:[300,120,300,120,300],icon:'logo-app.png',data:{url:location.href}};
+ const o={body:b,tag:tag,renotify:true,requireInteraction:true,silent:false,urgency:'high',ttl:0,timestamp:Date.now(),vibrate:[300,120,300,120,300],icon:'logo-app.png',badge:'logo-app.png',data:{url:location.href}};
  const rdy=navigator.serviceWorker?Promise.race([navigator.serviceWorker.ready,new Promise((_,j)=>setTimeout(j,1500))]):Promise.reject();
  rdy.then(r=>r.showNotification(t,o)).catch(()=>{try{new Notification(t,o)}catch(e){}})}
 function orderNote(x){const d=V(x);sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id,true)}
@@ -1197,7 +1331,14 @@ function testNote(){sysNote('Notificação de teste','Os avisos de novo pedido v
 function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">Testar aviso automático</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber os avisos automáticos de pedido.</p>':'<button class="btn pri full" data-a="ntf">Ativar avisos automáticos</button>'}
 document.addEventListener('click',function ft(){if(!ok)return;document.removeEventListener('click',ft);askNotif()});
 setInterval(()=>{if(NEWC>0&&AC&&AC.state=='running')ring()},4500);
-async function wl(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
+async function wl(){
+ if(!WAKE||!('wakeLock' in navigator)||document.hidden||wakeLock)return;
+ try{
+  wakeLock=await navigator.wakeLock.request('screen');
+  wakeLock.addEventListener('release',()=>{wakeLock=null;if(WAKE&&!document.hidden)setTimeout(wl,500)});
+ }catch(e){}
+}
+function stopWake(){if(wakeLock){try{wakeLock.release()}catch(e){}wakeLock=null}}
 document.addEventListener('pointerdown',()=>{audio();wl()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)wl()});
 const GRIP='<div class="hd" aria-label="Arrastar para reordenar"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></div>';
 function applyOrder(box,ids){
@@ -1244,8 +1385,8 @@ function poSave(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)retur
  else{delete it.promo;e.textContent=''}
  save()}
 let lastTab='';
-const TT={home:'Início',cli:'Clientes',rel:'Relatórios',fin:'Financeiro',pedidos:'Pedidos',menu:'Cardápio',cup:'Cupons',add:'Adicionais',loja:'Minha loja',pub:'Publicar'};
-const SUB={home:'Seu negócio em um só lugar',cli:'Histórico e fidelização',rel:'Faturamento e vendas',pedidos:'Acompanhe e despache em tempo real',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',fin:'Para onde vai o dinheiro das vendas',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
+const TT={home:'Início',cli:'Clientes',rel:'Relatórios',fin:'Financeiro',pedidos:'Pedidos',menu:'Cardápio',cup:'Cupons',zap:'Chamado WhatsApp',add:'Adicionais',loja:'Minha loja',pub:'Publicar'};
+const SUB={home:'Seu negócio em um só lugar',cli:'Histórico e fidelização',rel:'Faturamento e vendas',pedidos:'Acompanhe e despache em tempo real',menu:'Itens, preços, fotos e disponibilidade',cup:'Crie descontos para atrair clientes',zap:'Cupons exclusivos e mensagens prontas',fin:'Para onde vai o dinheiro das vendas',add:'Adicionais que o cliente pode escolher',loja:'Perfil, horários e dados de contato',pub:'Envie suas mudanças para o site'};
 function openNow(){const L=D.loja,h=new Date().getHours(),a=+L.open,c=+L.close;return L.modo=='aberto'?true:L.modo=='fechado'?false:(a<c?(h>=a&&h<c):(h>=a||h<c))}
 function chrome(){$('ttl').textContent=TT[tab]||'';$('hs').textContent=SUB[tab]||'';
  if(lastTab!=tab){lastTab=tab;const m=$('main');m.classList.remove('in');void m.offsetWidth;m.classList.add('in');clearTimeout(window._ti);window._ti=setTimeout(()=>m.classList.remove('in'),800);window.scrollTo&&window.scrollTo({top:0,left:0,behavior:'instant'})}}
@@ -1270,7 +1411,7 @@ function login(){setChrome(false);$('pubbar').innerHTML='';$('ttl').textContent=
 if(!ok){setChrome(false);$('main').innerHTML='<div class="card"><h3>Falta configurar</h3><p class="sub">Cole os dados do seu projeto Firebase no começo do arquivo admin.html (onde está COLE_AQUI).</p></div>'}
 else onAuthStateChanged(auth,async u=>{
  user=u;
- if(!u){if(unsub){unsub();unsub=null}if(repU){repU();repU=null}CL=[];CLT=0;ORD=[];NEWC=0;$('nov').classList.remove('on');login();return}
+ if(!u){if(unsub){unsub();unsub=null}if(repU){repU();repU=null}CL=[];CLT=0;ORD=[];NEWC=0;HIST=[];tab='home';prevTab='home';$('nov').classList.remove('on');login();return}
  // Confere o UID também no cliente: mostra o UID para você copiar e colar nos 2 lugares.
  // A autoridade real é o firestore.rules (que exige o mesmo UID).
  if(u.uid!==ADMIN_UID){

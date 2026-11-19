@@ -375,6 +375,44 @@ async function showEsp(base, e) {
     if (!test) { SEEN[k] = Date.now(); try { Object.keys(SEEN).sort((a, b) => SEEN[b] - SEEN[a]).slice(30).forEach(q => delete SEEN[q]); localStorage.setItem('avl_esp2', JSON.stringify(SEEN)); } catch (y) {} }
   } catch (x) {}
 }
+/* Cupom enviado pelo painel (Chamado WhatsApp): ?avlcup=CODIGO.
+   Mostra o mesmo visual de cupom especial, SEM aplicar desconto automático. */
+function linkCupCode() {
+  try { return String(new URLSearchParams(location.search).get('avlcup') || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); } catch (e) { return ''; }
+}
+async function showLinkCupom(base) {
+  const code = linkCupCode();
+  if (!/^[A-Z0-9]{3,20}$/.test(code)) return;
+  try {
+    const r = await fetch(base + '/cupons/' + code, { cache: 'no-store' });
+    if (!r.ok) return;
+    const c = JSON.parse((await r.json()).fields.json.stringValue);
+    if (!['pct', 'fixo', 'frete'].includes(c.tipo) || c.ativo === false) return;
+    const today = new Date().toLocaleDateString('sv-SE');
+    if (c.ate && today > c.ate) return;
+    const rev = String(c.rev || '');
+    try { const m = JSON.parse(localStorage.getItem('avl_esp_rev') || '{}'); m[code] = rev; localStorage.setItem('avl_esp_rev', JSON.stringify(m)); } catch (e) {}
+    const ci = el('couponIn'); if (ci) ci.value = code;
+    const used = cupUsed(code, rev);
+    const desc = c.tipo === 'frete' ? 'frete grátis' : c.tipo === 'pct' ? c.valor + '% de desconto' : fmt(c.valor) + ' de desconto';
+    const mk = (t, cls, txt) => { const n = document.createElement(t); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+    const bd = mk('div', 'espb'), card = mk('div', 'espc'), pp = mk('div', 'espp');
+    for (let i = 0; i < 18; i++) { const s = mk('span', '', ['✨', '🎉', '🎁'][i % 3]); s.style.cssText = `--x:${Math.random() * 100}%;--s:${16 + Math.random() * 18}px;--d:${5 + Math.random() * 5}s;--l:${-Math.random() * 8}s;--dx:${Math.random() * 80 - 40}px`; pp.appendChild(s); }
+    const close = () => { bd.classList.remove('on'); setTimeout(() => bd.remove(), 400); };
+    if (used) {
+      const ok = mk('button', 'btn ghost', 'Entendi'); ok.onclick = close;
+      card.append(mk('div', 'espi', '🎁'), mk('h3', '', 'Cupom exclusivo'), mk('p', '', 'Este cupom especial já foi usado por este aparelho/telefone.'), mk('div', 'espk', code), ok);
+    } else {
+      const use = mk('button', 'btn primary', 'Usar cupom na sacola'), x = mk('button', 'btn ghost', 'Agora não');
+      use.onclick = () => { if (ci) ci.value = code; close(); applyCoupon(); };
+      x.onclick = close;
+      card.append(mk('div', 'espi', '✨ 🎁 🎉'), mk('h3', '', 'Cupom especial para você'), mk('p', '', String(c.msg || 'Preparamos ' + desc + ' para você. Toque em usar e o desconto entra na sua sacola.').slice(0, 140)), mk('div', 'espk', code), use, x);
+    }
+    bd.onclick = ev => { if (ev.target === bd) close(); };
+    bd.append(pp, card); document.body.appendChild(bd);
+    requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('on')));
+  } catch (e) {}
+}
 async function loadCloud(skipEsp) {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
   const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
@@ -385,7 +423,7 @@ async function loadCloud(skipEsp) {
     try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
   } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
   CLOUD_BASE = base; applyData(JSON.parse(txt));
-  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp && !skipEsp) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
+  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp && !skipEsp && !linkCupCode()) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
   showEta(); return base;
 }
 function loadPhotos(base) {
@@ -759,15 +797,16 @@ el('confirmBtn').onclick = async () => {
   if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
   if (COUPON && cupUsed(COUPON.code, COUPON.rev)) { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Você já usou este cupom neste aparelho.'; updateCart(); return showToast('Este cupom já foi usado neste aparelho. Confira o total.'); }
   if (!validate()) return;
+  const ph = phoneDigits();
   ORDER_CP = null;
   if (COUPON) {
-    CHK = true; const k0 = cuKey(COUPON.code, COUPON.rev, '55' + phoneDigits()), st = await cupSrvGet(k0, ''); CHK = false;
+    CHK = true; const k0 = cuKey(COUPON.code, COUPON.rev, '55' + ph), st = await cupSrvGet(k0, ''); CHK = false;
     if (st === 'usado') { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este telefone já usou este cupom.'; updateCart(); return showToast('Este telefone já usou este cupom. Confira o total.'); }
     if (st === 'erro') return showToast('Não foi possível validar o cupom agora. Tente de novo.');
     ORDER_CP = { code: COUPON.code, rev: COUPON.rev };
   }
   const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
-  const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), ph = phoneDigits(), g2 = parseFloat(el('cashGiven').value);
+  const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), g2 = parseFloat(el('cashGiven').value);
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
   const LN = '━━━━━━━━━━━━━━━━━━', payName = { dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão' }[PAYMENT] || PAYMENT;
   const when = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -800,10 +839,10 @@ async function applyCoupon() {
     if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.');
     if (cupUsed(code, c.rev)) return say('Você já usou este cupom neste aparelho.');
     if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.');
-    // Usa a rev guardada pelo aviso especial, se houver. Isso mantém o ID de uso
-    // (codigo_versao_telefone) igual ao que o painel grava, travando reutilização.
-    let espRev = ''; try { espRev = (JSON.parse(localStorage.getItem('avl_esp_rev') || '{}')[code]) || ''; } catch (x) {}
-    COUPON = { code, tipo: c.tipo, valor: +c.valor || 0, min: +c.min || 0, ate: c.ate || '', rev: String(espRev || c.rev || '') };
+    // Usa sempre a versão que veio do cupom agora. A avl_esp_rev serve só para mostrar
+    // o aviso especial no link; ela nunca aplica desconto sozinha nem deve reaproveitar
+    // a versão antiga de um código recriado no painel.
+    COUPON = { code, tipo: c.tipo, valor: +c.valor || 0, min: +c.min || 0, ate: c.ate || '', rev: String(c.rev || '') };
     updateCart(); say('Cupom aplicado!', true);
   } catch (e) { say('Não foi possível validar o cupom agora. Tente de novo.'); }
   finally { btn.disabled = false; }
@@ -828,6 +867,7 @@ document.addEventListener('keydown', e => {
   const unboot = () => document.documentElement.classList.remove('boot');
   setTimeout(unboot, 4000);
   let base; try { base = await loadCloud(); } catch (e) {}
+  if (base && linkCupCode()) setTimeout(() => showLinkCupom(base), 900);
   if (!base) revealSlots();
   buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
   if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
