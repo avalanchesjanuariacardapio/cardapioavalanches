@@ -368,7 +368,7 @@ async function showEsp(base, e) {
     const cp = mk('button', 'btn primary', 'Copiar cupom'), x = mk('button', 'btn ghost', 'Fechar');
     const close = () => { bd.classList.remove('on'); setTimeout(() => bd.remove(), 400); };
     cp.onclick = async () => { try { await navigator.clipboard.writeText(e.code); } catch (y) { const t = mk('textarea'); t.value = e.code; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (z) {} t.remove(); } const ci = document.getElementById('couponIn'); if (ci) ci.value = e.code; showToast('Cupom copiado! Cole na sacola.'); close(); };
-    x.onclick = close; bd.onclick = ev => { if (ev.target === bd) close(); };
+    x.onclick = close;
     card.append(mk('div', 'espi', em[0]), mk('h3', '', th[2]), mk('p', '', String(e.msg || '').slice(0, 140)), mk('div', 'espk', e.code), cp, x);
     bd.append(pp, card); document.body.appendChild(bd);
     requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('on')));
