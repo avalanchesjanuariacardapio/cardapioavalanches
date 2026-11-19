@@ -531,7 +531,8 @@ const brl=v=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
 let tab='home',prevTab='home',HIST=[],draft=null,dirty=!!localStorage.getItem('avl_dirty'),user=null,PH={},ORD=[],NEWC=0,CUP=[],cd=null,unsub=null,PRAZO=40,OPENO=new Set(),OS='ativos',CURO=null,NOVHIDE=false;
 const TOQUES={sino:'Sino (padrão)',campainha:'Campainha',alerta:'Alerta',melodia:'Melodia'};
 let TEMA=localStorage.getItem('avl_theme')==='light'?'light':'dark',SOM=localStorage.getItem('avl_som')!=='0',
- TOQUE=localStorage.getItem('avl_toque')||'sino',WAKE=localStorage.getItem('avl_wake')==='1',wakeLock=null;
+ TOQUE=localStorage.getItem('avl_toque')||'sino',WAKE=localStorage.getItem('avl_wake')==='1',wakeLock=null,
+ PUSH_URL=localStorage.getItem('avl_push_url')||'https://avl-push.marcosolive321-ss.workers.dev';
 if(!TOQUES[TOQUE])TOQUE='sino';
 function applyTheme(){
  document.documentElement.dataset.theme=TEMA;
@@ -713,7 +714,16 @@ function cfgSheet(){
   <button class="cfg-row" data-a="testsom"><i>${ICO.sound}</i><span><b>Testar som</b><small>Ouça como ficará o aviso</small></span>${ICO.send}</button>
   ${ntfBtn()}
   <button class="cfg-row" data-a="wake"><i>${ICO.sun}</i><span><b>Manter a tela ligada</b><small>${WAKE?'Ativado · o painel não dorme enquanto estiver aberto':'Desativado · evita que a tela desligue'}</small></span><span class="mini-sw ${WAKE?'on':''}"></span></button>
-  <p class="sub" style="margin:-2px 0 8px">O aviso de prioridade alta e a tela ligada valem enquanto o painel estiver aberto. Navegadores não permitem manter um site rodando em segundo plano após fechar a aba; para isso é preciso instalar o painel como app e receber push do servidor.</p>
+  <p class="sub" style="margin:-2px 0 8px">O aviso de prioridade alta e a tela ligada valem enquanto o painel estiver aberto. Para receber com o painel fechado, use o push do servidor abaixo.</p>
+ </div>
+ <div class="card"><h3>${ICO.bell}Push do servidor</h3>
+  <p class="sub" style="margin:-4px 0 8px">Aviso de novo pedido mesmo com o painel fechado. Funciona no app instalado, de graça, sem Telegram.</p>
+  <label>Endereço do servidor push<input id="push_url" type="url" inputmode="url" spellcheck="false" autocomplete="off" placeholder="https://seu-worker.workers.dev" value="${esc(PUSH_URL)}"></label>
+  <p class="sub" id="push_status" style="margin:6px 0 10px">${esc(pushStatus())}</p>
+  <button class="btn pri full" data-a="pushon">Ativar push neste aparelho</button>
+  <button class="btn full" data-a="pushtest">Testar push</button>
+  <button class="btn full" data-a="pushoff">Desativar push neste aparelho</button>
+  <p class="sub" style="margin:8px 0 0">Cole o endereço uma vez: ele fica salvo no painel e também no cardápio. Depois toque em Ativar neste aparelho.</p>
  </div>
  <div class="card"><h3>${ICO.pub}Dados</h3>
   <div class="lr"><span>Alterações pendentes</span><b>${pend}</b></div>
@@ -785,6 +795,9 @@ document.addEventListener('click',e=>{if(e.target.id=='back')closeBack($('back')
  else if(a=='theme'){TEMA=v;applyTheme();try{localStorage.setItem('avl_theme',v)}catch(e){}cfgSheet();toast(v=='light'?'Tema claro ativado':'Tema escuro ativado')}
  else if(a=='som'){SOM=!SOM;try{localStorage.setItem('avl_som',SOM?'1':'0')}catch(e){}cfgSheet();toast(SOM?'Som ativado':'Som desativado')}
   else if(a=='wake'){WAKE=!WAKE;try{localStorage.setItem('avl_wake',WAKE?'1':'0')}catch(e){}if(WAKE)wl();else stopWake();cfgSheet();toast(WAKE?'Tela ligada ativada':'Tela ligada desativada')}
+ else if(a=='pushon')pushOn();
+ else if(a=='pushtest')pushTest();
+ else if(a=='pushoff')pushOff();
  else if(a=='testsom'){if(SOM){ring();toast('Som de teste tocado')}else toast('Som está desativado')}
  else if(a=='toque'){toqueSheet()}
  else if(a=='toqueop'){if(!TOQUES[v])return;TOQUE=v;try{localStorage.setItem('avl_toque',v)}catch(e){}ring(true);toqueSheet();toast('Toque: '+TOQUES[v],'ok')}
@@ -863,8 +876,10 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.id&&(t.id.startsWith('pr_')||t.id=='s_p')&&draft)promoPrev()
  else if(t.id&&t.id.startsWith('po_')&&D.loja.posterItem)poSave()
  else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save();view()}
- else if(t.id&&t.id.startsWith('z_')&&t.id!='z_img')zrefresh()});
+ else if(t.id&&t.id.startsWith('z_')&&t.id!='z_img')zrefresh()
+  else if(t.id=='push_url'){PUSH_URL=t.value.trim();try{localStorage.setItem('avl_push_url',PUSH_URL)}catch(e){}}});
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.id=='push_url')pushSaveUrl();
  if(t.type=='file'&&t.files[0]){const l=t.closest('label.filebtn'),n=l&&l.querySelector('.fname');if(n){n.textContent=t.files[0].name;l.classList.add('sel')}}
  if(t.id=='z_img'&&t.files[0]){const f=t.files[0];zCompress(f,u=>{ZD.img=u;zsave();const pv=$('z_imgprev');if(pv)pv.innerHTML='<img class="zap-img" src="'+u+'" alt="Prévia da imagem">'});t.value=''}
  if(t.id=='z_src'){zread();const c=CUP.find(x=>x.code==t.value);
@@ -1342,6 +1357,57 @@ document.addEventListener('input',e=>{if(e.target.id=='c_q'){CQ=e.target.value;$
 document.addEventListener('change',e=>{const t=e.target;if(t.id=='c_s'){CS=t.value;$('clist').innerHTML=cliList()}else if(t.id=='c_cp')CCP=t.value});
 
 
+/* ===== Push do servidor (Cloudflare Workers, gratuito) ===== */
+function pushStatus(){
+ if(!('PushManager' in window)||!('serviceWorker' in navigator))return 'Este navegador não suporta push.';
+ if(!PUSH_URL)return 'Cole o endereço do servidor push para começar.';
+ return localStorage.getItem('avl_push_sub')=='1'?'Ativado neste aparelho.':'Ainda não ativado neste aparelho.';
+}
+const b64uBytes=s=>Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-String(s).length%4)%4)),c=>c.charCodeAt(0));
+const pushBase=()=>PUSH_URL.replace(/\/+$/,'');
+async function pushSaveUrl(){
+ PUSH_URL=$('push_url')?$('push_url').value.trim():PUSH_URL;
+ try{localStorage.setItem('avl_push_url',PUSH_URL)}catch(e){}
+ if(!db||!user)return;
+ try{await setDoc(doc(db,'cardapio','push'),{url:PUSH_URL},{merge:true});toast('Endereço salvo e compartilhado com o cardápio','ok')}
+ catch(e){toast('Endereço salvo só neste aparelho')}
+ if($('push_status'))$('push_status').textContent=pushStatus();
+}
+async function pushOn(){
+ await pushSaveUrl();
+ if(!PUSH_URL)return toast('Cole o endereço do servidor push antes.');
+ if(!('PushManager' in window)||!('serviceWorker' in navigator))return toast('Este navegador não suporta push.');
+ try{
+  if(Notification.permission=='default')await Notification.requestPermission();
+  if(Notification.permission!='granted')return toast('Libere as notificações para ativar o push.');
+  const reg=await navigator.serviceWorker.register('sw.js');
+  await navigator.serviceWorker.ready;
+  const r=await fetch(pushBase()+'/vapid',{cache:'no-store'});
+  if(!r.ok)throw new Error('servidor não respondeu');
+  const j=await r.json(),sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uBytes(j.key)});
+  const s=await fetch(pushBase()+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:sub.toJSON()})});
+  if(!s.ok)throw new Error('falha ao registrar o aparelho');
+  localStorage.setItem('avl_push_sub','1');
+  toast('Push ativado neste aparelho','ok');cfgSheet();
+ }catch(e){toast('Não foi possível ativar: '+(e&&e.message||'erro'))}
+}
+async function pushOff(){
+ try{
+  const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+  if(sub){await fetch(pushBase()+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:sub.endpoint})});await sub.unsubscribe()}
+ }catch(e){}
+ localStorage.removeItem('avl_push_sub');toast('Push desativado neste aparelho');cfgSheet();
+}
+async function pushTest(){
+ if(!PUSH_URL)return toast('Cole o endereço do servidor push antes.');
+ if(localStorage.getItem('avl_push_sub')!='1')return toast('Ative o push neste aparelho primeiro.');
+ try{
+  const r=await fetch(pushBase()+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({id:'teste-'+Date.now(),title:'Teste do painel AVL',body:'Se você recebeu isto, o push está funcionando.',url:location.href,icon:new URL('logo-app.png',location.href).href})});
+  const j=await r.json().catch(()=>({}));
+  toast(!r.ok?'Falha ao enviar o teste':j.sent?'Push de teste enviado':'Servidor respondeu, mas nenhum aparelho recebeu',r.ok&&j.sent?'ok':'err');
+ }catch(e){toast('Falha ao enviar o teste')}
+}
 function sysNote(t,b,tag,force){
  if(!('Notification' in window)||Notification.permission!='granted')return;
  if(!force&&document.visibilityState=='visible')return;
@@ -1418,6 +1484,7 @@ document.addEventListener('keydown',e=>{if(e.key=='Enter'&&$('pw')&&document.act
 window.matchMedia&&matchMedia('(min-width:960px)').addEventListener('change',e=>{if(!e.matches)toggleSide(false);else if(user)setChrome(true)});
 async function pull(){
  if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[]}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
+ try{const x=await getDoc(doc(db,'cardapio','push'));if(x.exists()&&x.data().url){PUSH_URL=String(x.data().url);try{localStorage.setItem('avl_push_url',PUSH_URL)}catch(e){}}}catch(e){}
  try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists()){PRAZO=+x.data().prazo||40;try{ES={...ES,...JSON.parse(x.data().esp||'{}')}}catch(e){}}}catch(e){}
  try{const x=await getDocs(collection(db,'cupons'));CUP=x.docs.map(y=>{try{return {code:y.id,...JSON.parse(y.data().json)}}catch(e){return null}}).filter(Boolean)}catch(e){}
  await Promise.all([...D.items,{id:'_perfil',image:D.loja.perfil},{id:'_capa',image:D.loja.capa},{id:'_poster',image:D.loja.poster}].filter(i=>(i.image||'').startsWith('cloud:')&&!PH[i.id]).map(async i=>{try{const x=await getDoc(doc(db,'fotos',i.id));if(x.exists())PH[i.id]=x.data().d}catch(e){}}))}

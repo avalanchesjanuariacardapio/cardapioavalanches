@@ -751,6 +751,41 @@ function notifyNtfy(o) {
     fetch('https://ntfy.sh/' + encodeURIComponent(NTFY_TOPIC) + '?' + q.toString(), { method: 'POST', body: msg, keepalive: true }).catch(() => {});
   } catch (e) {}
 }
+/* Aviso push no app do painel (servidor gratuito). O endereço fica salvo no cardápio pelo painel. */
+let PUSH_URL = 'https://avl-push.marcosolive321-ss.workers.dev';
+async function pushServer() {
+  if (PUSH_URL) return PUSH_URL;
+  try {
+    const r = await fetch(FS_BASE + '/cardapio/push', { cache: 'no-store' });
+    if (r.ok) {
+      const j = await r.json();
+      PUSH_URL = (j.fields && j.fields.url && j.fields.url.stringValue) || '';
+    }
+  } catch (e) {}
+  return PUSH_URL;
+}
+async function notifyPush(o) {
+  const base = await pushServer();
+  if (!base) return;
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 3000);
+  try {
+    const click = new URL('admin.html', location.href).href;
+    await fetch(base.replace(/\/+$/, '') + '/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: String(o.id),
+        title: 'Novo pedido #' + String(o.id).slice(-5) + (o.ant ? ' (antecipado)' : ''),
+        body: String(o.nome || '') + ' · ' + fmt(o.total || 0) + '\nAbra o painel para ver os detalhes.',
+        url: click,
+        icon: new URL('logo-app.png', location.href).href
+      }),
+      signal: ctl.signal,
+      keepalive: true
+    });
+  } catch (e) {}
+  finally { clearTimeout(to); }
+}
 let SENDING = false;
 async function sendWa() {
   if (!ORDER || SENDING) return;
@@ -771,7 +806,7 @@ async function sendWa() {
   if (!ok) return showToast('Não conseguimos registrar o pedido. Confira a internet e tente de novo.');
   ORDER = null;
   if (o.cupom) { cupMark(o.cupom, cp ? cp.rev : ''); cupPend(cuKey(o.cupom, cp ? cp.rev : '', o.fone), ''); }
-  notifyNtfy(o); if (window.saveClient) saveClient(o);
+  notifyNtfy(o); await notifyPush(o); if (window.saveClient) saveClient(o);
   if (!window.open(url, '_blank')) location.href = url;
   el('couponMsg').style.color = '';
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
