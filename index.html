@@ -11,7 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-.climap{height:130px;width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--glass);margin:2px 0 10px}
+.climap{height:130px;width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--glass);margin:2px 0 10px;touch-action:pan-y}
+.climap .leaflet-marker-icon{touch-action:none}
 .locmsg{font-size:12px;line-height:1.4;color:var(--muted);margin:0 2px 8px;min-height:17px}
 .locmsg.ok{color:var(--ok);font-weight:600}
 .locmsg.bad{color:var(--bad);font-weight:600}
@@ -753,15 +754,33 @@ function drawCliAreas() {
   if (CLIMAP._areas) CLIMAP._areas.forEach(a => { try { CLIMAP.removeLayer(a); } catch (e) {} });
   CLIMAP._areas = [];
 }
-function setPin(la, lo) {
-  CLIENT_GEO = { lat: la, lng: lo };
+let CLIMARK_TIMER = null;
+function setPin(la, lo, acc) {
+  CLIENT_GEO = { lat: la, lng: lo, acc: acc || 0 };
   if (CLIMARK && CLIMAP) CLIMAP.removeLayer(CLIMARK);
   if (window.L && CLIMAP) {
-    CLIMARK = L.marker([la, lo], { draggable: true }).addTo(CLIMAP);
-    CLIMARK.on('dragend', e => { const p = e.target.getLatLng(); setPin(p.lat, p.lng); });
+    /* O mapa nao arrasta com o dedo; o pino so solta depois de apertar e segurar. */
+    CLIMARK = L.marker([la, lo], { draggable: false, keyboard: false }).addTo(CLIMAP);
+    const arm = () => {
+      clearTimeout(CLIMARK_TIMER);
+      CLIMARK_TIMER = setTimeout(() => { try { CLIMARK && CLIMARK.dragging.enable(); } catch (e) {} }, 450);
+    };
+    const relax = () => {
+      clearTimeout(CLIMARK_TIMER);
+      setTimeout(() => { if (CLIMARK && !CLIMARK._arrastando) { try { CLIMARK.dragging.disable(); } catch (e) {} } }, 80);
+    };
+    CLIMARK.on('mousedown touchstart', arm);
+    CLIMARK.on('mouseup touchend mouseout', relax);
+    CLIMARK.on('dragstart', () => { CLIMARK._arrastando = true; clearTimeout(CLIMARK_TIMER); });
+    CLIMARK.on('dragend', e => {
+      CLIMARK._arrastando = false;
+      try { CLIMARK.dragging.disable(); } catch (er) {}
+      const p = e.target.getLatLng(); setPin(p.lat, p.lng, 0);
+    });
   }
   const err = document.getElementById('e_loc'); if (err) err.textContent = '';
   renderLoc();
+  fillAddrFromGeo(la, lo);
 }
 let GEOSEQ = 0;
 async function fillAddrFromGeo(la, lo) {
@@ -796,7 +815,7 @@ async function fillAddrFromGeo(la, lo) {
 }
 function initCliMap() {
   if (!window.L || CLIMAP || !document.getElementById('cliMap')) return;
-  CLIMAP = L.map('cliMap', { scrollWheelZoom: false, zoomControl: false }).setView([Number(ENT.lat) || -22.8808, Number(ENT.lng) || -43.1940], 13);
+  CLIMAP = L.map('cliMap', { scrollWheelZoom: false, zoomControl: false, dragging: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false }).setView([Number(ENT.lat) || -22.8808, Number(ENT.lng) || -43.1940], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(CLIMAP);
   CLIMAP.on('click', e => setPin(e.latlng.lat, e.latlng.lng));
   drawCliAreas(); setTimeout(() => { try { CLIMAP.invalidateSize(); } catch (e) {} }, 150);
@@ -829,19 +848,33 @@ async function loadAreas() {
 (function () {
   const b = document.getElementById('cliGeo');
   if (!b) return;
-  b.onclick = async () => {
+  b.onclick = () => {
     if (!navigator.geolocation) return showToast('Seu aparelho não tem localização.');
-    const txt = b.textContent; b.disabled = true; b.textContent = 'Buscando localização...';
-    navigator.geolocation.getCurrentPosition(
-      async p => {
-        try {
-          setPin(p.coords.latitude, p.coords.longitude);
-          try { CLIMAP.flyTo([p.coords.latitude, p.coords.longitude], 16); } catch (e) {}
-          await fillAddrFromGeo(p.coords.latitude, p.coords.longitude);
-        } finally { b.disabled = false; b.textContent = txt; }
-      },
-      () => { b.disabled = false; b.textContent = txt; showToast('Não consegui pegar sua localização. Toque no mapa.'); },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+    const txt = b.textContent;
+    b.disabled = true; b.textContent = 'Buscando localização...';
+    let melhor = null, pronto = false, wid = null, timer = null;
+    const fim = () => {
+      if (pronto) return; pronto = true;
+      clearTimeout(timer);
+      try { navigator.geolocation.clearWatch(wid); } catch (e) {}
+      b.disabled = false; b.textContent = txt;
+      if (!melhor) return showToast('Não consegui pegar sua localização. Toque no mapa.');
+      setPin(melhor.la, melhor.lo, melhor.acc);
+      try { CLIMAP.flyTo([melhor.la, melhor.lo], 16); } catch (e) {}
+      showToast('Local obtido (precisão de ~' + Math.round(melhor.acc) + ' m). Confira o endereço.');
+    };
+    try {
+      wid = navigator.geolocation.watchPosition(
+        p => {
+          const c = p.coords;
+          if (!melhor || c.accuracy < melhor.acc) melhor = { la: c.latitude, lo: c.longitude, acc: c.accuracy };
+          if (melhor.acc <= 20) fim();
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    } catch (e) { return fim(); }
+    timer = setTimeout(fim, 8000);
   };
 })();
 const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);
