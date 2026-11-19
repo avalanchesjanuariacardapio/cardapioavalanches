@@ -897,7 +897,8 @@ function enCircles(m){
   ENSTORE=null;
   const c=[+ENT.lat||0,+ENT.lng||0];
   if(+ENT.raio>0)L.circle(c,+ENT.raio*1000,{color:'#ff6a00',weight:2,fillColor:'#ff6a00',fillOpacity:.07}).addTo(m);
-  if(ENT.lat||ENT.lng||(+ENT.lat&&+ENT.lng)) setLojaPin(m,c[0],c[1]);
+  const hasLoja = Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng) && !(+ENT.lat===0 && +ENT.lng===0) && ENT.lat!=null && ENT.lng!=null && ENT.lat!=='';
+  if(hasLoja) setLojaPin(m,c[0],c[1]);
   (ENT.areas||[]).forEach(a=>{
     const ac=[+a.lat||0,+a.lng||0],cor=a.bloqueado?'#ff5d52':'#34d399';
     L.circle(ac,Math.max(.1,+a.raio||1)*1000,{color:cor,weight:2,fillColor:cor,fillOpacity:.1}).addTo(m).bindTooltip(a.nome,{permanent:true,direction:'top'});
@@ -909,7 +910,7 @@ function initEntMap(){
   if(!window.L||tab!='entregas'||!$('en_map'))return;
   ENMAP=L.map('en_map',{scrollWheelZoom:false,zoomControl:true}).setView([+ENT.lat||-22.8808,+ENT.lng||-43.1940],13);
   enTiles(ENMAP);enCircles(ENMAP);
-  ENMAP.on('click',e=>{const la=e.latlng.lat.toFixed(6),lo=e.latlng.lng.toFixed(6);$('en_lat').value=la;$('en_lng').value=lo;setLojaPin(ENMAP,la,lo);toast('Ponto da loja marcado. Salve a área.')});
+  ENMAP.on('click',e=>{const la=e.latlng.lat.toFixed(6),lo=e.latlng.lng.toFixed(6);$('en_lat').value=la;$('en_lng').value=lo;ENT.lat=+la;ENT.lng=+lo;setLojaPin(ENMAP,la,lo);saveEnt('Ponto da loja salvo');});
   setTimeout(()=>{try{ENMAP.invalidateSize()}catch(e){}},140);
 }
 function initEaMap(){
@@ -1081,7 +1082,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
    if(Number.isFinite(la)&&Number.isFinite(lo)&&(la||lo)){ENT.lat=la;ENT.lng=lo}
    ENT.raio=Math.max(0,+$('en_raio').value||0);ENT.restrito=!!$('en_restrito').checked;saveEnt('Área de entrega salva');view()}
   else if(a=='engeo'){if(!navigator.geolocation)return toast('Localização não disponível neste aparelho');
-   navigator.geolocation.getCurrentPosition(p=>{$('en_lat').value=p.coords.latitude.toFixed(6);$('en_lng').value=p.coords.longitude.toFixed(6);if(ENMAP){ENMAP.flyTo([p.coords.latitude,p.coords.longitude],15);setLojaPin(ENMAP,p.coords.latitude,p.coords.longitude)}toast('Localização marcada')},()=>toast('Não consegui pegar sua localização'),{enableHighAccuracy:true,timeout:12000})}
+   navigator.geolocation.getCurrentPosition(p=>{$('en_lat').value=p.coords.latitude.toFixed(6);$('en_lng').value=p.coords.longitude.toFixed(6);ENT.lat=+p.coords.latitude.toFixed(6);ENT.lng=+p.coords.longitude.toFixed(6);if(ENMAP){ENMAP.flyTo([p.coords.latitude,p.coords.longitude],15);setLojaPin(ENMAP,p.coords.latitude,p.coords.longitude)}saveEnt('Localização da loja salva')},()=>toast('Não consegui pegar sua localização'),{enableHighAccuracy:true,timeout:12000})}
   else if(a=='eabusca'){eaBusca()}
   else if(a=='ennew'){enSheet()}
   else if(a=='enedit'){enSheet(v)}

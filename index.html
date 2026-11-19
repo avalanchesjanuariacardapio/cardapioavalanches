@@ -740,9 +740,10 @@ function drawCliAreas() {
   if (!window.L || !CLIMAP) return;
   if (CLIMAP._areas) CLIMAP._areas.forEach(a => CLIMAP.removeLayer(a));
   CLIMAP._areas = [];
-  if (Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng) && (+ENT.lat||+ENT.lng)) {
+  const hasLoja = Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng) && !(+ENT.lat===0 && +ENT.lng===0) && ENT.lat != null && ENT.lng != null && ENT.lat !== '';
+  if (hasLoja) {
     if (+ENT.raio > 0) CLIMAP._areas.push(L.circle([+ENT.lat, +ENT.lng], +ENT.raio * 1000, { color: '#ff6a00', weight: 2, fillColor: '#ff6a00', fillOpacity: .06 }).addTo(CLIMAP));
-    CLIMAP._areas.push(L.marker([+ENT.lat, +ENT.lng], { icon: lojaCliIcon(), interactive: false }).addTo(CLIMAP).bindTooltip('Loja', { permanent: true, direction: 'top', offset: [0, -26] }));
+    CLIMAP._areas.push(L.marker([+ENT.lat, +ENT.lng], { icon: lojaCliIcon(), interactive: false, zIndexOffset: 800 }).addTo(CLIMAP).bindTooltip('Minha loja', { permanent: true, direction: 'top', offset: [0, -26] }));
   }
   (Array.isArray(ENT.areas) ? ENT.areas : []).forEach(a => {
     const c = a.bloqueado ? '#ff5d52' : '#34d399';
