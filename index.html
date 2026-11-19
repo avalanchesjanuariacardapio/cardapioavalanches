@@ -394,7 +394,7 @@ async function showEsp(base, e) {
     // Assim, se o cliente digitar esse código na sacola, o travamento 1-uso-por-telefone
     // usa a mesma versão gravada no painel (antes, ficava rev='' e não batia).
     try { const m = JSON.parse(localStorage.getItem('avl_esp_rev') || '{}'); m[e.code] = String(c.rev || ''); localStorage.setItem('avl_esp_rev', JSON.stringify(m)); } catch (x) {}
-    if (!test && cupUsed(e.code, c.rev)) return;
+    if (!test && cupUsed(e.code)) return;
     const em = th[0].split(' '), mk = (t, cls, txt) => { const n = document.createElement(t); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
     const bd = mk('div', 'espb' + (th[1] === 'u' ? ' up' : '')), card = mk('div', 'espc'), pp = mk('div', 'espp');
     for (let i = 0; i < 18; i++) { const s = mk('span', '', em[i % em.length]); s.style.cssText = `--x:${Math.random() * 100}%;--s:${16 + Math.random() * 18}px;--d:${5 + Math.random() * 5}s;--l:${-Math.random() * 8}s;--dx:${Math.random() * 80 - 40}px`; pp.appendChild(s); }
@@ -417,7 +417,7 @@ async function showLinkCupom(base) {
   const code = linkCupCode();
   if (!/^[A-Z0-9]{3,20}$/.test(code)) return;
   const msg = el('couponMsg');
-  const say = t => { if (msg) { msg.style.color = ''; msg.textContent = t; } };
+  const say = t => { if (msg) { msg.style.color = t.indexOf('Erro') === 0 ? 'var(--bad)' : ''; msg.textContent = t; } };
   try {
     const r = await fetch(base + '/cupons/' + code, { cache: 'no-store' });
     if (!r.ok) return say('Cupom inválido.');
@@ -429,7 +429,7 @@ async function showLinkCupom(base) {
     const rev = String(c.rev || '');
     try { const m = JSON.parse(localStorage.getItem('avl_esp_rev') || '{}'); m[code] = rev; localStorage.setItem('avl_esp_rev', JSON.stringify(m)); } catch (e) {}
     const ci = el('couponIn'); if (ci) ci.value = code;
-    if (cupUsed(code, rev)) return say('Este cupom especial já foi usado neste aparelho/telefone.');
+    if (cupUsed(code)) return say('Erro: este cupom já foi usado neste aparelho/telefone.');
     if (msg) { msg.style.color = 'var(--ok)'; msg.textContent = 'Cupom ' + code + ' preparado para você. Toque em Aplicar na sacola.'; }
   } catch (e) {}
 }
@@ -673,7 +673,10 @@ function cupRead() {
 }
 /* Trava no servidor: coleção cupom_usos, 1 documento por cupom+versão+telefone. Só dá para CRIAR (nunca apagar/alterar). */
 let ORDER_CP = null, CHK = false;
-const cuKey = (code, rev, fone) => code + '_' + (rev || '0') + '_' + fone;
+/* Identidade estável: mesmo código + mesmo telefone = mesmo uso, mesmo que
+   o painel publique de novo e troque a 'rev'. */
+const cuKey = (code, rev, fone) => code + '_' + fone;
+const cuKeyOld = (code, rev, fone) => code + '_' + (rev || '0') + '_' + fone;
 function cupPend(k, v) {
   let p = {}; try { p = JSON.parse(localStorage.getItem('avl_cup_pend') || '{}') || {}; } catch (e) {}
   if (v === undefined) return p[k] || '';
@@ -701,7 +704,16 @@ async function cupSrvClaim(k, oid) {
     return 'erro';
   } catch (e) { return 'erro'; }
 }
-function cupUsed(code, rev) { const u = cupRead(); return Object.prototype.hasOwnProperty.call(u, code) && String(u[code]) === String(rev || ''); }
+/* Consulta a chave nova e a antiga (com rev) para barrar também os usos
+   registrados antes desta correção. */
+async function cupSrvCheck(code, rev, fone) {
+  const kn = cuKey(code, rev, fone), st = await cupSrvGet(kn, '');
+  if (st !== 'livre') return st;
+  const ko = cuKeyOld(code, rev, fone);
+  return ko === kn ? st : await cupSrvGet(ko, '');
+}
+/* Travamento por CÓDIGO, nunca por versão: republicar não libera o uso. */
+function cupUsed(code, rev) { const u = cupRead(); return Object.prototype.hasOwnProperty.call(u, code); }
 function cupMark(code, rev) {
   const u = cupRead(); u[code] = String(rev || '');
   const ks = Object.keys(u); if (ks.length > 40) ks.slice(0, ks.length - 40).forEach(k => delete u[k]);
@@ -943,7 +955,7 @@ async function sendWa() {
     const ck = cuKey(o.cupom, cp ? cp.rev : '', o.fone), st = await cupSrvClaim(ck, o.id);
     if (st !== 'livre') {
       SENDING = false; btns.forEach(b => b.disabled = false);
-      if (st === 'usado') { ORDER = null; COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este telefone já usou este cupom.'; updateCart(); el('pixModal').classList.remove('open'); return showToast('Este telefone já usou este cupom. Confira o total.'); }
+      if (st === 'usado') { ORDER = null; COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho/telefone.'; updateCart(); el('pixModal').classList.remove('open'); return showToast('Este telefone já usou este cupom. Confira o total.'); }
       return showToast('Não foi possível validar o cupom agora. Tente de novo.');
     }
   }
@@ -963,13 +975,13 @@ el('confirmBtn').onclick = async () => {
   if (!IS_OPEN) return closedMsg();
   if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
   if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
-  if (COUPON && cupUsed(COUPON.code, COUPON.rev)) { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Você já usou este cupom neste aparelho.'; updateCart(); return showToast('Este cupom já foi usado neste aparelho. Confira o total.'); }
+  if (COUPON && cupUsed(COUPON.code)) { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho. Confira o total.'; updateCart(); return showToast('Erro: este cupom já foi usado neste aparelho.'); }
   if (!validate()) return;
   const ph = phoneDigits();
   ORDER_CP = null;
   if (COUPON) {
-    CHK = true; const k0 = cuKey(COUPON.code, COUPON.rev, '55' + ph), st = await cupSrvGet(k0, ''); CHK = false;
-    if (st === 'usado') { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este telefone já usou este cupom.'; updateCart(); return showToast('Este telefone já usou este cupom. Confira o total.'); }
+    CHK = true; const st = await cupSrvCheck(COUPON.code, COUPON.rev, '55' + ph); CHK = false;
+    if (st === 'usado') { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho/telefone.'; updateCart(); return showToast('Este telefone já usou este cupom. Confira o total.'); }
     if (st === 'erro') return showToast('Não foi possível validar o cupom agora. Tente de novo.');
     ORDER_CP = { code: COUPON.code, rev: COUPON.rev };
   }
@@ -991,7 +1003,7 @@ el('btnSendPixWa').onclick = sendWa;
 /* Cupom de desconto (criado no painel, guardado em cupons/CODIGO) */
 async function applyCoupon() {
   const msg = el('couponMsg'), btn = el('couponBtn'), code = el('couponIn').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const say = (t, good) => { msg.textContent = t; msg.style.color = good ? 'var(--ok)' : ''; };
+  const say = (t, good) => { msg.textContent = t; msg.style.color = good ? 'var(--ok)' : (t.indexOf('Erro') === 0 ? 'var(--bad)' : ''); };
   el('couponIn').value = code;
   if (!code) { if (COUPON) { COUPON = null; updateCart(); say('Cupom removido.', true); } else say('Digite o código do cupom.'); return; }
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return say('Cupons indisponíveis no momento.');
@@ -1005,7 +1017,7 @@ async function applyCoupon() {
     if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.');
     if (c.ativo === false) return say('Este cupom não está ativo.');
     if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.');
-    if (cupUsed(code, c.rev)) return say('Você já usou este cupom neste aparelho.');
+    if (cupUsed(code)) return say('Erro: você já usou este cupom neste aparelho.');
     if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.');
     // Usa sempre a versão que veio do cupom agora. A avl_esp_rev serve só para mostrar
     // o aviso especial no link; ela nunca aplica desconto sozinha nem deve reaproveitar

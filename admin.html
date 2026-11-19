@@ -514,9 +514,11 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
 /* ---------- Janelas internas (no lugar de confirm/prompt/select nativo) ---------- */
-.appmodal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.55)}
+.appmodal{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;background:rgba(0,0,0,.55)}
 [data-theme="light"] .appmodal{background:rgba(15,23,42,.32)}
-.appbox{width:min(430px,100%);max-height:82vh;overflow:auto;background:var(--s1);border:1px solid var(--l2);border-radius:18px;box-shadow:0 26px 70px -18px rgba(0,0,0,.65);padding:18px;color:var(--t)}
+.appbox{width:min(640px,100%);max-height:86dvh;overflow:auto;background:linear-gradient(165deg,#22222a,#15151a);border:1px solid var(--l);border-bottom:0;border-radius:24px 24px 0 0;box-shadow:0 30px 90px -20px #000;padding:20px 18px calc(18px + env(safe-area-inset-bottom));color:var(--t);animation:sheetUp .38s var(--e)}
+[data-theme="light"] .appbox{background:linear-gradient(165deg,#fff,#f7f8fa);box-shadow:0 24px 60px -20px rgba(15,23,42,.4)}
+@media(min-width:700px){.appmodal{align-items:center;padding:22px}.appbox{border-radius:24px;border-bottom:1px solid var(--l);padding:20px}}
 .appbox h3{margin:0 0 10px;font-size:17px;line-height:1.25}
 .appbox p{margin:0 0 16px;color:var(--m);font-size:14px;line-height:1.45;white-space:pre-line}
 .appopt{display:block;width:100%;text-align:left;padding:12px 14px;margin:6px 0;border:1px solid var(--l);border-radius:12px;background:var(--s2);color:var(--t);font:inherit;font-size:15px;cursor:pointer}
@@ -615,10 +617,17 @@ function tocarSomWeb(i,loop){
 applyTheme();
 if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.body.classList.add('native');
 try{const _ti=Math.max(0,Math.min(6,+(localStorage.getItem('avl_tom')||0)));if(window.AVLTheme&&window.AVLTheme.setTomPedido)window.AVLTheme.setTomPedido(_ti)}catch(e){}
-/* Janelas do app: substituem confirm/prompt e a lista nativa de <select> */
-function modalClose(){const m=document.getElementById('appmodal');if(m)m.remove()}
+/* Janelas do app: substituem confirm/prompt e a lista nativa de <select>.
+   Quando uma lista abre em cima de um painel, escondemos o painel de trás
+   para nunca aparecerem duas janelas ao mesmo tempo. */
+let MODAL_HIDDEN=[];
+function modalClose(){
+ const m=document.getElementById('appmodal');if(m)m.remove();
+ MODAL_HIDDEN.forEach(el=>{el.style.visibility='';el.style.pointerEvents=''});MODAL_HIDDEN=[];
+}
 function modalBox(html){
  modalClose();
+ document.querySelectorAll('.back.open').forEach(el=>{el.style.visibility='hidden';el.style.pointerEvents='none';MODAL_HIDDEN.push(el)});
  const d=document.createElement('div');d.className='appmodal';d.id='appmodal';
  d.innerHTML='<div class="appbox">'+html+'</div>';
  d.addEventListener('click',e=>{if(e.target===d)modalClose()});
@@ -980,9 +989,10 @@ async function eaBusca(){
 function entregasView(){
   const a=ENT.areas||[],linha=x=>`<div class="row enrow"><div class="n" data-a="enedit" data-v="${esc(String(x.id))}"><b style="color:${x.bloqueado?'var(--bad)':'var(--ok)'}">${x.bloqueado?ICO.close:ICO.check} ${esc(x.nome)}</b><small>${x.bloqueado?'Bloqueado':'Liberado'} · raio ${(+x.raio||1).toFixed(1).replace('.',',')} km · ${(+x.lat).toFixed(4)}, ${(+x.lng).toFixed(4)}</small></div><button class="btn ic ${x.bloqueado?'danger':''}" data-a="entog" data-v="${esc(String(x.id))}" title="Liberar ou bloquear">${x.bloqueado?ICO.check:ICO.close}</button><button class="btn ic danger" data-a="endel" data-v="${esc(String(x.id))}" title="Excluir">${ICO.trash}</button></div>`;
   return `<div class="card"><h3>${ICO.delivery}Taxa de entrega</h3><p class="sub">Valor cobrado no site do cliente. O cupom “frete grátis” continua zerando a taxa.</p><label>Taxa de entrega (R$)<input id="en_fee" type="number" min="0" step="0.01" value="${ENT.fee}"></label><button class="btn pri full" data-a="ensave">Salvar taxa de entrega</button></div>
-  <div class="card"><h3>${ICO.pin}Área de entrega</h3><p class="sub">Toque no mapa para marcar a loja e defina até onde você entrega.</p><div id="en_map" class="enmap"></div>
-  <div class="two"><label>Latitude da loja<input id="en_lat" type="number" step="0.000001" value="${ENT.lat}"></label><label>Longitude da loja<input id="en_lng" type="number" step="0.000001" value="${ENT.lng}"></label></div>
+  <div class="card"><h3>${ICO.pin}Área de entrega</h3><p class="sub">Toque no mapa para marcar a loja e defina até onde você entrega.</p>
   <button class="btn full" data-a="engeo">${ICO.pin}Usar minha localização como loja</button>
+  <div id="en_map" class="enmap"></div>
+  <div class="two"><label>Latitude da loja<input id="en_lat" type="number" step="0.000001" value="${ENT.lat}"></label><label>Longitude da loja<input id="en_lng" type="number" step="0.000001" value="${ENT.lng}"></label></div>
   <label style="display:block">Distância máxima de entrega: <b id="en_raio_v">${String(ENT.raio||0).replace(".",",")}</b> km <small style="color:var(--m);font-weight:400">(0 = sem limite)</small></label>
   <div style="display:flex;align-items:center;gap:10px;margin:2px 0 6px"><button class="btn" data-a="en_lock" style="width:auto;min-height:32px;padding:0 12px;font-size:12.5px">🔒 Destravar ajuste</button><small id="en_lock_msg" style="color:var(--m);font-size:12px">A barra está travada para evitar mudanças acidentais</small></div>
   <input id="en_raio" type="range" min="0" max="30" step="0.5" value="${ENT.raio||0}" disabled style="width:100%;margin:4px 0 2px;accent-color:var(--o,#ff6a00);opacity:.45;cursor:not-allowed">
@@ -1391,8 +1401,11 @@ async function zpublish(){
   if(!await askConfirm('O código '+ZD.code+' já existe. Para não alterar o cupom atual, usar o código novo '+novo+'?'))return null;
   ZD.code=novo;const ci=$('z_code');if(ci)ci.value=novo;zsave();zrefresh();
  }
- const msg=ztext(),c={code:ZD.code,tipo:ZD.tipo,valor:ZD.tipo=='frete'?0:ZD.valor,min:ZD.min,ate:ZD.ate,ativo:true,
-  rev:String(Date.now())+Math.random().toString(36).slice(2,6).toUpperCase(),zap:1,msg:msg,tema:'geral',v:Date.now()};
+ /* Mesmo código publicado de novo mantém a rev antiga: o uso por telefone
+   não pode ser liberado só porque o painel reenviou o cupom. */
+const antigo=CUP.find(x=>x.code==ZD.code)||ZH.find(x=>x.code==ZD.code)||null;
+const msg=ztext(),c={code:ZD.code,tipo:ZD.tipo,valor:ZD.tipo=='frete'?0:ZD.valor,min:ZD.min,ate:ZD.ate,ativo:true,
+  rev:antigo&&antigo.rev?String(antigo.rev):(String(Date.now())+Math.random().toString(36).slice(2,6).toUpperCase()),zap:1,msg:msg,tema:'geral',v:Date.now()};
  const json={...cj(c),zap:1,msg:c.msg,tema:'geral',v:c.v};
  try{
   await setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(json)});

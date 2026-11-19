@@ -2,10 +2,8 @@
    Publicar este arquivo junto do admin.html, na mesma pasta.
 
    IMPORTANTE: não usa skipWaiting()/clients.claim() de propósito.
-   O cardápio do cliente (index.html) recarrega sozinho quando um service
-   worker assume a página. Este arquivo apenas mostra notificações e não
-   "assume" o controle de nenhuma aba, para não atrapalhar quem estiver
-   fazendo pedido. */
+   Este arquivo apenas mostra notificações e não "assume" o controle de
+   nenhuma aba, para não atrapalhar quem estiver fazendo pedido. */
 
 /* Aviso com prioridade alta: vibração longa, permanece na tela e volta
    a aparecer se chegar outro pedido com a mesma tag. */
