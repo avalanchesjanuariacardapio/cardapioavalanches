@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ativar avisos — Painel AVL</title>
+<link rel="icon" href="logo-app.png">
+<link rel="manifest" href="admin.webmanifest">
+<meta name="theme-color" content="#ff6a00">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0b0c;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.c{max-width:420px;width:100%;background:#17181b;border:1px solid #2a2b30;border-radius:18px;padding:28px;text-align:center}
+h1{font-size:22px;margin:0 0 10px}p{color:#aaa;line-height:1.5;font-size:15px}
+button{width:100%;border:0;border-radius:12px;padding:16px;font-size:17px;font-weight:700;background:#ff6a00;color:#fff;cursor:pointer;margin-top:14px}
+button:disabled{opacity:.6}#s{margin-top:18px;font-size:14px;color:#ffb37a;word-break:break-word}
+small{display:block;margin-top:22px;color:#777;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="c">
+<h1>Ativar avisos do pedido</h1>
+<p>Toque no botão uma vez. Ele libera as notificações, registra este aparelho e envia um teste.</p>
+<button id="b">Ativar notificações</button>
+<p id="s"></p>
+<small>Depois, para receber com o app fechado: abra o painel no Chrome → menu → “Instalar app”.</small>
+</div>
+<script>
+const W = 'https://avl-push.marcosolive321-ss.workers.dev';
+const $ = id => document.getElementById(id);
+const b64u = s => Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/') + '='.repeat((4 - String(s).length % 4) % 4)), c => c.charCodeAt(0));
+
+async function ativar(){
+  try{
+    b.disabled = true;
+    if(!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) throw new Error('Este navegador não suporta notificações push.');
+
+    $('s').textContent = 'Pedindo permissão…';
+    let p = Notification.permission;
+    if(p === 'default') p = await Notification.requestPermission();
+    if(p !== 'granted') throw new Error('Permissão negada. Libere as notificações nas configurações do navegador.');
+
+    $('s').textContent = 'Registrando este aparelho…';
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+
+    const vr = await fetch(W + '/vapid', { cache:'no-store' });
+    if(!vr.ok) throw new Error('Servidor do push não respondeu.');
+    const key = (await vr.json()).key;
+
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64u(key) });
+
+    const sr = await fetch(W + '/subscribe', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+    if(!sr.ok) throw new Error('Falha ao registrar o aparelho no servidor.');
+
+    localStorage.setItem('avl_push_sub','1');
+    localStorage.setItem('avl_push_url', W);
+
+    $('s').textContent = 'Ativado! Enviando teste…';
+    const nr = await fetch(W + '/notify', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        id: 'ativar-' + Date.now(),
+        title: 'Avisos do painel AVL',
+        body: 'Tudo certo! Os novos pedidos vão aparecer aqui.',
+        url: location.origin + '/admin.html',
+        icon: location.origin + '/logo-app.png'
+      })
+    });
+    const j = await nr.json().catch(() => ({}));
+    $('s').textContent = nr.ok && j.sent
+      ? 'Pronto! Olhe a notificação que acabou de chegar.'
+      : 'Ativado, mas o teste não chegou. Resposta: ' + JSON.stringify(j);
+  }catch(e){
+    $('s').textContent = 'Erro: ' + (e && e.message || e);
+  }finally{
+    b.disabled = false;
+  }
+}
+$('b').addEventListener('click', ativar);
+if('Notification' in window && Notification.permission === 'granted') $('s').textContent = 'Permissão já liberada. Toque no botão para ativar.';
+</script>
+</body>
+</html>
