@@ -376,41 +376,28 @@ async function showEsp(base, e) {
   } catch (x) {}
 }
 /* Cupom enviado pelo painel (Chamado WhatsApp): ?avlcup=CODIGO.
-   Mostra o mesmo visual de cupom especial, SEM aplicar desconto automático. */
+   Sem popup e sem animação: o código já vem na mensagem e o campo da sacola é preenchido. */
 function linkCupCode() {
   try { return String(new URLSearchParams(location.search).get('avlcup') || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); } catch (e) { return ''; }
 }
 async function showLinkCupom(base) {
   const code = linkCupCode();
   if (!/^[A-Z0-9]{3,20}$/.test(code)) return;
+  const msg = el('couponMsg');
+  const say = t => { if (msg) { msg.style.color = ''; msg.textContent = t; } };
   try {
     const r = await fetch(base + '/cupons/' + code, { cache: 'no-store' });
-    if (!r.ok) return;
+    if (!r.ok) return say('Cupom inválido.');
     const c = JSON.parse((await r.json()).fields.json.stringValue);
-    if (!['pct', 'fixo', 'frete'].includes(c.tipo) || c.ativo === false) return;
+    if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.');
+    if (c.ativo === false) return say('Este cupom está pausado.');
     const today = new Date().toLocaleDateString('sv-SE');
-    if (c.ate && today > c.ate) return;
+    if (c.ate && today > c.ate) return say('Este cupom expirou.');
     const rev = String(c.rev || '');
     try { const m = JSON.parse(localStorage.getItem('avl_esp_rev') || '{}'); m[code] = rev; localStorage.setItem('avl_esp_rev', JSON.stringify(m)); } catch (e) {}
     const ci = el('couponIn'); if (ci) ci.value = code;
-    const used = cupUsed(code, rev);
-    const desc = c.tipo === 'frete' ? 'frete grátis' : c.tipo === 'pct' ? c.valor + '% de desconto' : fmt(c.valor) + ' de desconto';
-    const mk = (t, cls, txt) => { const n = document.createElement(t); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
-    const bd = mk('div', 'espb'), card = mk('div', 'espc'), pp = mk('div', 'espp');
-    for (let i = 0; i < 18; i++) { const s = mk('span', '', ['✨', '🎉', '🎁'][i % 3]); s.style.cssText = `--x:${Math.random() * 100}%;--s:${16 + Math.random() * 18}px;--d:${5 + Math.random() * 5}s;--l:${-Math.random() * 8}s;--dx:${Math.random() * 80 - 40}px`; pp.appendChild(s); }
-    const close = () => { bd.classList.remove('on'); setTimeout(() => bd.remove(), 400); };
-    if (used) {
-      const ok = mk('button', 'btn ghost', 'Entendi'); ok.onclick = close;
-      card.append(mk('div', 'espi', '🎁'), mk('h3', '', 'Cupom exclusivo'), mk('p', '', 'Este cupom especial já foi usado por este aparelho/telefone.'), mk('div', 'espk', code), ok);
-    } else {
-      const use = mk('button', 'btn primary', 'Usar cupom na sacola'), x = mk('button', 'btn ghost', 'Agora não');
-      use.onclick = () => { if (ci) ci.value = code; close(); applyCoupon(); };
-      x.onclick = close;
-      card.append(mk('div', 'espi', '✨ 🎁 🎉'), mk('h3', '', 'Cupom especial para você'), mk('p', '', String(c.msg || 'Preparamos ' + desc + ' para você. Toque em usar e o desconto entra na sua sacola.').slice(0, 140)), mk('div', 'espk', code), use, x);
-    }
-    bd.onclick = ev => { if (ev.target === bd) close(); };
-    bd.append(pp, card); document.body.appendChild(bd);
-    requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('on')));
+    if (cupUsed(code, rev)) return say('Este cupom especial já foi usado neste aparelho/telefone.');
+    if (msg) { msg.style.color = 'var(--ok)'; msg.textContent = 'Cupom ' + code + ' preparado para você. Toque em Aplicar na sacola.'; }
   } catch (e) {}
 }
 async function loadCloud(skipEsp) {

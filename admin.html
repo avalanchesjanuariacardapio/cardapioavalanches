@@ -865,6 +865,7 @@ document.addEventListener('change',e=>{const t=e.target;
  if(t.id=='z_src'){zread();const c=CUP.find(x=>x.code==t.value);
   if(c){ZD.tipo=c.tipo;ZD.valor=c.valor;ZD.min=c.min;ZD.ate=c.ate;ZD.msg=4;ZD.custom=c.msg||'Oi! Separei um desconto especial pra você 🎁 Toque aqui e o cupom {cupom} já aparece: {link}'}
   ZD.code=zcode();zsave();zapRender()}
+ if(t.dataset.zatog){const c=CUP.find(x=>x.code==t.dataset.zatog);if(c){c.ativo=t.checked;zapRender();setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)))}}
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
  if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.4,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
  if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
@@ -1057,7 +1058,7 @@ function zapView(){
  const src=`<select id="z_src"><option value="">Escolher modelo pronto…</option>${ativos.map(c=>`<option value="${esc(c.code)}">${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}<option value="__limpo">Desconto personalizado</option></select>`;
  const chips=ZMSG.map((t,i)=>`<button class="btn ${ZD.msg==i?'pri':''}" data-a="zmsg" data-v="${i}">${esc(t[0])}</button>`).join('')+`<button class="btn ${ZD.msg==4?'pri':''}" data-a="zmsg" data-v="4">Minha mensagem</button>`;
  const vd='<div class="chp"><button class="btn" data-a="zvd" data-v="0">Hoje</button><button class="btn" data-a="zvd" data-v="7">7 dias</button><button class="btn" data-a="zvd" data-v="30">30 dias</button><button class="btn" data-a="zvd" data-v="-1">Sem validade</button></div>';
- const hist=ZH.length?`<div class="card"><h3>Envios recentes</h3>${ZH.map(x=>`<div class="zap-hist"><div class="lr" style="padding:0;border:0"><span><b style="display:inline">${esc(x.code)}</b><small> · ${new Date(x.at).toLocaleString('pt-BR')}</small></span><button class="btn" data-a="zagain" data-v="${esc(x.code)}">Reenviar</button></div></div>`).join('')}</div>`:'';
+ const hist=ZH.length?`<div class="card"><h3>Envios recentes</h3><p class="sub" style="margin:-2px 0 8px">Use a chave para pausar ou reativar. O cupom fica salvo mesmo depois de usado; “uma vez” vale por cliente/telefone, não some.</p>${ZH.map(x=>{const c=CUP.find(y=>y.code==x.code),on=c&&c.ativo!==false;return `<div class="zap-hist"><div class="lr" style="padding:0;border:0"><span><b style="display:inline">${esc(x.code)}</b><small> · ${on?'ativo':'pausado'} · ${new Date(x.at).toLocaleString('pt-BR')}</small></span><span style="display:flex;gap:8px;align-items:center">${c?`<input type="checkbox" class="sw" data-zatog="${esc(x.code)}" ${on?'checked':''} title="${on?'Pausar':'Ativar'}">`:''}<button class="btn" data-a="zagain" data-v="${esc(x.code)}">Reenviar</button></span></div></div>`}).join('')}</div>`:'';
  return `<div class="card zap-hero"><div class="zi">${ICO.whats}</div><div><h3>Chamado WhatsApp</h3><p class="sub">Crie um cupom exclusivo, escolha a mensagem e envie com um toque. Cada link mostra o cupom como especial no site e pode ser usado uma vez por cliente.</p></div></div>
  <div class="card"><div class="zap-step"><b>1</b><b style="width:auto;height:auto;background:none;color:var(--t);font-size:14px">Cupom</b></div>
   <label>Modelo${src}</label><div class="two"><label>Tipo<select id="z_t"><option value="pct" ${ZD.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${ZD.tipo=='fixo'?'selected':''}>R$ de desconto</option><option value="frete" ${ZD.tipo=='frete'?'selected':''}>Frete grátis</option></select></label><label>Valor<input id="z_v" type="number" min="0" step="0.5" value="${ZD.valor}"></label></div>
@@ -1078,7 +1079,7 @@ function zapView(){
  </div>
  <div class="card"><div class="zap-step"><b>4</b><b style="width:auto;height:auto;background:none;color:var(--t);font-size:14px">Link do cliente</b></div>
   <div class="zap-link"><input id="z_link" readonly value="${esc(zlink(ZD.code))}"><button class="btn" data-a="zcopylink">${ICO.copy}Copiar</button></div>
-  <p class="sub" style="margin-bottom:0">Ao abrir, o cupom especial aparece na tela do cliente. Válido uma vez por cliente.</p>
+  <p class="sub" style="margin-bottom:0">Ao abrir, o código já vem preenchido na sacola com uma mensagem, sem animação. Válido uma vez por cliente/telefone. Para encerrar, pause em “Envios recentes”.</p>
  </div>
  <div class="card"><button class="btn pri full" data-a="zwapp" style="margin:0 0 8px">${ICO.whats}Abrir WhatsApp</button><button class="btn full" data-a="zshare" style="margin:0 0 8px">${ICO.send}Compartilhar com imagem</button><button class="btn full" data-a="zcopy">${ICO.copy}Copiar mensagem</button></div>${hist}`;
 }
