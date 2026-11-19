@@ -595,6 +595,7 @@ function applyTheme(){
 function avlPararSom(){try{if(window.AVLTheme&&window.AVLTheme.pararSom)window.AVLTheme.pararSom()}catch(e){}}
 applyTheme();
 if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.body.classList.add('native');
+try{const _ti=Math.max(0,Math.min(6,+(localStorage.getItem('avl_tom')||0)));if(window.AVLTheme&&window.AVLTheme.setTomPedido)window.AVLTheme.setTomPedido(_ti)}catch(e){}
 /* Janelas do app: substituem confirm/prompt e a lista nativa de <select> */
 function modalClose(){const m=document.getElementById('appmodal');if(m)m.remove()}
 function modalBox(html){
@@ -1092,6 +1093,13 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='ord')osheet(v);
  else if(a=='repord')repSheet(v);
  else if(a=='prt')printOrder(v);
+  else if(a=='tom'){
+    const i=Math.max(0,Math.min(6,+v||0));
+    try{localStorage.setItem('avl_tom',String(i))}catch(e){}
+    try{if(window.AVLTheme&&window.AVLTheme.setTomPedido)window.AVLTheme.setTomPedido(i)}catch(e){}
+    try{if(window.AVLTheme&&window.AVLTheme.tocarTom)window.AVLTheme.tocarTom(i)}catch(e){}
+    view();toast('Toque '+(i+1)+' selecionado','ok');
+  }
  else if(a=='seg'){OS=v;view()}
  else if(a=='nh'){NOVHIDE=true;nov()}
  else if(a=='cpr'){CPR=v;CUERR='';view()}else if(a=='cpref'){CUERR='';if(CUS[CPR])CUS[CPR].at=0;view()}else if(a=='esp')espSheet();else if(a=='espsave')espSave();else if(a=='espoff')espOff();else if(a=='ntf')askNotif();else if(a=='ntt')testNote();else if(a=='rp'){RP=v;RMORE=50;if(RP=='custom'&&!RA)RA=RB=ymd(0);startRep();relRender()}else if(a=='rmore'){RMORE+=50;relRender()}else if(a=='cf'){CF=v;cliRender()}else if(a=='cx'){CLO.has(v)?CLO.delete(v):CLO.add(v);$('clist').innerHTML=cliList()}else if(a=='cwa'){const c=CL.find(x=>x.k==v);if(c)window.open('https://wa.me/'+c.k+'?text='+encodeURIComponent(cliMsg(c)),'_blank','noopener')}else if(a=='cref'){CLT=0;loadCli()}
@@ -1223,10 +1231,16 @@ function homeHTML(){
  </div>
  ${dirty?`<div class="card" style="border-color:rgba(251,191,36,.4);margin-top:12px"><p class="sub" style="margin:0">Você tem mudanças no cardápio ainda não publicadas.</p><button class="btn pri full" style="margin-top:10px" data-a="publish">${ICO.pub}Publicar agora</button></div>`:''}`;
 }
+function tomCard(){
+  if(!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))return '';
+  let sel=0;try{sel=Math.max(0,Math.min(6,+(localStorage.getItem('avl_tom')||0)))}catch(e){}
+  const N=['Padrão','Sino','Ding-Dong','Agudo','Cristal','Alerta','Marimba'];
+  return `<div class="card"><h3>🔔 Toque dos pedidos (app)</h3><p class="sub" style="margin:-6px 0 10px">Escolha o som dos pedidos que chegam por push neste celular. Toque para ouvir e selecionar.</p><div class="chp" style="flex-wrap:wrap">${N.map((n,i)=>`<button class="btn ${sel==i?'pri':''}" data-a="tom" data-v="${i}" style="flex:1 1 88px;min-width:88px;min-height:38px;font-size:12.5px">${sel==i?'✓ ':''}${i+1}. ${n}</button>`).join('')}</div><p class="sub" style="margin:10px 0 0">A escolha fica salva só neste aparelho. Pedidos, cupons e taxas não são alterados.</p></div>`;
+}
 function pedidosView(){const by=x=>ORD.filter(o=>o.status==x),act=ORD.filter(o=>NEXT[o.status]).sort((a,b)=>dl(a)-dl(b));
  const T=[['ativos','Ativos',act.length],['novo','Novos',by('novo').length],['preparo','Preparo',by('preparo').length],['entrega','Entrega',by('entrega').length],['fim','Finalizados',0]];
  const list=OS=='ativos'?act:OS=='fim'?ORD.filter(o=>!NEXT[o.status]).slice(0,30):by(OS).sort((a,b)=>dl(a)-dl(b));
- return `<div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
+ return tomCard()+`<div class="seg">${T.map(t=>`<button class="${OS==t[0]?'on':''}" data-a="seg" data-v="${t[0]}">${t[1]}${t[2]?`<i>${t[2]}</i>`:''}</button>`).join('')}</div>`+(list.map(ocard).join('')||'<div class="card"><p class="sub">Nenhum pedido aqui. Quando chegar um, o painel toca e avisa.</p></div>')}
 function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=true;nov();const d=V(o),n=NEXT[o.status],w=waNum(d),e=esc(o.id),tot=((d.prazo||PRAZO)+(o.extra||0))*6e4;
  $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?'':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
  <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
