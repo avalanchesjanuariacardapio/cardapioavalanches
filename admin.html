@@ -972,7 +972,9 @@ function entregasView(){
   <div class="card"><h3>${ICO.pin}Área de entrega</h3><p class="sub">Toque no mapa para marcar a loja e defina até onde você entrega.</p><div id="en_map" class="enmap"></div>
   <div class="two"><label>Latitude da loja<input id="en_lat" type="number" step="0.000001" value="${ENT.lat}"></label><label>Longitude da loja<input id="en_lng" type="number" step="0.000001" value="${ENT.lng}"></label></div>
   <button class="btn full" data-a="engeo">${ICO.pin}Usar minha localização como loja</button>
-  <label>Distância máxima de entrega: <b id="en_raio_v">${String(ENT.raio||0).replace(".",",")}</b> km <small style="color:var(--m);font-weight:400">(0 = sem limite)</small><input id="en_raio" type="range" min="0" max="30" step="0.5" value="${ENT.raio||0}" style="width:100%;margin:10px 0 2px;accent-color:var(--o,#ff6a00)"></label>
+  <label style="display:block">Distância máxima de entrega: <b id="en_raio_v">${String(ENT.raio||0).replace(".",",")}</b> km <small style="color:var(--m);font-weight:400">(0 = sem limite)</small></label>
+  <div style="display:flex;align-items:center;gap:10px;margin:2px 0 6px"><button class="btn" data-a="en_lock" style="width:auto;min-height:32px;padding:0 12px;font-size:12.5px">🔒 Destravar ajuste</button><small id="en_lock_msg" style="color:var(--m);font-size:12px">A barra está travada para evitar mudanças acidentais</small></div>
+  <input id="en_raio" type="range" min="0" max="30" step="0.5" value="${ENT.raio||0}" disabled style="width:100%;margin:4px 0 2px;accent-color:var(--o,#ff6a00);opacity:.45;cursor:not-allowed">
   <label class="enchk"><input type="checkbox" id="en_restrito" ${ENT.restrito?'checked':''}><span>Entregar <b>somente</b> nos bairros liberados abaixo</span></label>
   <p class="sub">Bairros bloqueados nunca recebem pedido, mesmo dentro do raio.</p><button class="btn pri full" data-a="ensave">Salvar área de entrega</button></div>
   <div class="card"><h3>Bairros e regiões</h3><p class="sub">Marque como bloqueado os lugares perigosos: o cliente não consegue finalizar o pedido neles.</p>
@@ -1098,6 +1100,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.4,960,false,r=>{D.loja.poster=r;save();view()});
  else if(a=='dpo'){if(await askConfirm('Remover o poster do cardápio?')){delete D.loja.poster;delete D.loja.posterItem;save();view()}}
  else if(a=='pod'){$('po_a').value=v=='-1'?'':ymd(+v);$('po_e').checked=true;poSave()}
+ else if(a=='en_lock'){const r=$('en_raio'),btn=document.querySelector('[data-a="en_lock"]'),msg=$('en_lock_msg');if(!r)return;const libera=r.disabled;r.disabled=!libera;r.style.opacity=libera?'1':'.45';r.style.cursor=libera?'pointer':'not-allowed';if(btn)btn.textContent=libera?'🔓 Ajustando raio':'🔒 Destravar ajuste';if(msg)msg.textContent=libera?'Ajuste o raio e toque em “Salvar área de entrega”':'A barra está travada para evitar mudanças acidentais'}
  else if(a=='ensave'){ENT.fee=Math.max(0,+$('en_fee').value||0);const la=+$('en_lat').value,lo=+$('en_lng').value;
    if(Number.isFinite(la)&&Number.isFinite(lo)&&(la||lo)){ENT.lat=la;ENT.lng=lo}
    ENT.raio=Math.max(0,+$('en_raio').value||0);ENT.restrito=!!$('en_restrito').checked;saveEnt('Área de entrega salva');view()}
@@ -1616,9 +1619,9 @@ function sysNote(t,b,tag,force){
  const rdy=navigator.serviceWorker?Promise.race([navigator.serviceWorker.ready,new Promise((_,j)=>setTimeout(j,1500))]):Promise.reject();
  rdy.then(r=>r.showNotification(t,o)).catch(()=>{try{new Notification(t,o)}catch(e){}})}
 function orderNote(x){const d=V(x);sysNote('Novo pedido #'+x.id.slice(-5),d.nome+' · '+brl(d.total)+'\n'+d.itens.map(i=>i.q+'x '+i.n).join(', '),'pedido-'+x.id,true)}
-function askNotif(){if(!('Notification' in window)||Notification.permission!='default')return;try{Promise.resolve(Notification.requestPermission()).then(()=>{if(tab=='loja')view();else if($('sheet')&&$('sheet').querySelector('.cfg-user'))cfgSheet()}).catch(()=>{})}catch(e){}}
+function askNotif(){if(typeof nativeInit==='function')nativeInit();if(!('Notification' in window)||Notification.permission!='default')return;try{Promise.resolve(Notification.requestPermission()).then(()=>{if(tab=='loja')view();else if($('sheet')&&$('sheet').querySelector('.cfg-user'))cfgSheet()}).catch(()=>{})}catch(e){}}
 function testNote(){sysNote('Notificação de teste','Os avisos de novo pedido vão aparecer aqui.','teste',true)}
-function ntfBtn(){if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">Testar aviso automático</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber os avisos automáticos de pedido.</p>':'<button class="btn pri full" data-a="ntf">Ativar avisos automáticos</button>'}
+function ntfBtn(){if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return '<button class="btn full" data-a="ntt">Testar aviso automático</button>';if(!('Notification' in window))return '<p class="sub">Este navegador não suporta notificações.</p>';const p=Notification.permission;return p=='granted'?'<button class="btn full" data-a="ntt">Testar aviso automático</button>':p=='denied'?'<p class="sub">Notificações bloqueadas. Libere nas configurações do navegador/app para receber os avisos automáticos de pedido.</p>':'<button class="btn pri full" data-a="ntf">Ativar avisos automáticos</button>'}
 document.addEventListener('click',function ft(){if(!ok)return;document.removeEventListener('click',ft);askNotif()});
 
 async function wl(){
@@ -1745,6 +1748,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
   new MutationObserver(sync).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   document.addEventListener('touchstart', function (e) { sy = e.touches[0].clientY; }, { passive: true });
   document.addEventListener('touchmove', function (e) {
+    if (e.target && e.target.closest && e.target.closest('input[type=range],input,select,textarea')) return;
     if (!on || e.touches.length > 1) return;
     var n = e.target;
     while (n && n !== b && n !== h) {

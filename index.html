@@ -1064,6 +1064,7 @@ document.addEventListener('keydown', e => {
   new MutationObserver(sync).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   document.addEventListener('touchstart', function (e) { sy = e.touches[0].clientY; }, { passive: true });
   document.addEventListener('touchmove', function (e) {
+    if (e.target && e.target.closest && e.target.closest('input[type=range],input,select,textarea')) return;
     if (!on || e.touches.length > 1) return;
     var n = e.target;
     while (n && n !== b && n !== h) {
