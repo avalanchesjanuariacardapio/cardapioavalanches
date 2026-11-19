@@ -582,6 +582,21 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const zq=s=>String(s).replace(/["'<>\s()\\]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
 const ps=it=>{const u=it.image||'';return u.startsWith('data:')?zq(u):u.startsWith('cloud:')?zq(PH[it.id]||''):encodeURI(u)};
 const brl=v=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
+/* Sinais para o servico nativo: o painel reenvia o pedido novo ao feed e
+   avisa quando ele foi aceito/cancelado, mesmo com o WebView suspenso. */
+const PUSH_URL='https://avl-push.marcosolive321-ss.workers.dev';
+async function pushSignal(path,body){
+  let to;
+  try{
+    const ctl=new AbortController();to=setTimeout(()=>ctl.abort(),2500);
+    await fetch(PUSH_URL+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal,keepalive:true});
+  }catch(e){}finally{if(to)clearTimeout(to)}
+}
+function pushNovo(o){
+  const d=o.o||{},nome=String(d.nome||''),total=Number(d.total||0);
+  return pushSignal('/notify',{id:String(o.id),title:'Novo pedido #'+String(o.id).slice(-5),body:nome+' · '+brl(total)+'\nAbra o painel para ver os detalhes.',url:location.href,force:1});
+}
+const pushDone=id=>pushSignal('/done',{id:String(id)});
 let tab='home',prevTab='home',HIST=[],draft=null,dirty=!!localStorage.getItem('avl_dirty'),user=null,PH={},ORD=[],NEWC=0,CUP=[],cd=null,unsub=null,PRAZO=40,OPENO=new Set(),OS='ativos',CURO=null,NOVHIDE=false,MSEC='cardapio';
 try{const nx=window.AVLTheme&&window.AVLTheme.proximaAba&&window.AVLTheme.proximaAba();if(nx)tab=nx}catch(e){}
 const TOQUES={sino:'Sino (padrão)',campainha:'Campainha',alerta:'Alerta',melodia:'Melodia'};
@@ -1086,6 +1101,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='rfp')crop(ps({id:'_perfil',image:lp('perfil')}),1,360,true,r=>{D.loja.perfil=r;save();view()});
  else if(a=='st'){const o0=ORD.find(x=>x.id==v),s=b.dataset.s,w=s=='preparo'&&o0?chk(o0):[];
  if((!w.length||await askConfirm('Atenção: este pedido tem divergências:\n\n'+w.join('\n')+'\n\nValor a cobrar pelo cardápio: '+brl(V(o0).total)+'\n\nAceitar mesmo assim?'))&&(s!='cancelado'||await askConfirm('Cancelar este pedido?'))){if(s=='entrega')dispatchMsg(v);closeBack($('back'));
+  avlPararSom();pushDone(v);
   const ref=doc(db,'pedidos',v),f=s=='preparo'&&o0?fixOrder(o0):null,er=x=>toast('Erro: '+(x.code||x.message));
   (f&&Math.abs(f.total-o0.o.total)>.05?updateDoc(ref,{status:s,json:JSON.stringify(f)}).catch(()=>updateDoc(ref,{status:s})):updateDoc(ref,{status:s})).catch(er)}}
  else if(a=='newc'){cd={_new:true,code:'',tipo:'pct',valor:10,min:0,ate:'',ativo:true};csheet()}
@@ -1303,7 +1319,13 @@ function listen(){if(unsub)return;let first=true;
  unsub=onSnapshot(query(collection(db,'pedidos'),orderBy('t','desc'),limit(60)),snap=>{
   ORD=snap.docs.map(x=>{const v=x.data();try{return {id:x.id,t:v.t,status:String(v.status),extra:+v.extra||0,o:san(JSON.parse(v.json))}}catch(e){return null}}).filter(Boolean);
   NEWC=ORD.filter(o=>o.status=='novo').length;if(!NEWC)avlPararSom();
-  if(!first){const ad=snap.docChanges().filter(c=>c.type=='added');if(ad.length){alertNew();ad.forEach(c=>{const x=ORD.find(o=>o.id==c.doc.id);if(x&&x.status=='novo')orderNote(x)})}}
+  if(!first){const ad=snap.docChanges().filter(c=>c.type=='added');if(ad.length){alertNew();ad.forEach(c=>{const x=ORD.find(o=>o.id==c.doc.id);if(x&&x.status=='novo'){
+    /* Reenvia ao feed mesmo se o celular do cliente nao conseguiu chamar
+       /notify. O app nativo descarta o id repetido. */
+    const tt=x.t&&x.t.toMillis?x.t.toMillis():0;
+    if(!tt||Date.now()-tt<300000)pushNovo(x);
+    orderNote(x);
+  }})}}
   first=false;nav();nov();if(tab=='pedidos'||tab=='cup'||tab=='home')view();if(CURO&&$('back').classList.contains('open'))osheet(CURO)},e=>toast('Erro nos pedidos: '+(e.code||e.message)))}
 const TPL=[['10% de desconto',{tipo:'pct',valor:10,min:0}],['Frete grátis',{tipo:'frete',valor:0,min:0}],['R$ 5 off acima de R$ 30',{tipo:'fixo',valor:5,min:30}],['Primeira compra 15%',{tipo:'pct',valor:15,min:0}]];
 const ymd=n=>new Date(Date.now()+n*864e5).toLocaleDateString('sv-SE');
