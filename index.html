@@ -735,12 +735,15 @@ function renderLoc() {
   box.textContent = (s.ok ? '✓ ' : '✕ ') + (s.txt || 'Entregamos nesse local!');
   const err = document.getElementById('e_loc'); if (err && s.ok) err.textContent = '';
 }
+const lojaCliIcon=()=>window.L&&L.divIcon({className:'loja-pin',html:'<div style="width:30px;height:30px;border-radius:10px;background:#ff6a00;border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V8l2-4h14l2 4v2"/><path d="M4 10v10h16V10"/><path d="M9 20v-6h6v6"/><path d="M3 10a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/></svg></div>',iconSize:[30,30],iconAnchor:[15,30],tooltipAnchor:[0,-30]});
 function drawCliAreas() {
   if (!window.L || !CLIMAP) return;
   if (CLIMAP._areas) CLIMAP._areas.forEach(a => CLIMAP.removeLayer(a));
   CLIMAP._areas = [];
-  if (+ENT.raio > 0 && Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng))
-    CLIMAP._areas.push(L.circle([+ENT.lat, +ENT.lng], +ENT.raio * 1000, { color: '#ff6a00', weight: 2, fillColor: '#ff6a00', fillOpacity: .06 }).addTo(CLIMAP));
+  if (Number.isFinite(+ENT.lat) && Number.isFinite(+ENT.lng) && (+ENT.lat||+ENT.lng)) {
+    if (+ENT.raio > 0) CLIMAP._areas.push(L.circle([+ENT.lat, +ENT.lng], +ENT.raio * 1000, { color: '#ff6a00', weight: 2, fillColor: '#ff6a00', fillOpacity: .06 }).addTo(CLIMAP));
+    CLIMAP._areas.push(L.marker([+ENT.lat, +ENT.lng], { icon: lojaCliIcon(), interactive: false }).addTo(CLIMAP).bindTooltip('Loja', { permanent: true, direction: 'top', offset: [0, -26] }));
+  }
   (Array.isArray(ENT.areas) ? ENT.areas : []).forEach(a => {
     const c = a.bloqueado ? '#ff5d52' : '#34d399';
     CLIMAP._areas.push(L.circle([+a.lat || 0, +a.lng || 0], Math.max(.1, +a.raio || 1) * 1000, { color: c, weight: 2, fillColor: c, fillOpacity: .08 }).addTo(CLIMAP));
@@ -755,6 +758,17 @@ function setPin(la, lo) {
   }
   const err = document.getElementById('e_loc'); if (err) err.textContent = '';
   renderLoc();
+}
+async function fillAddrFromGeo(la, lo) {
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + la + '&lon=' + lo + '&addressdetails=1&accept-language=pt-BR', { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) return;
+    const j = await r.json(), a = j && j.address || {}, road = a.road || a.pedestrian || a.footway || a.path || a.street || '';
+    const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.village || a.town || a.city || '';
+    const addr = [road, bairro].filter(Boolean).join(road && bairro ? ', ' : '') || (j && j.display_name ? j.display_name.split(',').slice(0, 2).join(',').trim() : '');
+    if (addr) { const el = document.getElementById('clientAddress'); if (el) { el.value = addr; el.classList.remove('bad'); } const e = document.getElementById('e_addr'); if (e) e.textContent = ''; }
+    if (a.house_number) { const en = document.getElementById('houseNumber'); if (en) { en.value = a.house_number; en.classList.remove('bad'); } const er = document.getElementById('e_num'); if (er) er.textContent = ''; }
+  } catch (e) {}
 }
 function initCliMap() {
   if (!window.L || CLIMAP || !document.getElementById('cliMap')) return;
@@ -791,13 +805,19 @@ async function loadAreas() {
 (function () {
   const b = document.getElementById('cliGeo');
   if (!b) return;
-  b.onclick = () => {
+  b.onclick = async () => {
     if (!navigator.geolocation) return showToast('Seu aparelho não tem localização.');
-    b.disabled = true;
+    const txt = b.textContent; b.disabled = true; b.textContent = 'Buscando localização...';
     navigator.geolocation.getCurrentPosition(
-      p => { b.disabled = false; setPin(p.coords.latitude, p.coords.longitude); try { CLIMAP.flyTo([p.coords.latitude, p.coords.longitude], 15); } catch (e) {} },
-      () => { b.disabled = false; showToast('Não consegui pegar sua localização. Toque no mapa.'); },
-      { enableHighAccuracy: true, timeout: 12000 });
+      async p => {
+        try {
+          setPin(p.coords.latitude, p.coords.longitude);
+          try { CLIMAP.flyTo([p.coords.latitude, p.coords.longitude], 16); } catch (e) {}
+          await fillAddrFromGeo(p.coords.latitude, p.coords.longitude);
+        } finally { b.disabled = false; b.textContent = txt; }
+      },
+      () => { b.disabled = false; b.textContent = txt; showToast('Não consegui pegar sua localização. Toque no mapa.'); },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
   };
 })();
 const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);

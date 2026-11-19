@@ -664,6 +664,7 @@ function fechaAtalhos(bk){
  delete bk.dataset.atalhos;closeBack(bk);
  HIST=[];FROMATALHOS=false;
  if(tab!=TABANTESMAIS){prevTab=tab;tab=TABANTESMAIS;view()}
+ else if(tab=='entregas')setTimeout(initEntMap,360);
 }
 window.avlBack=function(){
  if(document.getElementById('appmodal')){modalClose();return}
@@ -796,6 +797,7 @@ function sheetHead(t){
   +'<button class="btn ic" data-a="scancel" aria-label="Fechar">'+ICO.close+'</button>'
   +'</div></div>';
 }
+function killMaps(){if(ENMAP){try{ENMAP.remove()}catch(e){}ENMAP=null;ENSTORE=null}if(EAMAP){try{EAMAP.remove()}catch(e){}EAMAP=null}}
 function openSheet(t,side){
  const b=$('back'),s=$('sheet');
  b.classList.remove('closing','full');b.style.opacity='';
@@ -882,11 +884,20 @@ function moreSheet(){
 /* ---------- Entregas: taxa, área e bairros ---------- */
 let ENMAP=null,EAMAP=null,EAEDIT=null,EABLOQ=true;
 function enTiles(m){L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m)}
+let ENSTORE=null;
+const lojaIcon=()=>window.L&&L.divIcon({className:'loja-pin',html:'<div style="width:34px;height:34px;border-radius:12px;background:var(--o,#ff6a00);border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V8l2-4h14l2 4v2"/><path d="M4 10v10h16V10"/><path d="M9 20v-6h6v6"/><path d="M3 10a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/></svg></div>',iconSize:[34,34],iconAnchor:[17,34],tooltipAnchor:[0,-34]});
+function setLojaPin(m,lat,lng,fly){
+  if(!window.L||!m)return;
+  const p=[+lat,+lng];
+  if(ENSTORE){ENSTORE.setLatLng(p)}else{ENSTORE=L.marker(p,{icon:lojaIcon(),zIndexOffset:1000}).addTo(m).bindTooltip('Minha loja',{permanent:true,direction:'top',offset:[0,-30]})}
+  if(fly){try{m.flyTo(p,15)}catch(e){}}
+}
 function enCircles(m){
   if(!window.L||!m)return;
+  ENSTORE=null;
   const c=[+ENT.lat||0,+ENT.lng||0];
   if(+ENT.raio>0)L.circle(c,+ENT.raio*1000,{color:'#ff6a00',weight:2,fillColor:'#ff6a00',fillOpacity:.07}).addTo(m);
-  L.marker(c).addTo(m).bindTooltip('Minha loja',{permanent:true,direction:'top'});
+  if(ENT.lat||ENT.lng||(+ENT.lat&&+ENT.lng)) setLojaPin(m,c[0],c[1]);
   (ENT.areas||[]).forEach(a=>{
     const ac=[+a.lat||0,+a.lng||0],cor=a.bloqueado?'#ff5d52':'#34d399';
     L.circle(ac,Math.max(.1,+a.raio||1)*1000,{color:cor,weight:2,fillColor:cor,fillOpacity:.1}).addTo(m).bindTooltip(a.nome,{permanent:true,direction:'top'});
@@ -898,7 +909,7 @@ function initEntMap(){
   if(!window.L||tab!='entregas'||!$('en_map'))return;
   ENMAP=L.map('en_map',{scrollWheelZoom:false,zoomControl:true}).setView([+ENT.lat||-22.8808,+ENT.lng||-43.1940],13);
   enTiles(ENMAP);enCircles(ENMAP);
-  ENMAP.on('click',e=>{$('en_lat').value=e.latlng.lat.toFixed(6);$('en_lng').value=e.latlng.lng.toFixed(6);toast('Ponto da loja marcado. Salve a área.')});
+  ENMAP.on('click',e=>{const la=e.latlng.lat.toFixed(6),lo=e.latlng.lng.toFixed(6);$('en_lat').value=la;$('en_lng').value=lo;setLojaPin(ENMAP,la,lo);toast('Ponto da loja marcado. Salve a área.')});
   setTimeout(()=>{try{ENMAP.invalidateSize()}catch(e){}},140);
 }
 function initEaMap(){
@@ -908,13 +919,31 @@ function initEaMap(){
   EAMAP=L.map('ea_map',{scrollWheelZoom:false,zoomControl:false}).setView([la,lo],14);
   enTiles(EAMAP);
   const mk=L.marker([la,lo]).addTo(EAMAP);
-  const put=(a,b)=>{$('ea_lat').value=(+a).toFixed(6);$('ea_lng').value=(+b).toFixed(6);mk.setLatLng([a,b]);
+  const put=(a,b,fly)=>{$('ea_lat').value=(+a).toFixed(6);$('ea_lng').value=(+b).toFixed(6);mk.setLatLng([a,b]);
     if(EAMAP._c)EAMAP.removeLayer(EAMAP._c);
-    EAMAP._c=L.circle([a,b],Math.max(.1,+$('ea_r').value||1)*1000,{color:'#ff6a00',weight:2,fillOpacity:.08}).addTo(EAMAP)};
-  put(la,lo);
+    EAMAP._c=L.circle([a,b],Math.max(.1,+$('ea_r').value||1)*1000,{color:'#ff6a00',weight:2,fillOpacity:.08}).addTo(EAMAP);
+    if(fly)try{EAMAP.flyTo([a,b],15)}catch(e){}};
+  EAMAP._put=put;put(la,lo);
   EAMAP.on('click',e=>put(e.latlng.lat,e.latlng.lng));
   $('ea_r').addEventListener('input',()=>put(+$('ea_lat').value||0,+$('ea_lng').value||0));
   setTimeout(()=>{try{EAMAP.invalidateSize()}catch(e){}},140);
+}
+async function eaBusca(){
+  const q=$('ea_n')&&$('ea_n').value.trim();if(!q)return toast('Digite o nome do bairro');
+  const btn=document.querySelector('[data-a="eabusca"]');if(btn){btn.disabled=true;btn.textContent='Buscando...'}
+  try{
+    const la=+$('en_lat').value||+ENT.lat||-22.8808,lo=+$('en_lng').value||+ENT.lng||-43.1940;
+    const v='lat,lon,display_name';
+    const u='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&addressdetails=1&viewbox='+(lo-.8)+','+(la+.8)+','+(lo+.8)+','+(la-.8)+'&bounded=0&q='+encodeURIComponent(q);
+    const r=await fetch(u,{headers:{'Accept':'application/json'}});
+    if(!r.ok)throw 0;const j=await r.json();
+    if(!j||!j.length)return toast('Bairro não encontrado. Tente incluir a cidade.');
+    const it=j[0];if(EAMAP&&EAMAP._put)EAMAP._put(+it.lat,+it.lon,true);
+    const a=it.address||{},nome=a.suburb||a.neighbourhood||a.quarter||a.city_district||q;
+    if($('ea_n')&&($('ea_n').value.trim()==q||!$('ea_n').value.trim()))$('ea_n').value=String(nome).slice(0,40);
+    toast('Local encontrado no mapa','ok');
+  }catch(e){toast('Não foi possível buscar o bairro')}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=ICO.pin+'Buscar bairro no mapa'}}
 }
 function entregasView(){
   const a=ENT.areas||[],linha=x=>`<div class="row enrow"><div class="n" data-a="enedit" data-v="${esc(String(x.id))}"><b style="color:${x.bloqueado?'var(--bad)':'var(--ok)'}">${x.bloqueado?ICO.close:ICO.check} ${esc(x.nome)}</b><small>${x.bloqueado?'Bloqueado':'Liberado'} · raio ${(+x.raio||1).toFixed(1).replace('.',',')} km · ${(+x.lat).toFixed(4)}, ${(+x.lng).toFixed(4)}</small></div><button class="btn ic ${x.bloqueado?'danger':''}" data-a="entog" data-v="${esc(String(x.id))}" title="Liberar ou bloquear">${x.bloqueado?ICO.check:ICO.close}</button><button class="btn ic danger" data-a="endel" data-v="${esc(String(x.id))}" title="Excluir">${ICO.trash}</button></div>`;
@@ -934,13 +963,15 @@ function enSheet(id){
   const x=id?ENT.areas.find(a=>String(a.id)==String(id)):null,d=x||{nome:'',lat:+ENT.lat,lng:+ENT.lng,raio:1,bloqueado:true};
   EABLOQ=!!d.bloqueado;
   $('sheet').innerHTML=`<h3>${x?'Editar bairro':'Novo bairro'}</h3>
-  <label>Nome do bairro<input id="ea_n" maxlength="40" value="${esc(d.nome)}" placeholder="Ex.: Centro"></label>
+  <label>Nome do bairro<input id="ea_n" maxlength="40" value="${esc(d.nome)}" placeholder="Ex.: Centro, Rua tal, Bairro tal"></label>
+  <button class="btn full" data-a="eabusca" style="margin:0 0 10px">${ICO.pin}Buscar bairro no mapa</button>
   <div class="chp"><button class="btn ${!EABLOQ?'pri':''}" data-a="eab" data-v="0">Liberado</button><button class="btn ${EABLOQ?'pri':''}" data-a="eab" data-v="1">Bloqueado</button></div>
-  <p class="sub">Toque no mapa para marcar o centro do bairro.</p><div id="ea_map" class="enmap mini"></div>
+  <p class="sub">Digite o bairro e toque em buscar, ou toque direto no mapa para marcar o centro.</p><div id="ea_map" class="enmap mini"></div>
   <div class="two"><label>Latitude<input id="ea_lat" type="number" step="0.000001" value="${d.lat}"></label><label>Longitude<input id="ea_lng" type="number" step="0.000001" value="${d.lng}"></label></div>
   <label>Raio do bairro em km<input id="ea_r" type="number" min="0.1" step="0.1" value="${d.raio||1}"></label>
   <button class="btn pri full" data-a="easave">Salvar bairro</button><button class="btn full" data-a="scancel">Cancelar</button>${x?'<button class="btn full danger" data-a="endel" data-v="'+esc(String(x.id))+'">Excluir bairro</button>':''}`;
   openSheet(x?'Editar bairro':'Novo bairro');initEaMap();
+  const nin=$('ea_n');if(nin)nin.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const b=document.querySelector('[data-a="eabusca"]');if(b)b.click()}};
 }
 function saveEnt(msg){
   try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(e){}
@@ -966,6 +997,7 @@ function msecHead(){return `<div class="msec"><button data-a="msec" data-v="card
  if(tab=='pub')h=`<div class="card"><h3>Publicar</h3><p class="sub">${dirty?'Você tem mudanças ainda não publicadas.':'Tudo publicado. O site já está atualizado.'}</p><button class="btn pri full" data-a="publish" ${dirty?'':'disabled'}>${ICO.pub}Publicar mudanças</button></div><div class="card"><h3>Configurações</h3><p class="sub">Conta, tema, som, avisos e dados do painel.</p><button class="btn pri full" data-a="config">${ICO.gear}Abrir Configurações</button><button class="btn full" data-a="reload">Recarregar dados do site</button></div>`;
  if(tab=='home')h=homeHTML();
  if(tab=='rel'){if(!repU)startRep();h=relHTML()}if(tab=='fin'){if(!repU)startRep();h=finHTML()}if(tab=='cli'){if(!CLOAD&&(!CLT||Date.now()-CLT>12e4))loadCli();h=cliHTML()}if(tab=='pedidos')h=pedidosView();if(tab=='cup')h=cupView();if(tab=='loja'||tab=='entregas')h+=pubH();
+ if(tab!='entregas'&&ENMAP){try{ENMAP.remove()}catch(e){}ENMAP=null;ENSTORE=null}
  $('main').innerHTML=h;chrome();tick();if(tab=='entregas')initEntMap()}
 /* Botão de arquivo "inteligente": mostra o nome do arquivo escolhido */
 const fb=(id,ico,t,hint)=>`<label class="btn full filebtn" for="${id}"><i>${ico}</i><span class="ft"><b>${t}</b><small class="fname">${hint||'Toque para escolher uma imagem'}</small></span><input type="file" accept="image/*" id="${id}" hidden></label>`;
@@ -983,7 +1015,7 @@ function move(id,dir){const it=D.items.find(i=>i.id==id),same=D.items.filter(i=>
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v;
  if(a=='tab'){const deAtalhos=!!(b.closest('#side')||(b.closest('#sheet')&&$('back').dataset.atalhos=='1'));if($('back').classList.contains('open'))closeBack($('back'));delete $('back').dataset.atalhos;if(desk())toggleSide(false);if(v!=tab){HIST=[];prevTab=tab;tab=v}FROMATALHOS=deAtalhos;view()}
  else if(a=='topback'){HIST=[];if(tab=='home'){if(desk())view();return}if(!desk()&&FROMATALHOS){moreSheet();return}prevTab='home';tab='home';FROMATALHOS=false;view()}
- else if(a=='more'){if(desk())toggleSide();else{TABANTESMAIS=tab;moreSheet()}}
+ else if(a=='more'){if(desk())toggleSide();else{killMaps();TABANTESMAIS=tab;moreSheet()}}
  else if(a=='sideclose'){toggleSide(false)}
  else if(a=='config'){cfgSheet();if(desk())toggleSide(false)}
  else if(a=='msec'){MSEC=v;view()}
@@ -996,7 +1028,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='toqueteste'){ring(true);toast('Toque de teste tocado')}
  else if(a=='new'){draft={id:uid('i_'),cat:(v&&D.cats.some(c=>c.id==v)?v:D.cats[0]?.id)||'',name:'',desc:'',price:0,image:'',ativo:true,_new:true};sheet()}
  else if(a=='edit'){draft={...D.items.find(i=>i.id==v)};sheet()}
- else if(a=='scancel'||a=='sheetback'){const bk=$('back');if(bk&&bk.dataset.atalhos=='1'){fechaAtalhos(bk)}else{if(bk)delete bk.dataset.atalhos;closeBack(bk)}}
+ else if(a=='scancel'||a=='sheetback'){const bk=$('back');if(bk&&bk.dataset.atalhos=='1'){fechaAtalhos(bk)}else{if(EAMAP){try{EAMAP.remove()}catch(e){}EAMAP=null}if(bk)delete bk.dataset.atalhos;closeBack(bk)}}
  else if(a=='ssave'){const n=$('s_n').value.trim(),p=parseFloat($('s_p').value);if(!n)return toast('Informe o nome');if(!(p>=0))return toast('Informe o preço');
   if($('pr_e').checked){const pt=$('pr_t').value,pv=parseFloat($('pr_v').value);if(!(pv>0))return toast('Informe o valor da promoção');if(pt=='pct'&&pv>95)return toast('Desconto máximo: 95%');if(pt=='fixo'&&pv>=p)return toast('O preço promocional precisa ser menor que o normal');draft.promo={tipo:pt,valor:pv,ate:$('pr_a').value||''}}else delete draft.promo;
   Object.assign(draft,{name:n,desc:$('s_d').value.trim(),price:p,cat:$('s_c').value,ativo:$('s_a').checked});const isNew=draft._new;delete draft._new;
@@ -1049,7 +1081,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
    if(Number.isFinite(la)&&Number.isFinite(lo)&&(la||lo)){ENT.lat=la;ENT.lng=lo}
    ENT.raio=Math.max(0,+$('en_raio').value||0);ENT.restrito=!!$('en_restrito').checked;saveEnt('Área de entrega salva');view()}
   else if(a=='engeo'){if(!navigator.geolocation)return toast('Localização não disponível neste aparelho');
-   navigator.geolocation.getCurrentPosition(p=>{$('en_lat').value=p.coords.latitude.toFixed(6);$('en_lng').value=p.coords.longitude.toFixed(6);if(ENMAP)ENMAP.flyTo([p.coords.latitude,p.coords.longitude],15);toast('Localização marcada')},()=>toast('Não consegui pegar sua localização'),{enableHighAccuracy:true,timeout:12000})}
+   navigator.geolocation.getCurrentPosition(p=>{$('en_lat').value=p.coords.latitude.toFixed(6);$('en_lng').value=p.coords.longitude.toFixed(6);if(ENMAP){ENMAP.flyTo([p.coords.latitude,p.coords.longitude],15);setLojaPin(ENMAP,p.coords.latitude,p.coords.longitude)}toast('Localização marcada')},()=>toast('Não consegui pegar sua localização'),{enableHighAccuracy:true,timeout:12000})}
+  else if(a=='eabusca'){eaBusca()}
   else if(a=='ennew'){enSheet()}
   else if(a=='enedit'){enSheet(v)}
   else if(a=='eab'){EABLOQ=v=='1';document.querySelectorAll('[data-a="eab"]').forEach(x=>x.classList.toggle('pri',x.dataset.v==v))}
