@@ -1,0 +1,82 @@
+PAINEL AVL — APP ANDROID NATIVO (Capacitor)
+===========================================
+
+APK pronto:
+C:\Users\shaolin\Desktop\Painel-AVL-v1.apk (3,6 MB)
+
+Instalar no celular
+-------------------
+1. Envie o APK para o celular (WhatsApp, e-mail, Google Drive ou cabo USB).
+2. Abra o arquivo no celular.
+3. Se aparecer "Instalar apps desconhecidos", permita. Isso é normal para APK
+   instalado fora da Play Store.
+4. Abra o app "Painel AVL" e entre com seu e-mail/senha do painel.
+5. Quando perguntado, permita notificações.
+
+Como funciona
+-------------
+- É um app Android de verdade (não é atalho, nem WebView puro): gerado com
+  Capacitor 6 + Android SDK 34.
+- Usa 100% do seu painel atual: pedidos, cupons, cardápio, Firebase e tema.
+- Mudanças no cardápio/cupons são salvas automaticamente na nuvem, sem
+  precisar tocar em "Publicar" e sem aviso na tela.
+- A configuração de push do navegador foi removida (o app avisa por conta própria).
+- A barra de status acompanha o tema: escura no tema escuro, clara no claro.
+- Botão de voltar do celular navega dentro do app (não pergunta para sair).
+- Confirmações, campos e listas de opções abrem janelas do mesmo tema do app.
+- Seu UID não aparece em nenhuma tela de configuração.
+- Botões do Android transparentes; barra de notificações opaca, seguindo o tema.
+- Cabeçalho fixo com o título da tela: só a lista de itens abaixo rola.
+- Sem faixa de "Início", sem animação de troca de tela e sem esticar ao puxar.
+- Horários e opções abrem em janelas do tema, sem o seletor cinza antigo.
+- Interruptores desligam sem tranco na aba de configurações.
+- Nas Configurações aparece seu e-mail completo como Administrador.
+- Ícones e nomes dos atalhos da lateral ampliados.
+- Cardápio com cabeçalho dividido: Cardápio, Adicionais e Poster, com cor
+  laranja suave e animação discreta ao trocar de seção.
+- Voltar abre os atalhos só quando a opção foi aberta pelos atalhos; na home
+  e nas abas de baixo, volta para a tela inicial.
+- Abertura mostra só a logo sobre o fundo do tema, sem animação.
+- Nos atalhos da tela inicial não há botões de voltar nem X: fecha pelo voltar
+  do celular ou ao tocar num atalho.
+- Ao apertar voltar nos atalhos, retorna à aba em que você estava antes de
+  tocar em "mais" (não volta para o último atalho escolhido).
+- O botão "Ajuda" e o agradecimento com Instagram/WhatsApp ficam somente no
+  site do cardápio para os clientes, não dentro do app.
+- Notificação nativa: som próprio, vibração longa, aviso no topo da tela.
+- O som do pedido vem da notificação push (não do painel) e continua tocando
+  até você aceitar o pedido. O painel não faz mais barulho.
+- Botões "Testar som" e "Toque" das configurações continuam funcionando.
+- Notificação fixa "Painel AVL em execução" com o botão "Encerrar painel".
+- Quando chegar pedido, aparece outra notificação: "Chegou um pedido. Clique
+  aqui para aceitar." — ao tocar, abre direto na aba Pedidos.
+- Consulta nova mensagem a cada 15 segundos via Worker do Cloudflare.
+- Ao ligar o celular, o serviço volta (se você não tiver encerrado pelo botão).
+- Na home aparece o nome da loja e, embaixo, Aberta/Fechada com bolinha
+  verde/vermelha animada.
+- Abas só fecham pelo X, setinha ou botão voltar do celular (sem arrastar).
+- Na aba "mais" embaixo aparece seu e-mail, a versão e o desenvolvedor Marcos F.
+
+Atualizações futuras (IMPORTANTE)
+---------------------------------
+Guarde estes arquivos e senhas:
+- Chave de assinatura: C:\Users\shaolin\Desktop\avl-native\avl.keystore
+- Alias: avl
+- Senha da loja: avl2026
+- Senha da chave: avl2026
+
+Use SEMPRE essa mesma chave ao gerar versões novas. Se trocar a chave, o
+celular vai exigir desinstalar o app antes de instalar a atualização.
+
+Para gerar uma versão nova:
+1. Edite C:\Users\shaolin\Desktop\avl-native\www\index.html
+   (copie de admin.html quando o painel mudar e reaplique o bloco
+   "Notificacao nativa do app Android" se precisar).
+2. Rode:
+   cd C:\Users\shaolin\Desktop\avl-native
+   npm exec cap sync android
+   cd android
+   gradlew assembleRelease
+3. Assine novamente com o avl.keystore ( alias avl / senha avl2026 ).
+
+Custo: zero. Ferramentas usadas (Node, JDK, Android SDK, Capacitor) são gratuitas.
