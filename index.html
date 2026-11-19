@@ -266,16 +266,16 @@ input,textarea,select{font-size:16px}
     <div class="err" id="e_addr"></div>
     <input id="houseNumber" maxlength="100" class="field" placeholder="Número da casa e Referência *">
     <div class="err" id="e_num"></div>
-    <div class="h3">Local da entrega</div>
-    <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
-    <div id="locMsg" class="locmsg">Toque no mapa para marcarmos onde você está.</div>
-    <div class="err" id="e_loc"></div>
-    <div id="cliMap" class="climap"></div>
     <input id="clientName" maxlength="80" class="field" placeholder="Seu Nome *" autocomplete="name">
     <div class="err" id="e_name"></div>
     <input id="clientPhone" maxlength="20" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
     <div class="err" id="e_phone"></div>
     <div id="cliNote" style="font-size:12px;color:var(--muted);margin:0 2px 10px"></div>
+    <div class="h3">Local da entrega</div>
+    <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
+    <div id="locMsg" class="locmsg">Toque no mapa para marcarmos onde você está.</div>
+    <div class="err" id="e_loc"></div>
+    <div id="cliMap" class="climap"></div>
 
     <div class="h3">Pagamento</div>
     <button class="pay" data-pay="dinheiro">💵 Dinheiro</button>
@@ -736,13 +736,10 @@ function renderLoc() {
   const err = document.getElementById('e_loc'); if (err && s.ok) err.textContent = '';
 }
 function drawCliAreas() {
-  if (!window.L || !CLIMAP) return;
-  if (CLIMAP._areas) CLIMAP._areas.forEach(a => CLIMAP.removeLayer(a));
+  /* Cliente nao ve circulos de raio/areas: apenas o pino dele */
+  if (!CLIMAP) return;
+  if (CLIMAP._areas) CLIMAP._areas.forEach(a => { try { CLIMAP.removeLayer(a); } catch (e) {} });
   CLIMAP._areas = [];
-  (Array.isArray(ENT.areas) ? ENT.areas : []).forEach(a => {
-    const c = a.bloqueado ? '#ff5d52' : '#34d399';
-    CLIMAP._areas.push(L.circle([+a.lat || 0, +a.lng || 0], Math.max(.1, +a.raio || 1) * 1000, { color: c, weight: 2, fillColor: c, fillOpacity: .08 }).addTo(CLIMAP));
-  });
 }
 function setPin(la, lo) {
   CLIENT_GEO = { lat: la, lng: lo };
@@ -1046,35 +1043,6 @@ document.addEventListener('keydown', e => {
   render(); updateCart(); unboot();
 })();
 
-/* Ao reabrir o navegador/aba, atualiza o cardápio sozinho (sem precisar forçar a atualização) */
-(function () {
-  var hiddenAt = 0, busy = false;
-  function overlayOpen() { return !!document.querySelector('.page.open,.sheet-back.open,.back.open'); }
-  function swCheck() { try { if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update(); }).catch(function () {}); } catch (e) {} }
-  async function refresh() {
-    if (busy || !CLOUD_BASE || overlayOpen()) return;
-    busy = true;
-    try {
-      var before = JSON.stringify(CATS);
-      await loadCloud(true);
-      if (JSON.stringify(CATS) !== before) buildTabs();
-      applyHours(); checkOpen(); render(); updateCart(); loadPhotos(CLOUD_BASE);
-    } catch (e) {} finally { busy = false; }
-  }
-  function back(persisted) {
-    var away = hiddenAt ? Date.now() - hiddenAt : 0; hiddenAt = 0;
-    swCheck();
-    if (away > 20 * 60 * 1000 && !overlayOpen()) { location.reload(); return; }
-    if (persisted || away > 30 * 1000) refresh();
-  }
-  document.addEventListener('visibilitychange', function () { if (document.hidden) hiddenAt = Date.now(); else back(false); });
-  window.addEventListener('pageshow', function (e) { if (e.persisted) back(true); });
-  window.addEventListener('online', function () { refresh(); });
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    var rl = false;
-    navigator.serviceWorker.addEventListener('controllerchange', function () { if (rl || overlayOpen()) return; rl = true; location.reload(); });
-  }
-})();
 </script>
 <script>
 /* Trava a rolagem do fundo enquanto houver uma tela aberta (sacola, item, Pix, painel) */

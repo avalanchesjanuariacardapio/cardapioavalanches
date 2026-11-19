@@ -898,6 +898,7 @@ function setLojaPin(m,lat,lng,fly){
 function updRaio(){
   if(!window.L||!ENMAP)return;
   const la=+$('en_lat')?.value,lo=+$('en_lng')?.value,r=Math.max(0,+$('en_raio')?.value||0);
+  const rv=$('en_raio_v'); if(rv) rv.textContent=String(r).replace('.',',');
   if(!lojaValida(la,lo)||!(r>0)){ if(ENRAD){try{ENMAP.removeLayer(ENRAD)}catch(e){}ENRAD=null} return }
   const c=[la,lo];
   if(ENRAD){ENRAD.setLatLng(c);ENRAD.setRadius(r*1000)}
@@ -937,8 +938,10 @@ function initEaMap(){
   enTiles(EAMAP);
   const mk=L.marker([la,lo]).addTo(EAMAP);
   const put=(a,b,fly)=>{$('ea_lat').value=(+a).toFixed(6);$('ea_lng').value=(+b).toFixed(6);mk.setLatLng([a,b]);
+    const rr=Math.max(.1,+$('ea_r').value||1); const rv=$('ea_r_v'); if(rv) rv.textContent=String(rr).replace('.',',');
     if(EAMAP._c)EAMAP.removeLayer(EAMAP._c);
-    EAMAP._c=L.circle([a,b],Math.max(.1,+$('ea_r').value||1)*1000,{color:'#ff6a00',weight:2,fillOpacity:.08}).addTo(EAMAP);
+    const cor=EABLOQ?'#ff5d52':'#34d399';
+    EAMAP._c=L.circle([a,b],rr*1000,{color:cor,weight:2,fillColor:cor,fillOpacity:.1}).addTo(EAMAP);
     if(fly)try{EAMAP.flyTo([a,b],15)}catch(e){}};
   EAMAP._put=put;put(la,lo);
   EAMAP.on('click',e=>put(e.latlng.lat,e.latlng.lng));
@@ -969,7 +972,7 @@ function entregasView(){
   <div class="card"><h3>${ICO.pin}Área de entrega</h3><p class="sub">Toque no mapa para marcar a loja e defina até onde você entrega.</p><div id="en_map" class="enmap"></div>
   <div class="two"><label>Latitude da loja<input id="en_lat" type="number" step="0.000001" value="${ENT.lat}"></label><label>Longitude da loja<input id="en_lng" type="number" step="0.000001" value="${ENT.lng}"></label></div>
   <button class="btn full" data-a="engeo">${ICO.pin}Usar minha localização como loja</button>
-  <label>Distância máxima em km (0 = sem limite)<input id="en_raio" type="number" min="0" step="0.5" value="${ENT.raio}"></label>
+  <label>Distância máxima de entrega: <b id="en_raio_v">${String(ENT.raio||0).replace(".",",")}</b> km <small style="color:var(--m);font-weight:400">(0 = sem limite)</small><input id="en_raio" type="range" min="0" max="30" step="0.5" value="${ENT.raio||0}" style="width:100%;margin:10px 0 2px;accent-color:var(--o,#ff6a00)"></label>
   <label class="enchk"><input type="checkbox" id="en_restrito" ${ENT.restrito?'checked':''}><span>Entregar <b>somente</b> nos bairros liberados abaixo</span></label>
   <p class="sub">Bairros bloqueados nunca recebem pedido, mesmo dentro do raio.</p><button class="btn pri full" data-a="ensave">Salvar área de entrega</button></div>
   <div class="card"><h3>Bairros e regiões</h3><p class="sub">Marque como bloqueado os lugares perigosos: o cliente não consegue finalizar o pedido neles.</p>
@@ -986,7 +989,7 @@ function enSheet(id){
   <div class="chp"><button class="btn ${!EABLOQ?'pri':''}" data-a="eab" data-v="0">Liberado</button><button class="btn ${EABLOQ?'pri':''}" data-a="eab" data-v="1">Bloqueado</button></div>
   <p class="sub">Digite o bairro e toque em buscar, ou toque direto no mapa para marcar o centro.</p><div id="ea_map" class="enmap mini"></div>
   <div class="two"><label>Latitude<input id="ea_lat" type="number" step="0.000001" value="${d.lat}"></label><label>Longitude<input id="ea_lng" type="number" step="0.000001" value="${d.lng}"></label></div>
-  <label>Raio do bairro em km<input id="ea_r" type="number" min="0.1" step="0.1" value="${d.raio||1}"></label>
+  <label>Raio do bairro: <b id="ea_r_v">${String(d.raio||1).replace(".",",")}</b> km<input id="ea_r" type="range" min="0.1" max="20" step="0.1" value="${d.raio||1}" style="width:100%;margin:10px 0 2px;accent-color:var(--o,#ff6a00)"></label>
   <button class="btn pri full" data-a="easave">Salvar bairro</button><button class="btn full" data-a="scancel">Cancelar</button>${x?'<button class="btn full danger" data-a="endel" data-v="'+esc(String(x.id))+'">Excluir bairro</button>':''}`;
   openSheet(x?'Editar bairro':'Novo bairro');initEaMap();
   const nin=$('ea_n');if(nin)nin.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const b=document.querySelector('[data-a="eabusca"]');if(b)b.click()}};
@@ -1104,7 +1107,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
   else if(a=='eabusca'){eaBusca()}
   else if(a=='ennew'){enSheet()}
   else if(a=='enedit'){enSheet(v)}
-  else if(a=='eab'){EABLOQ=v=='1';document.querySelectorAll('[data-a="eab"]').forEach(x=>x.classList.toggle('pri',x.dataset.v==v))}
+  else if(a=='eab'){EABLOQ=v=='1';document.querySelectorAll('[data-a="eab"]').forEach(x=>x.classList.toggle('pri',x.dataset.v==v));if(EAMAP&&EAMAP._put&&$('ea_lat'))EAMAP._put(+$('ea_lat').value||0,+$('ea_lng').value||0)}
   else if(a=='easave'){const nome=($('ea_n').value||'').trim();if(!nome)return toast('Digite o nome do bairro');
    const la=+$('ea_lat').value,lo=+$('ea_lng').value;if(!Number.isFinite(la)||!Number.isFinite(lo)||(!la&&!lo))return toast('Marque o ponto do bairro no mapa');
    const obj={id:EAEDIT||('ar_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),nome:nome.slice(0,40),lat:la,lng:lo,raio:Math.max(.1,+$('ea_r').value||1),bloqueado:EABLOQ};
