@@ -1309,7 +1309,7 @@ function csave(){cread();const code=cd.code;
  const c={code,...cj(cd)};
  setDoc(doc(db,'cupons',code),{json:JSON.stringify(cj(c))}).then(()=>{CUP=CUP.filter(x=>x.code!=code).concat(c);closeBack($('back'));view();toast('Cupom salvo e já valendo')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
 /* ---------- Chamado WhatsApp ---------- */
-const ZLINK='https://cardapioavalanches-hk8xlhbz3-avalanccvhes.vercel.app';
+const ZLINK='https://cardapioavalanches.vercel.app';
 const ZMSG=[
  ['Desconto exclusivo','Oi! Separei um desconto especial pra você 🎁 Use o cupom {cupom} até {validade} e faça seu pedido aqui: {link}'],
  ['Presente da loja','Um mimo pra você: {desconto} no seu pedido. É só tocar aqui e o cupom {cupom} já aparece: {link}'],
