@@ -1509,9 +1509,9 @@ async function startPixWorker(o) {
     }
   };
   tick(); PIX_TIMER = setInterval(tick, 1000);
-  PIX_POLL = setInterval(() => pixCheck(true), 3000);
-  /* Primeira checagem antes do primeiro intervalo, para nao esperar 3s. */
-  setTimeout(() => pixCheck(true), 1200);
+  PIX_POLL = setInterval(() => pixCheck(true), 1000);
+  /* Primeira checagem imediata: confirma no HTML assim que o webhook registrar o pagamento. */
+  pixCheck(true);
 }
 async function pixCheck(silent) {
   if (!PIX_ORDER || PIX_BUSY || PIX_DONE) return;
