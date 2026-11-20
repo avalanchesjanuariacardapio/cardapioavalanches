@@ -914,9 +914,10 @@ function updateCart() {
   el('discCode').textContent = COUPON ? '(' + COUPON.code + ')' : '';
   el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) : '';
   el('feeText').textContent = fmt(feeNow());
-  const freeShip = feeNow() === 0, hf = el('heroFee');
+  const freeShip = feeNow() === 0, hf = el('heroFee'), lbl = el('feeLabel');
+  if (lbl) lbl.textContent = freeShip ? 'Entrega grátis' : 'Taxa de entrega';
   if (hf) { hf.hidden = freeShip; hf.textContent = freeShip ? '' : ' ' + fmt(taxaAtual()); }
-  /* Frete zero: mostra só o nome "Taxa de entrega", em verde, sem valor. */
+  /* Frete zero: só "Entrega grátis", em verde, sem valor. */
   const fact = el('feeFact');
   if (fact) fact.classList.toggle('free-ship', freeShip);
   el('totalText').textContent = fmt(cartTotal());
