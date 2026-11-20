@@ -26,6 +26,7 @@ export default {
   async fetch(req) {
     const u = new URL(req.url);
     let p = u.pathname;
+    try { p = decodeURIComponent(p); } catch (e) {}
     if (p === '/' || p === '') p = '/index.html';
     const f = FILES[p];
     if (!f) return new Response('Não encontrado', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
