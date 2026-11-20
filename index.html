@@ -242,6 +242,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
 #waFooter button{height:46px;width:100%;background:#fff;border:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12.5px;font-weight:700;color:#334155}
 #waFooter svg{width:16px;height:16px;fill:#16a34a;flex:none}
 #waFooter .pill{background:#f1f5f9;border-radius:999px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px}
+.cartbar:not(.show){display:none!important}
 .cartbar{bottom:calc(58px + env(safe-area-inset-bottom))!important;width:calc(100% - 32px)!important;max-width:608px!important;border-radius:999px!important;background:#fff!important;border:1px solid var(--line)!important;padding:8px 8px 8px 18px!important;box-shadow:0 10px 26px -10px rgba(0,0,0,.24)!important}
 .cartbar small{color:#7c848f!important}.cartbar b{font-size:16px!important;color:#111!important}
 .cartbar .go{background:var(--o)!important;color:#fff!important;border-radius:999px!important;padding:11px 18px!important;font-size:13px!important}
@@ -309,14 +310,6 @@ body{background:#eef0f3!important;color:var(--text)!important}
   <button type="button" class="poster" id="poster" aria-label="Ver promoção"><img id="posterImg" data-pid="_poster" alt="" decoding="async" onerror="this.style.display='none'"></button>
   <section id="topShelf" hidden><h2>Mais Pedidos</h2><div class="topScroll" id="topScroll"></div></section>
   <section id="menuList" aria-live="polite"></section>
-  <section class="thanks">
-    <h2>Obrigado por pedir com a gente! ❤️</h2>
-    <p>Fique por dentro das novidades e cupons. É só nos seguir e chamar no WhatsApp.</p>
-    <div class="social">
-      <a id="igLink" href="https://www.instagram.com/avalanchesjanu/" target="_blank" rel="noopener"><img class="iglogo" alt="Instagram" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e1306c' d='M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2zm0 2A3.8 3.8 0 0 0 4 7.8v8.4A3.8 3.8 0 0 0 7.8 20h8.4a3.8 3.8 0 0 0 3.8-3.8V7.8A3.8 3.8 0 0 0 16.2 4H7.8zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3.2a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z'/%3E%3C/svg%3E"><span id="igUser">@avalanchesjanu</span></a>
-      <a id="waLink" href="https://wa.me/5534984405375" target="_blank" rel="noopener"><img class="walogo" alt="WhatsApp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2325D366' d='M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z'/%3E%3Cpath fill='%2325D366' d='M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z'/%3E%3C/svg%3E"><span id="waNumber">(34) 98440-5375</span></a>
-    </div>
-  </section>
 </main>
 
 <div id="waFooter"><button id="waFooterBtn" type="button"><span class="pill"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/></svg>Tirar dúvidas no WhatsApp</span>›</button></div>
