@@ -77,7 +77,20 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:2px 0 2px 4px}
 .name{font-weight:800;font-size:16.5px}
 .desc{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.poster{display:none;width:calc(100% - 36px);margin:4px 18px 16px;padding:0;border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;aspect-ratio:11/5;background:#1b1b1b;box-shadow:0 14px 34px -16px #000;cursor:pointer;transition:transform .18s}.poster:active{transform:scale(.985)}.poster img{width:100%;height:100%;object-fit:cover;display:block}
+#posterWrap{width:100%}
+.poster{width:calc(100% - 36px);margin:4px 18px 0;padding:0;border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;aspect-ratio:11/5;background:#1b1b1b;box-shadow:0 14px 34px -16px #000}
+.poster-viewport{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none}
+.poster-viewport::-webkit-scrollbar{display:none}
+.poster-slide{position:relative;flex:0 0 100%;width:100%;height:100%;padding:0;border:0;background:none;scroll-snap-align:start;cursor:pointer;overflow:hidden}
+.poster-slide img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transform:scale(1.015);transition:opacity .45s ease,transform 3.6s ease}
+.poster-slide img.ready{opacity:1}
+.poster-slide::after{content:"";position:absolute;inset:0;background:#000;opacity:0;transition:opacity .45s ease;pointer-events:none}
+.poster-slide.on::after{opacity:.17}
+.poster-slide.on img{transform:scale(1)}
+.poster-dots{display:flex;justify-content:center;align-items:center;gap:6px;margin:8px 0 0;min-height:7px}
+.poster-dots:empty{display:none}
+.poster-dots i{width:6px;height:6px;border-radius:50%;background:#111;opacity:.22;transition:opacity .25s,transform .25s}
+.poster-dots i.on{opacity:.85;transform:scale(1.15)}
 .was{color:#8d8780;font-weight:600;font-size:13px;margin-right:4px}.pbadge{position:absolute;top:6px;left:6px;z-index:2;background:linear-gradient(135deg,#ffb066,#ff6a00);color:#1a0d00;font-weight:800;font-size:11px;padding:3px 8px;border-radius:99px}
 .price{font-weight:800;color:var(--o2);font-size:16px;margin-top:auto;padding-top:6px}
 .thumb{width:108px;height:108px;border-radius:16px;overflow:hidden;flex:none;background:#1b1b1b;position:relative}
@@ -121,7 +134,10 @@ textarea.field{resize:none}
 .ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
 .page{position:fixed;inset:0;z-index:200;background:rgba(5,5,5,.92);transform:translateX(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1);overflow-y:auto;visibility:hidden}
 .page.open{transform:none;visibility:visible}
-.page-in{max-width:600px;margin:0 auto;background:var(--bg);min-height:100%;padding:0 18px 40px}
+.page-in{max-width:600px;margin:0 auto;background:var(--bg);min-height:100%;padding:0 18px 148px}
+.chk-actions{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 36px);max-width:564px;z-index:210;padding:10px;border-radius:18px;background:rgba(11,11,12,.97);border:1px solid var(--line);box-shadow:0 -8px 26px rgba(0,0,0,.45)}
+.chk-actions .btn{margin:0}
+.chk-actions .btn+.btn{margin-top:6px}
 .ph{position:sticky;top:0;z-index:2;background:rgba(11,11,12,.97);display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 0 12px;border-bottom:1px solid var(--line)}
 .ph h2{margin:0;font:800 20px var(--font)}
 .back{width:40px;height:40px;border-radius:50%;border:0;background:var(--glass);font-size:20px;color:var(--o2)}
@@ -269,6 +285,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
 .qty{border-color:#d8dce2!important;background:#fff!important}.qty button{color:var(--o)!important}
 .page{background:rgba(15,18,22,.5)!important}
 .page-in{background:#fff!important;box-shadow:0 0 40px rgba(0,0,0,.22)}
+.chk-actions{background:#fff!important;border-color:#d8dce2!important;box-shadow:0 -8px 26px rgba(0,0,0,.12)!important}
 .ph{background:#fff!important;border-bottom:1px solid var(--line)!important}.ph h2{color:#111!important}
 .back{background:#f3f4f6!important;color:#111!important}
 .h3{color:#111!important}
@@ -311,7 +328,10 @@ body{background:#eef0f3!important;color:var(--text)!important}
       <button class="tab" data-cat="bebidas">Bebidas</button>
     </div>
   </div>
-  <button type="button" class="poster" id="poster" aria-label="Ver promoção"><img id="posterImg" data-pid="_poster" alt="" decoding="async" onerror="this.style.display='none'"></button>
+  <div id="posterWrap" hidden>
+    <div class="poster" id="poster" role="region" aria-label="Promoções"><div class="poster-viewport" id="posterViewport"></div></div>
+    <div class="poster-dots" id="posterDots"></div>
+  </div>
   <section id="topShelf" hidden><h2>Mais Pedidos</h2><div class="topScroll" id="topScroll"></div></section>
   <section id="menuList" aria-live="polite"></section>
 </main>
@@ -372,8 +392,10 @@ body{background:#eef0f3!important;color:var(--text)!important}
       <div class="tot"><span>Total</span><span id="totalText">R$ 0,00</span></div>
     </div>
 
-    <button id="toAddress" class="btn primary" style="margin-top:22px">Continuar para Endereço</button>
-    <button id="backToMenu" class="btn ghost">Voltar para o cardápio</button>
+    <div class="chk-actions">
+      <button id="toAddress" class="btn primary">Continuar para Endereço</button>
+      <button id="backToMenu" class="btn ghost">Voltar para o cardápio</button>
+    </div>
   </div>
 
   <!-- Etapa 2: endereço -->
@@ -394,8 +416,10 @@ body{background:#eef0f3!important;color:var(--text)!important}
     <div id="locMsg" class="locmsg"></div>
     <div class="err" id="e_loc"></div>
 
-    <button id="toPay" class="btn primary" style="margin-top:22px">Continuar para Pagamento</button>
-    <button class="btn ghost" data-back="stepCart">Voltar</button>
+    <div class="chk-actions">
+      <button id="toPay" class="btn primary">Continuar para Pagamento</button>
+      <button class="btn ghost" data-back="stepCart">Voltar</button>
+    </div>
   </div>
 
   <!-- Etapa 3: forma de pagamento -->
@@ -413,16 +437,20 @@ body{background:#eef0f3!important;color:var(--text)!important}
     <button class="pay" data-pay="cartao">💳 CARTÃO</button>
     <div class="err" id="e_pay"></div>
 
-    <button id="toReview" class="btn primary" style="margin-top:22px">Revisar Pedido</button>
-    <button class="btn ghost" data-back="stepAddress">Voltar</button>
+    <div class="chk-actions">
+      <button id="toReview" class="btn primary">Revisar Pedido</button>
+      <button class="btn ghost" data-back="stepAddress">Voltar</button>
+    </div>
   </div>
 
   <!-- Etapa 4: revisão -->
   <div class="chk-step" id="stepReview" hidden>
     <div class="h3">Resumo do pedido</div>
     <div id="reviewBox"></div>
-    <button id="finalBtn" class="btn primary" style="margin-top:22px">Ir para o pagamento</button>
-    <button class="btn ghost" data-back="stepPay">Voltar</button>
+    <div class="chk-actions">
+      <button id="finalBtn" class="btn primary">Ir para o pagamento</button>
+      <button class="btn ghost" data-back="stepPay">Voltar</button>
+    </div>
   </div>
   </div>
 </div>
@@ -580,18 +608,73 @@ function loadPhotos(base) {
     }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo.jpeg' : u); }); });
   });
 }
-let POSTER_ON = false;
+let POSTER_SLIDES = [], POSTER_IDX = 0, POSTER_TIMER = null, POSTER_SWIPE = 0;
+function posterImg(s) {
+  const cloud = (s.image || '').startsWith('cloud:');
+  const src = PHOTOS[s.id] || (cloud ? TP : encodeURI(s.image));
+  return { src, ready: !cloud || !!PHOTOS[s.id] };
+}
+function syncPosterActive() {
+  document.querySelectorAll('.poster-slide').forEach((b, i) => b.classList.toggle('on', i === POSTER_IDX));
+}
+function renderPosterDots() {
+  syncPosterActive();
+  const dots = document.getElementById('posterDots'); if (!dots) return;
+  dots.innerHTML = POSTER_SLIDES.length > 1 ? POSTER_SLIDES.map((_, i) => `<i class="${i === POSTER_IDX ? 'on' : ''}"></i>`).join('') : '';
+}
+function goPoster(i) {
+  const vp = document.getElementById('posterViewport');
+  if (!vp || !POSTER_SLIDES.length) return;
+  POSTER_IDX = (i + POSTER_SLIDES.length) % POSTER_SLIDES.length;
+  vp.scrollTo({ left: POSTER_IDX * vp.clientWidth, behavior: 'smooth' });
+  renderPosterDots();
+}
+function stopPoster() { if (POSTER_TIMER) { clearInterval(POSTER_TIMER); POSTER_TIMER = null; } }
+function startPoster() {
+  stopPoster();
+  if (POSTER_SLIDES.length > 1) POSTER_TIMER = setInterval(() => goPoster(POSTER_IDX + 1), 4500);
+}
 function syncPoster(q) {
-  document.getElementById('poster').style.display = POSTER_ON && cat === 'all' && !(q || '').length ? 'block' : 'none';
+  const wrap = document.getElementById('posterWrap'); if (!wrap) return;
+  const show = POSTER_SLIDES.length > 0 && cat === 'all' && !(q || '').length;
+  wrap.hidden = !show;
+  if (show) startPoster(); else stopPoster();
 }
 function setPoster(l) {
-  const box = document.getElementById('poster');
-  const it = l.poster && l.posterItem ? ITEMS.find(i => i.id === l.posterItem) : null;
-  POSTER_ON = !!it;
-  box.onclick = it ? () => openProd(it) : null;
-  if (it) box.setAttribute('aria-label', 'Ver ' + it.name);
+  const arr = [], seen = {};
+  [['poster','posterItem'], ['poster2','posterItem2'], ['poster3','posterItem3']].forEach(([k, ik]) => {
+    const img = l[k]; if (!img || seen[img]) return; seen[img] = 1;
+    const item = l[ik] ? ITEMS.find(i => String(i.id) === String(l[ik])) : null;
+    arr.push({ id: '_' + k, image: img, item });
+  });
+  POSTER_SLIDES = arr; POSTER_IDX = 0;
+  const vp = document.getElementById('posterViewport');
+  if (vp) {
+    vp.innerHTML = arr.map((s, i) => {
+      const p = posterImg(s);
+      return `<button type="button" class="poster-slide" data-p="${i}" aria-label="${s.item ? 'Ver ' + esc(s.item.name) : 'Promoção'}"><img data-pid="${esc(s.id)}" src="${esc(p.src)}" alt="" decoding="async" class="${p.ready ? 'ready' : ''}"></button>`;
+    }).join('');
+    vp.scrollLeft = 0;
+  }
+  renderPosterDots();
   syncPoster(document.getElementById('search').value.trim());
 }
+(function () {
+  const vp = document.getElementById('posterViewport'); if (!vp) return;
+  vp.addEventListener('scroll', () => {
+    if (!POSTER_SLIDES.length) return;
+    const i = Math.max(0, Math.min(POSTER_SLIDES.length - 1, Math.round(vp.scrollLeft / (vp.clientWidth || 1))));
+    if (i !== POSTER_IDX) { POSTER_IDX = i; renderPosterDots(); }
+  }, { passive: true });
+  let x0 = 0;
+  vp.addEventListener('pointerdown', e => { x0 = e.clientX; }, { passive: true });
+  vp.addEventListener('pointerup', e => { if (Math.abs(e.clientX - x0) > 8) POSTER_SWIPE = Date.now(); }, { passive: true });
+  vp.addEventListener('click', e => {
+    if (Date.now() - POSTER_SWIPE < 400) return;
+    const b = e.target.closest('.poster-slide'); if (!b) return;
+    const s = POSTER_SLIDES[+b.dataset.p]; if (s && s.item) openProd(s.item);
+  });
+})();
 function applyData(d) {
   const l = d.loja || {};
   const pixKey = (l.pixKey && l.pixKey !== '14421d15-c771-4ab9-8e7f-fd69e987af1a') ? l.pixKey : CONFIG.pixKey;
@@ -605,12 +688,13 @@ function applyData(d) {
   FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
   LOJAIMGS = [];
-  [['perfil', 'logoImg'], ['capa', 'coverImg'], ['poster', 'posterImg']].forEach(([k, id]) => {
+  [['perfil', 'logoImg'], ['capa', 'coverImg']].forEach(([k, id]) => {
     const v = l[k], i = document.getElementById(id);
-    if (!v) { const u = i.getAttribute('src'); if (u) showImg(i, u); return; }
+    if (!v) { const u = i && i.getAttribute('src'); if (u) showImg(i, u); return; }
     LOJAIMGS.push({ id: '_' + k, image: v });
     if (!v.startsWith('cloud:')) showImg(i, encodeURI(v));
   });
+  ['poster','poster2','poster3'].forEach(k => { if (l[k]) LOJAIMGS.push({ id: '_' + k, image: l[k] }); });
   CATS = {}; EXTRA = [];
   (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
   ITEMS = (d.items || []).filter(i => i.ativo !== false);

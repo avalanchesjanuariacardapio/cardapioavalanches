@@ -1157,8 +1157,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='cpr'){CPR=v;CUERR='';view()}else if(a=='cpref'){CUERR='';if(CUS[CPR])CUS[CPR].at=0;view()}else if(a=='esp')espSheet();else if(a=='espsave')espSave();else if(a=='espoff')espOff();else if(a=='ntf')askNotif();else if(a=='ntt')testNote();else if(a=='rp'){RP=v;RMORE=50;if(RP=='custom'&&!RA)RA=RB=ymd(0);startRep();relRender()}else if(a=='rmore'){RMORE+=50;relRender()}else if(a=='cf'){CF=v;cliRender()}else if(a=='cx'){CLO.has(v)?CLO.delete(v):CLO.add(v);$('clist').innerHTML=cliList()}else if(a=='cwa'){const c=CL.find(x=>x.k==v);if(c)window.open('https://wa.me/'+c.k+'?text='+encodeURIComponent(cliMsg(c)),'_blank','noopener')}else if(a=='cref'){CLT=0;loadCli()}
  else if(a=='pvd'){$('pr_a').value=v=='-1'?'':ymd(+v);$('pr_e').checked=true;promoPrev()}
  else if(a=='catpromo'){const q=await askText('Desconto em % para TODOS os itens desta categoria (0 remove as promoções):','10');if(q===null)return;const n=+String(q).replace(',','.');if(!(n>=0&&n<=95))return toast('Digite um valor de 0 a 95');let ate='';if(n>0){const d=await askText('Por quantos dias? (0 = sem prazo)','7');if(d===null)return;ate=+d>0?ymd(+d-1):''}D.items.forEach(i=>{if(i.cat==v){if(n>0)i.promo={tipo:'pct',valor:n,ate};else delete i.promo}});save();view();toast(n>0?'Promoção aplicada':'Promoções removidas')}
- else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.2,960,false,r=>{D.loja.poster=r;save();view()});
- else if(a=='dpo'){if(await askConfirm('Remover o poster do cardápio?')){delete D.loja.poster;delete D.loja.posterItem;save();view()}}
+ else if(a=='rpo'){const n=v||'',k=n?'poster'+n:'poster';crop(ps({id:'_'+k,image:D.loja[k]}),2.2,960,false,r=>{D.loja[k]=r;save();view()})}
+ else if(a=='dpo'){const n=v||'',k=n?'poster'+n:'poster',ik=n?'posterItem'+n:'posterItem';if(await askConfirm('Remover este poster do cardápio?')){delete D.loja[k];delete D.loja[ik];save();view()}}
  else if(a=='pod'){$('po_a').value=v=='-1'?'':ymd(+v);$('po_e').checked=true;poSave()}
  else if(a=='en_lock'){const r=$('en_raio'),btn=document.querySelector('[data-a="en_lock"]'),msg=$('en_lock_msg');if(!r)return;const libera=r.disabled;r.disabled=!libera;r.style.opacity=libera?'1':'.45';r.style.cursor=libera?'pointer':'not-allowed';if(btn)btn.textContent=libera?'🔓 Ajustando raio':'🔒 Destravar ajuste';if(msg)msg.textContent=libera?'Ajuste o raio e toque em “Salvar área de entrega”':'A barra está travada para evitar mudanças acidentais'}
  else if(a=='ensave'){ENT.fee=Math.max(0,+$('en_fee').value||0);const la=+$('en_lat').value,lo=+$('en_lng').value;
@@ -1194,7 +1194,7 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent=''+cdesc(cd)}
  else if(t.id&&(t.id.startsWith('pr_')||t.id=='s_p')&&draft)promoPrev()
  else if(t.id&&t.id.startsWith('po_')&&D.loja.posterItem)poSave()
- else if(t.dataset.pi!==undefined){D.loja.posterItem=t.value;save();view()}
+ else if(t.dataset.pi!==undefined){const n=t.dataset.pi;D.loja[n?'posterItem'+n:'posterItem']=t.value;save();view()}
  else if(t.id&&t.id.startsWith('z_')&&t.id!='z_img')zrefresh()
 });
 document.addEventListener('change',e=>{const t=e.target;
@@ -1206,7 +1206,7 @@ document.addEventListener('change',e=>{const t=e.target;
   ZD.code=zcode();zsave();zapRender()}
  if(t.dataset.zatog){const c=CUP.find(x=>x.code==t.dataset.zatog);if(c){c.ativo=t.checked;zapRender();setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)))}}
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
- if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.2,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
+ if(/^po\d?$/.test(t.id)&&t.files[0]){const n=t.id.slice(2),k=n?'poster'+n:'poster',ik=n?'posterItem'+n:'posterItem';readF(t.files[0],u=>crop(u,2.2,960,false,r=>{D.loja[k]=r;if(!D.items.some(i=>i.id==D.loja[ik]))D.loja[ik]=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
  if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
  if(t.id=='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.items||!j.cats||!j.loja)throw 0;D=j;D.addons=D.addons||[];save();view();toast('Cardápio carregado')}catch(x){toast('Arquivo inválido')}};r.readAsText(t.files[0])}});
 $('back').onclick=e=>{if(e.target==$('back'))closeBack($('back'))};
@@ -1741,10 +1741,15 @@ const pFin=i=>!pOn(i)?i.price:i.promo.tipo=='fixo'?Math.min(+i.promo.valor,i.pri
 const pTxt=i=>pOn(i)?brl(i.price)+' → '+brl(pFin(i))+' · promoção'+(i.promo.ate?' até '+i.promo.ate.split('-').reverse().slice(0,2).join('/'):''):brl(i.price);
 function promoPrev(){const e=$('pr_pv');if(!e)return;const p=parseFloat($('s_p').value)||0,v=parseFloat($('pr_v').value)||0,t=$('pr_t').value;if(!$('pr_e').checked||!v){e.textContent='';return}
  const f=t=='pct'?Math.round(p*(100-Math.min(v,100)))/100:Math.min(v,p);e.textContent='De '+brl(p)+' por '+brl(f)+(p>0?' (−'+Math.round((1-f/p)*100)+'%)':'')}
-function posterCard(){const L=D.loja,has=!!L.poster,u=has?ps({id:'_poster',image:L.poster}).replace(/'/g,'%27'):'';
- return `<div class="card"><h3>${ICO.image}Poster do cardápio</h3><p class="sub" style="margin:-6px 0 10px">Aparece no topo do cardápio, sem nome, só quando você adiciona. Ideal: foto horizontal.</p><div class="pic" style="aspect-ratio:11/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
- <div class="two">${fb('po',ICO.image,has?'Trocar poster':'Adicionar poster',has?'Toque para escolher outra imagem':'Imagem horizontal · toque para escolher')}${has?`<button class="btn" data-a="rpo">${ICO.edit}Ajustar enquadramento</button>`:''}</div>
- ${has?`<label style="margin-top:12px">Ao tocar no poster, abrir o item:<select data-pi>${D.items.map(i=>`<option value="${esc(i.id)}" ${L.posterItem==i.id?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>${poPromo()}<button class="btn full danger" data-a="dpo">Remover poster</button>`:''}</div>`}
+function posterCard(){const L=D.loja;
+ const slots=[['','poster','posterItem','1'],['2','poster2','posterItem2','2'],['3','poster3','posterItem3','3']];
+ const cards=slots.map(([n,k,ik,lbl])=>{
+  const has=!!L[k],u=has?ps({id:'_'+k,image:L[k]}).replace(/'/g,'%27'):'';
+  return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--l)"><b>Poster ${lbl}</b><div class="pic" style="aspect-ratio:11/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
+  <div class="two">${fb('po'+n,ICO.image,has?'Trocar poster':'Adicionar poster',has?'Toque para escolher outra imagem':'Imagem horizontal · toque para escolher')}${has?`<button class="btn" data-a="rpo" data-v="${n}">${ICO.edit}Ajustar</button><button class="btn danger" data-a="dpo" data-v="${n}">Remover</button>`:''}</div>
+  ${has?`<label style="margin-top:12px">Ao tocar neste poster, abrir o item:<select data-pi="${n}">${D.items.map(i=>`<option value="${esc(i.id)}" ${String(L[ik])==String(i.id)?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>`:''}</div>`;
+ }).join('');
+ return `<div class="card"><h3>${ICO.image}Posters do cardápio (até 3)</h3><p class="sub" style="margin:-6px 0 10px">Aparecem no topo do cardápio. Deslizam sozinhos com suavidade, mas o cliente também pode deslizar. Pontinhos discretos mostram quantos posters existem e qual está visível.</p>${cards}${L.poster?poPromo():''}</div>`}
 function poPromo(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return '';const pr=it.promo;
  return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--l)"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="po_e" ${pr?'checked':''}>${ICO.cup}Desconto neste item (preço normal ${brl(it.price)})</label>
  <div class="two"><label>Tipo<select id="po_t"><option value="pct" ${!pr||pr.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${pr&&pr.tipo=='fixo'?'selected':''}>Preço promocional (R$)</option></select></label><label>Valor<input id="po_v" type="number" min="0" step="0.5" value="${pr?pr.valor:''}"></label></div>
@@ -1773,13 +1778,13 @@ async function pull(){
  try{const x=await getDoc(doc(db,'cardapio','entregas'));if(x.exists()){const e=JSON.parse(x.data().json);if(e&&typeof e==='object'){ENT={...ENT,...e};ENT.areas=Array.isArray(ENT.areas)?ENT.areas:[];try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(z){}}}}catch(e){}
   try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists()){PRAZO=+x.data().prazo||40;try{ES={...ES,...JSON.parse(x.data().esp||'{}')}}catch(e){}}}catch(e){}
  try{const x=await getDocs(collection(db,'cupons'));CUP=x.docs.map(y=>{try{return {code:y.id,...JSON.parse(y.data().json)}}catch(e){return null}}).filter(Boolean)}catch(e){}
- await Promise.all([...D.items,{id:'_perfil',image:D.loja.perfil},{id:'_capa',image:D.loja.capa},{id:'_poster',image:D.loja.poster}].filter(i=>(i.image||'').startsWith('cloud:')&&!PH[i.id]).map(async i=>{try{const x=await getDoc(doc(db,'fotos',i.id));if(x.exists())PH[i.id]=x.data().d}catch(e){}}))}
+ await Promise.all([...D.items,{id:'_perfil',image:D.loja.perfil},{id:'_capa',image:D.loja.capa},{id:'_poster',image:D.loja.poster},{id:'_poster2',image:D.loja.poster2},{id:'_poster3',image:D.loja.poster3}].filter(i=>(i.image||'').startsWith('cloud:')&&!PH[i.id]).map(async i=>{try{const x=await getDoc(doc(db,'fotos',i.id));if(x.exists())PH[i.id]=x.data().d}catch(e){}}))}
 async function publish(opt){
   const sil=!!(opt&&opt.silent);
  const b=document.querySelector('[data-a=publish]');if(b){b.disabled=true;b.textContent='Publicando…'}
  try{const out=JSON.parse(JSON.stringify(D));
   for(let i=0;i<D.items.length;i++){const it=D.items[i];if((it.image||'').startsWith('data:')){const v=Date.now().toString(36)+i;await setDoc(doc(db,'fotos',it.id),{d:it.image,v});PH[it.id]=it.image;it.image='cloud:'+v;out.items[i].image=it.image}}
-  for(const k of ['perfil','capa','poster']){const v0=D.loja[k];if((v0||'').startsWith('data:')){const v=Date.now().toString(36)+k;await setDoc(doc(db,'fotos','_'+k),{d:v0,v});PH['_'+k]=v0;D.loja[k]='cloud:'+v;out.loja[k]=D.loja[k]}}
+  for(const k of ['perfil','capa','poster','poster2','poster3']){const v0=D.loja[k];if((v0||'').startsWith('data:')){const v=Date.now().toString(36)+k;await setDoc(doc(db,'fotos','_'+k),{d:v0,v});PH['_'+k]=v0;D.loja[k]='cloud:'+v;out.loja[k]=D.loja[k]}}
   await setDoc(doc(db,'cardapio','config'),{json:JSON.stringify(out)});
    await setDoc(doc(db,'cardapio','entregas'),{json:JSON.stringify(ENT)});
   dirty=false;localStorage.removeItem('avl_dirty');try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}if(!sil)toast('Publicado! Já está no ar.')
