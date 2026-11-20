@@ -352,10 +352,8 @@ body{background:#eef0f3!important;color:var(--text)!important}
 <div id="cartPage" class="page" role="dialog" aria-modal="true" aria-label="Finalizar pedido">
   <div class="page-in">
     <div class="ph">
-      <button id="closeCartBtnHeader" class="back" aria-label="Fechar">✕</button>
-      <button id="hdrBack" class="back" aria-label="Voltar etapa" hidden>←</button>
+      <button id="hdrBack" class="back" aria-label="Voltar">←</button>
       <h2 id="cartTitle">Sacola</h2>
-      <button id="hdrNext" class="back" aria-label="Avançar etapa" style="margin-left:auto">→</button>
     </div>
 
   <div class="chk-step" id="stepCart">
@@ -780,26 +778,21 @@ el('cartItems').onclick = e => {
 let CHKSTEP = 'stepCart';
 const CHK_TITLES = { stepCart:'Sacola', stepAddress:'Endereço', stepPay:'Pagamento', stepReview:'Resumo do pedido' };
 const CHK_PREV = { stepCart:null, stepAddress:'stepCart', stepPay:'stepAddress', stepReview:'stepPay' };
-const CHK_NEXT = { stepCart:'toAddress', stepAddress:'toPay', stepPay:'toReview', stepReview:'finalBtn' };
 function goStep(id) {
   CHKSTEP = id;
   ['stepCart','stepAddress','stepPay','stepReview'].forEach(x => { const e = el(x); if (e) e.hidden = x !== id; });
   const t = el('cartTitle'); if (t) t.textContent = CHK_TITLES[id] || 'Sacola';
-  const hb = el('hdrBack'), hn = el('hdrNext');
-  if (hb) hb.hidden = !CHK_PREV[id];
-  if (hn) hn.hidden = false;
   const pg = el('cartPage'); pg.scrollTop = 0; const inn = pg.querySelector('.page-in'); if (inn) inn.scrollTop = 0;
   window.scrollTo && window.scrollTo({ top:0, behavior:'instant' });
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-back]'); if (b) goStep(b.dataset.back); });
-el('hdrBack').onclick = () => { const p = CHK_PREV[CHKSTEP]; if (p) goStep(p); };
-el('hdrNext').onclick = () => { const b = el(CHK_NEXT[CHKSTEP]); if (b) b.click(); };
+el('hdrBack').onclick = () => { const p = CHK_PREV[CHKSTEP]; if (p) goStep(p); else closeCart(); };
 function openCart() {
   renderCartItems(); goStep('stepCart'); el('cartPage').classList.add('open'); renderLoc();
 }
 function closeCart() { el('cartPage').classList.remove('open'); goStep('stepCart'); }
 el('cartbar').onclick = openCart;
-el('closeCartBtnHeader').onclick = el('backToMenu').onclick = closeCart;
+el('backToMenu').onclick = closeCart;
 
 /* Animações e adicionar rápido */
 const REDUCED = matchMedia('(prefers-reduced-motion:reduce)').matches;
