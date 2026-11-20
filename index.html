@@ -352,7 +352,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span id="feeFact">Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span><a id="helpWa" class="helpwa" href="https://wa.me/5534984405375?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/><path d="M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z"/></svg>Ajuda</a></div>
+    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span id="feeFact"><span id="feeLabel">Taxa de entrega</span><b id="heroFee"> R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span><a id="helpWa" class="helpwa" href="https://wa.me/5534984405375?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/><path d="M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z"/></svg>Ajuda</a></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
 
@@ -914,10 +914,11 @@ function updateCart() {
   el('discCode').textContent = COUPON ? '(' + COUPON.code + ')' : '';
   el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) : '';
   el('feeText').textContent = fmt(feeNow());
-  el('heroFee').textContent = fmt(taxaAtual());
-  /* Frete zero: só deixa o nome da taxa verde, sem mudar o texto. */
+  const freeShip = feeNow() === 0, hf = el('heroFee');
+  if (hf) { hf.hidden = freeShip; hf.textContent = freeShip ? '' : ' ' + fmt(taxaAtual()); }
+  /* Frete zero: mostra só o nome "Taxa de entrega", em verde, sem valor. */
   const fact = el('feeFact');
-  if (fact) fact.classList.toggle('free-ship', feeNow() === 0);
+  if (fact) fact.classList.toggle('free-ship', freeShip);
   el('totalText').textContent = fmt(cartTotal());
   renderCash();
   save();
