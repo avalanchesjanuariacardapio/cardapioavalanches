@@ -314,7 +314,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
   <header>
     <div class="cover"><img id="coverImg" data-pid="_capa" src="Avalanche.jpeg" alt="" onerror="this.style.display='none'"></div>
     <div class="id">
-      <img id="logoImg" data-pid="_perfil" src="logo.jpeg" class="logo" alt="Logo" onerror="this.onerror=null;this.src='logo.jpeg'">
+      <img id="logoImg" data-pid="_perfil" src="logo-app.png" class="logo" alt="Logo" onerror="this.onerror=null;this.src='logo-app.png'">
       <div>
         <h1>Avalanches</h1>
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
@@ -493,13 +493,13 @@ function applyHours() {
 
 const DB = [
 {"id":"i_cq","cat":"hamburgueres","name":"Cachorro Quente","desc":"Pão, salsicha, mortadela, mussarela, batata, milho, molho","price":8.0, "image":"cachoro quente na chapa.jpeg"},
-{"id":"i_hb","cat":"hamburgueres","name":"Hambúrguer","desc":"Pão, carne, batata, alface, tomate, molho especial","price":12.0, "image":"logo.jpeg"},
+{"id":"i_hb","cat":"hamburgueres","name":"Hambúrguer","desc":"Pão, carne, batata, alface, tomate, molho especial","price":12.0, "image":"logo-app.png"},
 {"id":"i_xb","cat":"hamburgueres","name":"X-Burguer","desc":"Pão, carne, mussarela, batata, milho, alface, tomate","price":15.0, "image":"xburguer.jpeg"},
 {"id":"i_xs","cat":"hamburgueres","name":"X-Salada","desc":"Pão, carne, mussarela, presunto, alface, tomate, milho, batata","price":16.0, "image":"xburguer.jpeg"},
 {"id":"i_xe","cat":"hamburgueres","name":"X-Egg","desc":"Pão, carne, mussarela, ovo, presunto, salada, batata","price":17.0, "image":"xburguer.jpeg"},
 {"id":"i_xc","cat":"hamburgueres","name":"X-Calabresa","desc":"Pão, carne, mussarela, calabresa, salada, batata","price":18.0, "image":"xburguer.jpeg"},
 {"id":"i_xba","cat":"hamburgueres","name":"X-Bacon","desc":"Pão, carne, mussarela, bacon, salada, batata","price":19.0, "image":"xburguer.jpeg"},
-{"id":"i_fb","cat":"hamburgueres","name":"Franburguer","desc":"Pão, frango desfiado, mussarela, salada, batata, milho","price":18.0, "image":"logo.jpeg"},
+{"id":"i_fb","cat":"hamburgueres","name":"Franburguer","desc":"Pão, frango desfiado, mussarela, salada, batata, milho","price":18.0, "image":"logo-app.png"},
 {"id":"i_xtudo","cat":"hamburgueres","name":"X-Tudo","desc":"Pão, carne, bacon, ovo, presunto, mussarela, calabresa, milho, batata, salada","price":25.0, "image":"xtudo.jpeg"},
 {"id":"i_av","cat":"hamburgueres","name":"Avalanches","desc":"Pão, carne, bacon, frango, ovo, presunto, mussarela, calabresa, cebola roxa, milho, batata, tudo","price":27.0, "image":"Avalanche.jpeg"},
 {"id":"b_guarana350","cat":"bebidas","name":"Guaraná Lata","desc":"350ml","price":5.0, "image":"guarana lata.jpg"},
@@ -525,7 +525,7 @@ const showImg = (i, u) => {
   i.classList.remove('ready'); i.addEventListener('load', () => i.classList.add('ready'), { once: true }); i.src = u;
 };
 const revealSlots = () => ['coverImg', 'logoImg'].forEach(id => { const i = document.getElementById(id), u = i && i.getAttribute('src'); if (u && !i.classList.contains('ready')) showImg(i, u); });
-const imgSrc = it => !it.image ? 'logo.jpeg' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || TP) : encodeURI(it.image);
+const imgSrc = it => !it.image ? 'logo-app.png' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || TP) : encodeURI(it.image);
 async function refreshEta() {
   if (!CLOUD_BASE || document.hidden) return;
   try { const r = await fetch(CLOUD_BASE + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r.ok) { const f = (await r.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || PRAZO; showEta(); } } catch (e) {}
@@ -613,7 +613,7 @@ function loadPhotos(base) {
     fetch(`${base}/fotos/${encodeURIComponent(it.id)}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
       try { localStorage.setItem('avl_photos', JSON.stringify(cache)); } catch (e) {}
-    }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo.jpeg' : u); }); });
+    }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo-app.png' : u); }); });
   });
 }
 let POSTER_SLIDES = [], POSTER_IDX = 0, POSTER_TIMER = null, POSTER_SWIPE = 0;
@@ -755,7 +755,7 @@ function checkOpen() {
 
 /* Cardápio */
 function card(it) {
-  return `<button class="card" data-id="${esc(it.id)}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"></div></button>`;
+  return `<button class="card" data-id="${esc(it.id)}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo-app.png'"></div></button>`;
 }
 function render() {
   const q = el('search').value.trim().toLowerCase();
@@ -777,7 +777,7 @@ function renderTop(list, q) {
   el('topShelf').hidden = !show;
   if (!show) { el('topScroll').innerHTML = ''; return; }
   el('topScroll').innerHTML = list.slice(0, 6).map((it, i) =>
-    `<button class="topCard" data-id="${esc(it.id)}"><span class="topWrap"><img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'">${i === 0 ? '<span class="topBadge">🔥 O favorito!</span>' : ''}</span><span class="tc-b"><span class="tc-t">${esc(it.name)}</span><span class="tc-l">${promoOn(it) ? 'Promoção' : 'A partir de'}</span><span class="tc-p">${fmt(promoOn(it) ? ePrice(it) : it.price)}</span></span></button>`
+    `<button class="topCard" data-id="${esc(it.id)}"><span class="topWrap"><img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo-app.png'">${i === 0 ? '<span class="topBadge">🔥 O favorito!</span>' : ''}</span><span class="tc-b"><span class="tc-t">${esc(it.name)}</span><span class="tc-l">${promoOn(it) ? 'Promoção' : 'A partir de'}</span><span class="tc-p">${fmt(promoOn(it) ? ePrice(it) : it.price)}</span></span></button>`
   ).join('');
 }
 el('topScroll').onclick = e => { const c = e.target.closest('.topCard'); if (c) openProd(ITEMS.find(i => i.id === c.dataset.id)); };
@@ -798,7 +798,7 @@ function openProd(it) {
   currentProd = it; selectedAddons = []; qty = 1;
   el('modalTitle').textContent = it.name; el('modalDesc').textContent = it.desc;
   el('modalImg').src = imgSrc(it); el('modalImg').alt = it.name;
-  el('modalImg').onerror = function () { this.onerror = null; this.src = 'logo.jpeg'; };
+  el('modalImg').onerror = function () { this.onerror = null; this.src = 'logo-app.png'; };
   el('note').value = ''; el('qtyInput').textContent = 1;
   const adds = el('addonsList'); adds.innerHTML = '';
   const showAdds = EXTRA.includes(it.cat) && ADDONS.length > 0;
