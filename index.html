@@ -142,10 +142,6 @@ textarea.field{resize:none}
 .sum div{display:flex;justify-content:space-between;margin:6px 0;color:var(--muted)}
 .sum .tot{font:800 22px var(--font);color:var(--text);margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .pixkey{background:var(--glass);padding:14px;border-radius:14px;word-break:break-all;font-family:ui-monospace,monospace;font-size:14px;margin:14px 0;border:1px dashed rgba(255,106,0,.5)}
- .mp-qr{background:#fff;padding:12px;border-radius:16px;display:inline-block;margin:8px auto;line-height:0}
- .mp-qr img{width:190px;height:190px;display:block}
- .mp-timer{font:800 15px var(--font);color:var(--o2);margin:10px 0}
- .mp-msg{font-size:13px;color:var(--muted);margin:8px 0;min-height:18px}
 #toasts{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:999;width:calc(100% - 32px);max-width:400px;pointer-events:none}
 .toast{background:var(--o);color:#111;padding:13px 18px;border-radius:14px;font-weight:800;font-size:14px;margin-bottom:8px;text-align:center;animation:drop .3s;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .logo{animation:pop .8s cubic-bezier(.2,1.4,.4,1) both .15s}
@@ -319,29 +315,20 @@ input,textarea,select{font-size:16px}
   <div class="sheet" style="text-align:center">
     <div style="font-size:40px">💠</div>
     <h2>Pagamento PIX</h2>
-    <p id="pixIntro">Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.</p>
-    <div id="mpTurnstile" style="margin:12px 0"></div>
-    <div id="mpBox" hidden>
-      <div class="mp-qr" id="mpQr"></div>
-      <div class="mp-timer" id="mpTimer"></div>
-      <div class="mp-msg" id="mpMsg">Aguardando pagamento…</div>
-      <button id="btnMpCopy" class="btn primary">Copiar código PIX</button>
-      <button id="btnMpCheck" class="btn wa">Já paguei, enviar comprovante e pedido</button>
-    </div>
+    <p id="pixIntro">Copie a chave PIX, pague no app do seu banco e envie o comprovante.</p>
     <div id="pixOld">
       <div class="pixkey" id="pixKeyDisplay"></div>
       <button onclick="copyPix()" class="btn primary">Copiar chave PIX</button>
-      <button id="btnSendPixWa" class="btn wa">Enviar comprovante</button>
+      <button id="btnSendPixWa" class="btn wa">Já paguei, enviar comprovante e pedido</button>
     </div>
     <button onclick="el('pixModal').classList.remove('open')" class="btn ghost">Fechar</button>
   </div>
 </div>
 
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do painel)
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/' + FB_PROJECT + '/databases/(default)/documents';
-let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '14421d15-c771-4ab9-8e7f-fd69e987af1a' };
+let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74' };
 let ENT = { fee: null, lat: null, lng: null, raio: 0, restrito: false, areas: [] };
 let CLIENT_GEO = null, CLIMAP = null, CLIMARK = null;
 let OPEN_H = 19, CLOSE_H = 23, FORCE = 'auto', STORE = 'Avalanches'; // valores padrão; o painel online sobrescreve
@@ -490,7 +477,8 @@ function setPoster(l) {
 }
 function applyData(d) {
   const l = d.loja || {};
-  CONFIG = { phone: String(l.phone || CONFIG.phone).replace(/\D/g, '') || CONFIG.phone, fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey: l.pixKey || CONFIG.pixKey };
+  const pixKey = (l.pixKey && l.pixKey !== '14421d15-c771-4ab9-8e7f-fd69e987af1a') ? l.pixKey : CONFIG.pixKey;
+  CONFIG = { phone: String(l.phone || CONFIG.phone).replace(/\D/g, '') || CONFIG.phone, fee: +l.fee >= 0 ? +l.fee : CONFIG.fee, pixKey };
   const n = CONFIG.phone, fmt = n.length >= 11 ? `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}` : n;
   const waFmt = `https://wa.me/${n}?text=${encodeURIComponent('Olá! Preciso de ajuda com meu pedido.')}`;
   const hw = document.getElementById('helpWa'); if (hw) hw.href = waFmt;
@@ -1064,7 +1052,7 @@ el('confirmBtn').onclick = async () => {
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
   if (PAYMENT === 'pix') WA_MSG += '\n📎 Segue o comprovante do PIX em anexo.';
-  if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); startMpPix(ORDER); }
+  if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); }
   else sendWa();
 };
 el('btnSendPixWa').onclick = sendWa;
@@ -1098,166 +1086,7 @@ async function applyCoupon() {
 }
 el('couponBtn').onclick = applyCoupon;
 el('couponIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); } });
-/* ===== PIX dinamico (Mercado Pago) ===== */
-let MP_TIMER = null, MP_POLL = null, MP_COUNT = 0, MP_BUSY = false, MP_DONE = false, MP_CODE = '';
-const MP_BASE = 'https://avl-push.marcosolive321-ss.workers.dev';
-function mpStop() { if (MP_TIMER) { clearInterval(MP_TIMER); MP_TIMER = null; } if (MP_POLL) { clearInterval(MP_POLL); MP_POLL = null; } }
-function mpOld() {
-  mpStop();
-  el('mpTurnstile').hidden = true;
-  el('mpBox').hidden = true; el('pixOld').hidden = false;
-  el('pixIntro').textContent = 'Copie a chave, pague no app do seu banco e envie o pedido.';
-}
-async function startMpPix(o) {
-  mpStop(); MP_BUSY = false; MP_DONE = false; MP_CODE = '';
-  el('mpTurnstile').hidden = false;
-  el('mpBox').hidden = true; el('pixOld').hidden = false;
-  el('pixIntro').textContent = 'Gerando seu QR PIX com validade de 15 minutos…';
-  const tk = await mpTurnstileToken();
-  if (!tk) {
-    mpOld();
-    el('pixIntro').textContent = 'Não foi possível confirmar o acesso. Envie o comprovante pelo WhatsApp.';
-    return;
-  }
-  try {
-    const j = await mpMakeCharge(o, tk);
-    if (!j || !j.ok || !j.qrBase64) throw new Error('qr');
-    MP_CODE = j.qr || '';
-    el('mpQr').innerHTML = '<img src="data:image/png;base64,' + j.qrBase64 + '" alt="QR Code PIX">';
-    el('mpBox').hidden = false; el('pixOld').hidden = true;
-    el('pixIntro').textContent = 'Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.';
-    el('mpMsg').textContent = 'Aguardando pagamento…';
-    el('btnMpCheck').textContent = 'Já paguei, enviar comprovante e pedido';
-    el('btnMpCheck').disabled = false;
-    MP_COUNT = Math.max(1, Number(j.expira || 900));
-    const tick = () => {
-      const m = Math.floor(MP_COUNT / 60), sg = MP_COUNT % 60;
-      el('mpTimer').textContent = '⏱ Expira em ' + m + ':' + String(sg).padStart(2, '0');
-      MP_COUNT--;
-      if (MP_COUNT < 0) {
-        mpStop();
-        el('mpTimer').textContent = '⏱ QR expirado — feche e refaça o pedido.';
-        el('mpMsg').textContent = 'O tempo acabou. Abra o cardápio e faça um novo pedido.';
-        el('btnMpCheck').disabled = true;
-      }
-    };
-    tick(); MP_TIMER = setInterval(tick, 1000);
-    MP_POLL = setInterval(() => { if (!el('mpBox').hidden) mpCheck(true); }, 4000);
-  } catch (e) {
-    mpOld();
-    el('mpMsg').textContent = '';
-  }
-}
-let MP_TS_WIDGET = null;
-function mpTurnstileToken() {
-  return new Promise(resolve => {
-    let done = false;
-    const fim = t => { if (!done) { done = true; resolve(t || ''); } };
-    const render = () => {
-      if (!window.turnstile || !window.turnstile.render) return fim('');
-      try {
-        if (MP_TS_WIDGET !== null) { try { window.turnstile.remove(MP_TS_WIDGET); } catch (e) {} MP_TS_WIDGET = null; }
-        MP_TS_WIDGET = window.turnstile.render('#mpTurnstile', {
-          sitekey: '0x4AAAAAAGJnxtqz9bnc-BEV', action: 'pix', size: 'compact',
-          callback: fim, 'error-callback': () => fim(''), 'timeout-callback': () => fim('')
-        });
-      } catch (e) { fim(''); }
-    };
-    if (window.turnstile && window.turnstile.render) render();
-    else {
-      const s = document.createElement('script');
-      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      s.onload = render; s.onerror = () => fim('');
-      document.head.appendChild(s);
-    }
-    setTimeout(() => fim(''), 15000);
-  });
-}
-async function mpMakeCharge(o, tk) {
-  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
-  try {
-    const r = await fetch(MP_BASE + '/mp-pix', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: o.id, nome: o.nome, fone: o.fone, total: o.total, end: o.end, num: o.num, itens: o.itens, cfTurnstile: tk || '' }),
-      signal: ctl.signal
-    });
-    return await r.json();
-  } catch (e) { return null; }
-  finally { clearTimeout(to); }
-}
-async function mpCheck(silent) {
-  if (!ORDER || MP_BUSY || MP_DONE) return;
-  MP_BUSY = true;
-  if (!silent) el('mpMsg').textContent = 'Consultando o pagamento…';
-  try {
-    const r = await fetch(MP_BASE + '/mp-status?id=' + encodeURIComponent(ORDER.id), { cache: 'no-store' });
-    const j = await r.json();
-    if (j && j.pago) {
-      MP_DONE = true; mpStop();
-      el('mpTimer').textContent = '✅ Pagamento confirmado';
-      el('mpMsg').textContent = 'Pagamento aprovado! Envie o comprovante para finalizar.';
-      await mpFinish(ORDER);
-      return;
-    }
-    if (!silent) el('mpMsg').textContent = 'Ainda não identifiquei o pagamento. Aguarde ou confirme no app do seu banco.';
-  } catch (e) {
-    if (!silent) el('mpMsg').textContent = 'Sem conexão. Tente de novo em instantes.';
-  }
-  finally { MP_BUSY = false; }
-}
-async function mpFinish(o) {
-  const cp = (ORDER_CP && ORDER_CP.code === o.cupom) ? ORDER_CP : null;
-  if (o.cupom) {
-    const ck = cuKey(o.cupom, cp ? cp.rev : '', o.fone), st = await cupSrvClaim(ck, o.id);
-    if (st === 'usado') { el('mpMsg').textContent = 'Este cupom já foi usado neste telefone.'; return; }
-    if (st !== 'livre') return;
-  }
-  const ok = await postOrder(o);
-  if (!ok) {
-    el('mpMsg').textContent = 'Pagamento confirmado, mas não conseguimos registrar o pedido. Tente de novo.';
-    MP_DONE = false;
-    return;
-  }
-  if (o.cupom) { cupMark(o.cupom, cp ? cp.rev : ''); cupPend(cuKey(o.cupom, cp ? cp.rev : '', o.fone), ''); }
-  notifyNtfy(o); await notifyPush(o); if (window.saveClient) saveClient(o);
-  const itens = (o.itens || []).map(i => (i.q || i.qty || 1) + 'x ' + (i.n || i.name || 'item')).join(', ');
-  MP_WA = 'Olá! Já paguei o pedido #' + String(o.id).slice(-5) + ' via PIX.\n' +
-    '👤 Nome: ' + (o.nome || '') + '\n' +
-    '📱 Telefone: ' + (o.fone || '') + '\n' +
-    '📍 Endereço: ' + (o.end || '') + ', ' + (o.num || '') + '\n' +
-    '🛒 Itens: ' + itens + '\n' +
-    '💰 Total: ' + fmt(o.total || 0) + '\n\n📎 Segue o comprovante do PIX em anexo.\nPor favor, confirmem o recebimento. Obrigado!';
-  CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart();
-  ORDER = null;
-}
-let MP_WA = '';
-window.mpCheck = mpCheck; window.mpFinish = mpFinish;
-let MP_ENVIANDO = false;
-async function mpEnviarComprovante() {
-  if (MP_ENVIANDO || !ORDER) return;
-  MP_ENVIANDO = true;
-  const btn = el('btnMpCheck'); btn.disabled = true;
-  try {
-    if (!MP_DONE && !MP_WA) await mpCheck(false);
-    if (!MP_DONE && !MP_WA) await mpFinish(ORDER);
-    if (!MP_WA) { showToast('Não conseguimos registrar o pedido. Tente de novo.'); return; }
-    el('mpMsg').textContent = 'Pedido enviado! Anexe o comprovante no WhatsApp.';
-    const url = 'https://wa.me/' + CONFIG.phone + '?text=' + encodeURIComponent(MP_WA);
-    if (!window.open(url, '_blank')) location.href = url;
-    mpStop(); el('pixModal').classList.remove('open'); closeCart();
-    showToast('Pedido enviado! Anexe o comprovante no WhatsApp.');
-  } finally {
-    MP_ENVIANDO = false; btn.disabled = false;
-  }
-}
-window.mpEnviarComprovante = mpEnviarComprovante;
-el('btnMpCheck').onclick = mpEnviarComprovante;
-el('btnMpCopy').onclick = () => {
-  const done = () => showToast('Código PIX copiado');
-  if (!MP_CODE) return showToast('Aguarde o QR carregar.');
-  if (navigator.clipboard) navigator.clipboard.writeText(MP_CODE).then(done, () => showToast('Copie o código manualmente.'));
-  else showToast('Copie o código manualmente.');
-};
+/* ===== PIX: chave fixa + comprovante obrigatorio ===== */
 window.copyPix = () => {
   const done = () => showToast('Chave PIX copiada');
   if (navigator.clipboard) navigator.clipboard.writeText(CONFIG.pixKey).then(done, () => showToast('Copie a chave manualmente.'));
@@ -1266,7 +1095,7 @@ window.copyPix = () => {
 ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).addEventListener('input', () => el(i).classList.remove('bad')));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (el('pixModal').classList.contains('open')) { mpStop(); el('pixModal').classList.remove('open'); }
+  if (el('pixModal').classList.contains('open')) el('pixModal').classList.remove('open');
   else if (el('modal').classList.contains('open')) closeModal();
   else closeCart();
 });
