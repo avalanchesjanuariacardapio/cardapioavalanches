@@ -142,6 +142,10 @@ textarea.field{resize:none}
 .sum div{display:flex;justify-content:space-between;margin:6px 0;color:var(--muted)}
 .sum .tot{font:800 22px var(--font);color:var(--text);margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .pixkey{background:var(--glass);padding:14px;border-radius:14px;word-break:break-all;font-family:ui-monospace,monospace;font-size:14px;margin:14px 0;border:1px dashed rgba(255,106,0,.5)}
+ .mp-qr{background:#fff;padding:12px;border-radius:16px;display:inline-block;margin:8px auto;line-height:0}
+ .mp-qr img{width:190px;height:190px;display:block}
+ .mp-timer{font:800 15px var(--font);color:var(--o2);margin:10px 0}
+ .mp-msg{font-size:13px;color:var(--muted);margin:8px 0;min-height:18px}
 #toasts{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:999;width:calc(100% - 32px);max-width:400px;pointer-events:none}
 .toast{background:var(--o);color:#111;padding:13px 18px;border-radius:14px;font-weight:800;font-size:14px;margin-bottom:8px;text-align:center;animation:drop .3s;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .logo{animation:pop .8s cubic-bezier(.2,1.4,.4,1) both .15s}
@@ -315,10 +319,20 @@ input,textarea,select{font-size:16px}
   <div class="sheet" style="text-align:center">
     <div style="font-size:40px">💠</div>
     <h2>Pagamento PIX</h2>
-    <p>Copie a chave, pague no app do seu banco e envie o pedido.</p>
-    <div class="pixkey" id="pixKeyDisplay"></div>
-    <button onclick="copyPix()" class="btn primary">Copiar chave PIX</button>
-    <button id="btnSendPixWa" class="btn wa">Enviar comprovante</button>
+    <p id="pixIntro">Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.</p>
+    <div id="mpBox" hidden>
+      <div class="mp-qr" id="mpQr"></div>
+      <div class="mp-timer" id="mpTimer"></div>
+      <div class="mp-msg" id="mpMsg">Aguardando pagamento…</div>
+      <button id="btnMpCopy" class="btn primary">Copiar código PIX</button>
+      <button id="btnMpCheck" class="btn wa">Já paguei — acompanhar pedido</button>
+      <button id="btnMpFallback" class="btn ghost">Prefiro enviar o comprovante</button>
+    </div>
+    <div id="pixOld">
+      <div class="pixkey" id="pixKeyDisplay"></div>
+      <button onclick="copyPix()" class="btn primary">Copiar chave PIX</button>
+      <button id="btnSendPixWa" class="btn wa">Enviar comprovante</button>
+    </div>
     <button onclick="el('pixModal').classList.remove('open')" class="btn ghost">Fechar</button>
   </div>
 </div>
@@ -1048,7 +1062,7 @@ el('confirmBtn').onclick = async () => {
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
-  if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); }
+  if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); startMpPix(o); }
   else sendWa();
 };
 el('btnSendPixWa').onclick = sendWa;
@@ -1082,6 +1096,127 @@ async function applyCoupon() {
 }
 el('couponBtn').onclick = applyCoupon;
 el('couponIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); } });
+/* ===== PIX dinamico (Mercado Pago) ===== */
+let MP_TIMER = null, MP_POLL = null, MP_COUNT = 0, MP_BUSY = false, MP_DONE = false, MP_CODE = '';
+const MP_BASE = 'https://avl-push.marcosolive321-ss.workers.dev';
+function mpStop() { if (MP_TIMER) { clearInterval(MP_TIMER); MP_TIMER = null; } if (MP_POLL) { clearInterval(MP_POLL); MP_POLL = null; } }
+function mpOld() {
+  mpStop();
+  el('mpBox').hidden = true; el('pixOld').hidden = false;
+  el('pixIntro').textContent = 'Copie a chave, pague no app do seu banco e envie o pedido.';
+}
+async function startMpPix(o) {
+  mpStop(); MP_BUSY = false; MP_DONE = false; MP_CODE = '';
+  el('mpBox').hidden = true; el('pixOld').hidden = false;
+  el('pixIntro').textContent = 'Gerando seu QR PIX com validade de 15 minutos…';
+  if (!window.mpMakeCharge) {
+    el('pixIntro').textContent = 'Copie a chave, pague no app do seu banco e envie o pedido.';
+    return;
+  }
+  try {
+    const j = await mpMakeCharge(o);
+    if (!j || !j.ok || !j.qrBase64) throw new Error('qr');
+    MP_CODE = j.qr || '';
+    el('mpQr').innerHTML = '<img src="data:image/png;base64,' + j.qrBase64 + '" alt="QR Code PIX">';
+    el('mpBox').hidden = false; el('pixOld').hidden = true;
+    el('pixIntro').textContent = 'Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.';
+    el('mpMsg').textContent = 'Aguardando pagamento…';
+    el('btnMpCheck').textContent = 'Já paguei — acompanhar pedido';
+    el('btnMpCheck').disabled = false;
+    MP_COUNT = Math.max(1, Number(j.expira || 900));
+    const tick = () => {
+      const m = Math.floor(MP_COUNT / 60), sg = MP_COUNT % 60;
+      el('mpTimer').textContent = '⏱ Expira em ' + m + ':' + String(sg).padStart(2, '0');
+      MP_COUNT--;
+      if (MP_COUNT < 0) {
+        mpStop();
+        el('mpTimer').textContent = '⏱ QR expirado — feche e refaça o pedido.';
+        el('mpMsg').textContent = 'O tempo acabou. Abra o cardápio e faça um novo pedido.';
+        el('btnMpCheck').disabled = true;
+      }
+    };
+    tick(); MP_TIMER = setInterval(tick, 1000);
+    MP_POLL = setInterval(() => { if (!el('mpBox').hidden) mpCheck(true); }, 4000);
+  } catch (e) {
+    mpOld();
+    el('mpMsg').textContent = '';
+  }
+}
+async function mpMakeCharge(o) {
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const r = await fetch(MP_BASE + '/mp-pix', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: o.id, nome: o.nome, fone: o.fone, total: o.total, end: o.end, num: o.num, itens: o.itens }),
+      signal: ctl.signal
+    });
+    return await r.json();
+  } catch (e) { return null; }
+  finally { clearTimeout(to); }
+}
+async function mpCheck(silent) {
+  if (!ORDER || MP_BUSY || MP_DONE) return;
+  MP_BUSY = true;
+  if (!silent) el('mpMsg').textContent = 'Consultando o pagamento…';
+  try {
+    const r = await fetch(MP_BASE + '/mp-status?id=' + encodeURIComponent(ORDER.id), { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.pago) {
+      MP_DONE = true; mpStop();
+      el('mpTimer').textContent = '✅ Pagamento confirmado';
+      el('mpMsg').textContent = 'Pagamento aprovado! Seu pedido já foi enviado à loja.';
+      el('btnMpCheck').textContent = 'Acompanhar pedido no WhatsApp';
+      await mpFinish(ORDER);
+      return;
+    }
+    if (!silent) el('mpMsg').textContent = 'Ainda não identifiquei o pagamento. Aguarde ou confirme no app do seu banco.';
+  } catch (e) {
+    if (!silent) el('mpMsg').textContent = 'Sem conexão. Tente de novo em instantes.';
+  }
+  finally { MP_BUSY = false; }
+}
+async function mpFinish(o) {
+  const cp = (ORDER_CP && ORDER_CP.code === o.cupom) ? ORDER_CP : null;
+  if (o.cupom) {
+    const ck = cuKey(o.cupom, cp ? cp.rev : '', o.fone), st = await cupSrvClaim(ck, o.id);
+    if (st === 'usado') { el('mpMsg').textContent = 'Este cupom já foi usado neste telefone.'; return; }
+    if (st !== 'livre') return;
+  }
+  const ok = await postOrder(o);
+  if (!ok) {
+    el('mpMsg').textContent = 'Pagamento confirmado, mas não conseguimos registrar o pedido. Tente de novo.';
+    MP_DONE = false;
+    return;
+  }
+  if (o.cupom) { cupMark(o.cupom, cp ? cp.rev : ''); cupPend(cuKey(o.cupom, cp ? cp.rev : '', o.fone), ''); }
+  notifyNtfy(o); await notifyPush(o); if (window.saveClient) saveClient(o);
+  const itens = (o.itens || []).map(i => (i.q || i.qty || 1) + 'x ' + (i.n || i.name || 'item')).join(', ');
+  MP_WA = 'Olá! Já paguei o pedido #' + String(o.id).slice(-5) + ' via PIX.\n' +
+    '👤 Nome: ' + (o.nome || '') + '\n' +
+    '📱 Telefone: ' + (o.fone || '') + '\n' +
+    '📍 Endereço: ' + (o.end || '') + ', ' + (o.num || '') + '\n' +
+    '🛒 Itens: ' + itens + '\n' +
+    '💰 Total: ' + fmt(o.total || 0) + '\n\nPor favor, confirmem o recebimento. Obrigado!';
+  CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart();
+  ORDER = null;
+}
+let MP_WA = '';
+window.mpCheck = mpCheck; window.mpFinish = mpFinish;
+el('btnMpCheck').onclick = () => {
+  if (MP_DONE && MP_WA) {
+    const url = 'https://wa.me/' + CONFIG.phone + '?text=' + encodeURIComponent(MP_WA);
+    if (!window.open(url, '_blank')) location.href = url;
+    return;
+  }
+  mpCheck(false);
+};
+el('btnMpCopy').onclick = () => {
+  const done = () => showToast('Código PIX copiado');
+  if (!MP_CODE) return showToast('Aguarde o QR carregar.');
+  if (navigator.clipboard) navigator.clipboard.writeText(MP_CODE).then(done, () => showToast('Copie o código manualmente.'));
+  else showToast('Copie o código manualmente.');
+};
+el('btnMpFallback').onclick = () => { mpOld(); showToast('Envie o comprovante para concluir.'); };
 window.copyPix = () => {
   const done = () => showToast('Chave PIX copiada');
   if (navigator.clipboard) navigator.clipboard.writeText(CONFIG.pixKey).then(done, () => showToast('Copie a chave manualmente.'));
@@ -1090,7 +1225,7 @@ window.copyPix = () => {
 ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).addEventListener('input', () => el(i).classList.remove('bad')));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (el('pixModal').classList.contains('open')) el('pixModal').classList.remove('open');
+  if (el('pixModal').classList.contains('open')) { mpStop(); el('pixModal').classList.remove('open'); }
   else if (el('modal').classList.contains('open')) closeModal();
   else closeCart();
 });
