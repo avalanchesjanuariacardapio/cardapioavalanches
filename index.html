@@ -10,6 +10,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
 <style>
+.chk-step[hidden]{display:none!important}
+.rv{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--line)}
+.rv>b{display:block;margin-bottom:5px;font-size:13px}
+.rv>span{display:block;font-size:12.5px;color:var(--muted);line-height:1.5}
 .locmsg{font-size:12px;line-height:1.4;color:var(--muted);margin:0 2px 8px;min-height:17px}
 .locmsg.ok{color:var(--ok);font-weight:600}
 .locmsg.bad{color:var(--bad);font-weight:600}
@@ -349,39 +353,11 @@ body{background:#eef0f3!important;color:var(--text)!important}
   <div class="page-in">
     <div class="ph">
       <button id="closeCartBtnHeader" class="back" aria-label="Fechar">✕</button>
-      <h2>Sacola</h2>
+      <h2 id="cartTitle">Sacola</h2>
     </div>
 
+  <div class="chk-step" id="stepCart">
     <div id="cartItems"></div>
-
-    <div class="h3">Entrega</div>
-    <input id="clientName" maxlength="80" class="field" placeholder="Seu Nome *" autocomplete="name">
-    <div class="err" id="e_name"></div>
-    <input id="clientPhone" maxlength="20" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
-    <div class="err" id="e_phone"></div>
-    <input id="clientAddress" maxlength="160" class="field" placeholder="Rua e Bairro *" autocomplete="street-address">
-    <div class="err" id="e_addr"></div>
-    <input id="houseNumber" maxlength="100" class="field" placeholder="Número da casa e Referência *">
-    <div class="err" id="e_num"></div>
-    <div id="cliNote" style="font-size:12px;color:var(--muted);margin:0 2px 10px"></div>
-
-    <div class="h3">Local da entrega</div>
-    <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
-    <div id="locMsg" class="locmsg">Opcional: use sua localização para confirmarmos a entrega.</div>
-    <div class="err" id="e_loc"></div>
-
-    <div class="h3">Pagamento</div>
-    <button class="pay" data-pay="dinheiro">💵 Dinheiro</button>
-    <div id="cashChange" hidden>
-      <div class="h3" style="margin-top:6px;font-size:15px">Precisa de troco?</div>
-      <div class="chips" id="cashChips"></div>
-      <input id="cashGiven" type="number" inputmode="decimal" min="0" class="field" placeholder="Troco para quanto? Ex.: 70" hidden>
-      <div class="calc" id="cashCalc"></div>
-      <div class="err" id="e_cash"></div>
-    </div>
-    <button class="pay" data-pay="pix">💠 PIX</button>
-    <button class="pay" data-pay="cartao">💳 CARTÃO</button>
-    <div class="err" id="e_pay"></div>
 
     <div class="h3">Cupom de desconto</div>
     <div style="display:flex;gap:8px"><input id="couponIn" class="field" placeholder="Digite seu cupom" autocapitalize="characters" autocomplete="off" style="margin:0"><button id="couponBtn" class="btn ghost" style="width:auto;margin:0;padding:0 18px">Aplicar</button></div>
@@ -396,8 +372,59 @@ body{background:#eef0f3!important;color:var(--text)!important}
       <div class="tot"><span>Total</span><span id="totalText">R$ 0,00</span></div>
     </div>
 
-    <button id="confirmBtn" class="btn primary" style="margin-top:22px">Enviar pedido para o WhatsApp</button>
+    <button id="toAddress" class="btn primary" style="margin-top:22px">Continuar para Endereço</button>
     <button id="backToMenu" class="btn ghost">Voltar para o cardápio</button>
+  </div>
+  </div>
+
+  <!-- Etapa 2: endereço -->
+  <div class="chk-step" id="stepAddress" hidden>
+    <div class="h3">Endereço</div>
+    <input id="clientName" maxlength="80" class="field" placeholder="Seu Nome *" autocomplete="name">
+    <div class="err" id="e_name"></div>
+    <input id="clientPhone" maxlength="20" class="field" placeholder="Seu WhatsApp com DDD *" inputmode="tel" autocomplete="tel">
+    <div class="err" id="e_phone"></div>
+    <input id="clientAddress" maxlength="160" class="field" placeholder="Rua e Bairro *" autocomplete="street-address">
+    <div class="err" id="e_addr"></div>
+    <input id="houseNumber" maxlength="100" class="field" placeholder="Número da casa e Referência *">
+    <div class="err" id="e_num"></div>
+    <div id="cliNote" style="font-size:12px;line-height:1.4;color:var(--muted);margin:0 2px 10px"></div>
+
+    <div id="locHint" style="font-size:12px;line-height:1.4;color:var(--muted);margin:0 2px 10px">Para saber se entregamos no seu bairro, use sua localização.</div>
+    <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
+    <div id="locMsg" class="locmsg"></div>
+    <div class="err" id="e_loc"></div>
+
+    <button id="toPay" class="btn primary" style="margin-top:22px">Continuar para Pagamento</button>
+    <button class="btn ghost" data-back="stepCart">Voltar</button>
+  </div>
+
+  <!-- Etapa 3: forma de pagamento -->
+  <div class="chk-step" id="stepPay" hidden>
+    <div class="h3">Forma de pagamento</div>
+    <button class="pay" data-pay="dinheiro">💵 Dinheiro</button>
+    <div id="cashChange" hidden>
+      <div class="h3" style="margin-top:6px;font-size:15px">Precisa de troco?</div>
+      <div class="chips" id="cashChips"></div>
+      <input id="cashGiven" type="number" inputmode="decimal" min="0" class="field" placeholder="Troco para quanto? Ex.: 70" hidden>
+      <div class="calc" id="cashCalc"></div>
+      <div class="err" id="e_cash"></div>
+    </div>
+    <button class="pay" data-pay="pix">💠 PIX</button>
+    <button class="pay" data-pay="cartao">💳 CARTÃO</button>
+    <div class="err" id="e_pay"></div>
+
+    <button id="toReview" class="btn primary" style="margin-top:22px">Revisar Pedido</button>
+    <button class="btn ghost" data-back="stepAddress">Voltar</button>
+  </div>
+
+  <!-- Etapa 4: revisão -->
+  <div class="chk-step" id="stepReview" hidden>
+    <div class="h3">Resumo do pedido</div>
+    <div id="reviewBox"></div>
+    <button id="finalBtn" class="btn primary" style="margin-top:22px">Ir para o pagamento</button>
+    <button class="btn ghost" data-back="stepPay">Voltar</button>
+  </div>
   </div>
 </div>
 
@@ -410,7 +437,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
     <div id="pixOld">
       <div class="pixkey" id="pixKeyDisplay"></div>
       <button onclick="copyPix()" class="btn primary">Copiar chave PIX</button>
-      <button id="btnSendPixWa" class="btn wa">Já paguei, enviar comprovante e pedido</button>
+      <button id="btnSendPixWa" class="btn wa">Já enviar comprovante</button>
     </div>
     <button onclick="el('pixModal').classList.remove('open')" class="btn ghost">Fechar</button>
   </div>
@@ -627,8 +654,10 @@ function checkOpen() {
   b.className = 'status ' + (IS_OPEN ? 'open' : 'shut');
   b.querySelector('span').textContent = IS_OPEN ? 'Aberto agora' : 'Fechado';
   document.body.classList.toggle('closed', !IS_OPEN);
-  const cb = el('confirmBtn'); cb.classList.toggle('off', !IS_OPEN);
-  cb.textContent = IS_OPEN ? 'Enviar pedido para o WhatsApp' : (FORCE === 'fechado' ? 'Fechado no momento' : 'Fechado • abrimos às ' + hh(OPEN_H));
+  const cb = el('finalBtn'); if (cb) {
+    cb.classList.toggle('off', !IS_OPEN);
+    cb.textContent = IS_OPEN ? 'Ir para o pagamento' : (FORCE === 'fechado' ? 'Fechado no momento' : 'Fechado • abrimos às ' + hh(OPEN_H));
+  }
   el('addCart').classList.toggle('off', !IS_OPEN);
   if (currentProd) updateModalPrice();
 }
@@ -747,10 +776,20 @@ el('cartItems').onclick = e => {
   updateCart();
   if (!Object.keys(CART).length) closeCart();
 };
-function openCart() {
-  renderCartItems(); el('cartPage').classList.add('open'); renderLoc();
+let CHKSTEP = 'stepCart';
+const CHK_TITLES = { stepCart:'Sacola', stepAddress:'Endereço', stepPay:'Pagamento', stepReview:'Resumo do pedido' };
+function goStep(id) {
+  CHKSTEP = id;
+  ['stepCart','stepAddress','stepPay','stepReview'].forEach(x => { const e = el(x); if (e) e.hidden = x !== id; });
+  const t = el('cartTitle'); if (t) t.textContent = CHK_TITLES[id] || 'Sacola';
+  const pg = el('cartPage'); pg.scrollTop = 0; const inn = pg.querySelector('.page-in'); if (inn) inn.scrollTop = 0;
+  window.scrollTo && window.scrollTo({ top:0, behavior:'instant' });
 }
-function closeCart() { el('cartPage').classList.remove('open'); }
+document.addEventListener('click', e => { const b = e.target.closest('[data-back]'); if (b) goStep(b.dataset.back); });
+function openCart() {
+  renderCartItems(); goStep('stepCart'); el('cartPage').classList.add('open'); renderLoc();
+}
+function closeCart() { el('cartPage').classList.remove('open'); goStep('stepCart'); }
 el('cartbar').onclick = openCart;
 el('closeCartBtnHeader').onclick = el('backToMenu').onclick = closeCart;
 
@@ -854,7 +893,8 @@ function areaStatus(lat, lng) {
 }
 function renderLoc() {
   const box = document.getElementById('locMsg'); if (!box) return;
-  if (!CLIENT_GEO) { box.className = 'locmsg'; box.textContent = 'Opcional: use sua localização para confirmarmos a entrega.'; return; }
+  if (!CLIENT_GEO) { box.className = 'locmsg'; box.textContent = ''; box.style.display = 'none'; return; }
+  box.style.display = '';
   const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng);
   box.className = 'locmsg ' + (s.ok ? 'ok' : 'bad');
   box.textContent = (s.ok ? '✓ ' : '✕ ') + (s.txt || 'Entregamos nesse local!');
@@ -937,7 +977,6 @@ async function loadAreas() {
       b.disabled = false; b.textContent = txt;
       if (!melhor) return showToast('Não consegui pegar sua localização. Você pode digitar o endereço.');
       setPin(melhor.la, melhor.lo, melhor.acc);
-      showToast('Local obtido (precisão de ~' + Math.round(melhor.acc) + ' m). Confira o endereço.');
     };
     try {
       wid = navigator.geolocation.watchPosition(
@@ -955,7 +994,7 @@ async function loadAreas() {
 })();
 const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);
 const discount = sub => !COUPON ? 0 : COUPON.tipo === 'pct' ? Math.round(sub * Math.min(COUPON.valor, 100)) / 100 : COUPON.tipo === 'fixo' ? Math.min(COUPON.valor, sub) : 0;
-const taxaAtual = () => Number.isFinite(+ENT.fee) && +ENT.fee >= 0 ? +ENT.fee : CONFIG.fee;
+const taxaAtual = () => ENT.fee !== null && ENT.fee !== undefined && ENT.fee !== '' && Number.isFinite(+ENT.fee) && +ENT.fee >= 0 ? +ENT.fee : CONFIG.fee;
 const feeNow = () => COUPON && COUPON.tipo === 'frete' ? 0 : taxaAtual();
 const cartTotal = () => { const sb = cartSub(); return Math.max(0, sb - discount(sb)) + feeNow(); };
 function renderCash() {
@@ -992,29 +1031,33 @@ const phoneOk = () => /^[1-9][1-9](9\d{8}|\d{8})$/.test(phoneDigits());
 /* Limpa o texto digitado: sem quebra de linha nem símbolos do WhatsApp (* _ ~ `), no mesmo limite que o painel mostra */
 const clean = (s, max) => String(s).replace(/[*_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 function fail(inputId, errId, msg) { el(errId).textContent = msg; if (inputId) el(inputId).classList.add('bad'); return false; }
-function validate() {
+function validate(step) {
+  step = step || 'all';
   ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).classList.remove('bad'));
   ['e_addr', 'e_num', 'e_name', 'e_phone', 'e_pay', 'e_cash', 'e_loc'].forEach(i => el(i).textContent = '');
-  const checks = [
+  const addr = [
     [!el('clientAddress').value.trim(), 'clientAddress', 'e_addr', 'Informe rua e bairro.'],
     [!el('houseNumber').value.trim(), 'houseNumber', 'e_num', 'Informe o número e uma referência.'],
     [!el('clientName').value.trim(), 'clientName', 'e_name', 'Informe seu nome.'],
-    [!phoneOk(), 'clientPhone', 'e_phone', 'Informe seu WhatsApp com DDD (ex.: 34 99999-9999).'],
+    [!phoneOk(), 'clientPhone', 'e_phone', 'Informe seu WhatsApp com DDD (ex.: 34 99999-9999).']
+  ];
+  const total = cartTotal(), given = parseFloat(el('cashGiven').value);
+  const pay = [
     [!PAYMENT, null, 'e_pay', 'Escolha a forma de pagamento.']
   ];
+  if (PAYMENT === 'dinheiro') {
+    if (!NOCHG && !el('cashGiven').value) pay.push([null, 'e_cash', 'Informe se precisa de troco.']);
+    else if (!NOCHG && !(given >= total)) pay.push(['cashGiven', 'e_cash', 'O valor do troco precisa ser maior ou igual a ' + fmt(total) + '.']);
+  }
+  let checks = step === 'address' ? addr : step === 'pay' ? pay : addr.concat(pay);
+  /* Localização é opcional: só validamos a área se o cliente optar por usar. */
+  if (CLIENT_GEO) { const a = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng); if (!a.ok) checks.push([null, 'e_loc', a.txt]); }
   let first = null;
   checks.forEach(c => { if (c[0]) { fail(c[1], c[2], c[3]); first = first || el(c[2]); } });
-  /* Localização é opcional: só validamos a área se o cliente optar por usar. */
-  if (CLIENT_GEO) { const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng); if (!s.ok) { fail(null, 'e_loc', s.txt); first = first || el('e_loc'); } }
-  const total = cartTotal();
-  const given = parseFloat(el('cashGiven').value);
-  if (PAYMENT === 'dinheiro' && !NOCHG && !el('cashGiven').value) { fail(null, 'e_cash', 'Informe se precisa de troco.'); first = first || el('e_cash'); }
-  else if (PAYMENT === 'dinheiro' && !NOCHG && !(given >= total)) {
-    fail('cashGiven', 'e_cash', 'O valor do troco precisa ser maior ou igual a ' + fmt(total) + '.'); first = first || el('e_cash');
-  }
   if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
   return !first;
 }
+
 async function postOrder(o) {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return false;
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
@@ -1076,7 +1119,7 @@ let SENDING = false;
 async function sendWa() {
   if (!ORDER || SENDING) return;
   SENDING = true;
-  const o = ORDER, cp = (ORDER_CP && ORDER_CP.code === o.cupom) ? ORDER_CP : null, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, btns = [el('confirmBtn'), el('btnSendPixWa')];
+  const o = ORDER, cp = (ORDER_CP && ORDER_CP.code === o.cupom) ? ORDER_CP : null, url = `https://wa.me/${CONFIG.phone}?text=${encodeURIComponent(WA_MSG)}`, btns = [el('finalBtn'), el('btnSendPixWa')].filter(Boolean);
   btns.forEach(b => b.disabled = true);
   showToast('Registrando seu pedido…');
   if (o.cupom) {
@@ -1098,19 +1141,19 @@ async function sendWa() {
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart(); el('pixModal').classList.remove('open'); closeCart();
   showToast('Pedido enviado! Finalize no WhatsApp.');
 }
-el('confirmBtn').onclick = async () => {
-  if (CHK) return;
-  if (!IS_OPEN) return closedMsg();
-  if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
-  if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); return showToast('O cupom expirou. Confira o total.'); }
-  if (COUPON && cupUsed(COUPON.code)) { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho. Confira o total.'; updateCart(); return showToast('Erro: este cupom já foi usado neste aparelho.'); }
-  if (!validate()) return;
+async function prepareOrder() {
+  if (CHK) return false;
+  if (!IS_OPEN) { closedMsg(); return false; }
+  if (!Object.keys(CART).length) { showToast('Sua sacola está vazia.'); return false; }
+  if (COUPON && COUPON.ate && new Date().toLocaleDateString('sv-SE') > COUPON.ate) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Este cupom expirou.'; updateCart(); goStep('stepCart'); showToast('O cupom expirou. Confira o total.'); return false; }
+  if (COUPON && cupUsed(COUPON.code)) { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho. Confira o total.'; updateCart(); goStep('stepCart'); showToast('Erro: este cupom já foi usado neste aparelho.'); return false; }
+  if (!validate('all')) return false;
   const ph = phoneDigits();
   ORDER_CP = null;
   if (COUPON) {
     CHK = true; const st = await cupSrvCheck(COUPON.code, COUPON.rev, '55' + ph); CHK = false;
-    if (st === 'usado') { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho/telefone.'; updateCart(); return showToast('Este telefone já usou este cupom. Confira o total.'); }
-    if (st === 'erro') return showToast('Não foi possível validar o cupom agora. Tente de novo.');
+    if (st === 'usado') { COUPON = null; el('couponIn').value = ''; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Erro: este cupom já foi usado neste aparelho/telefone.'; updateCart(); goStep('stepCart'); showToast('Este telefone já usou este cupom. Confira o total.'); return false; }
+    if (st === 'erro') { showToast('Não foi possível validar o cupom agora. Tente de novo.'); return false; }
     ORDER_CP = { code: COUPON.code, rev: COUPON.rev };
   }
   const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
@@ -1118,12 +1161,52 @@ el('confirmBtn').onclick = async () => {
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
   const LN = '━━━━━━━━━━━━━━━━━━', payName = { dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão' }[PAYMENT] || PAYMENT;
   const when = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*\n🧾 *Pedido #${oid.slice(-5)}* · ${when}\n${LN}\n👤 *CLIENTE*\n${name}\n📱 ${phTxt}\n${LN}\n📍 *ENTREGA*\n${addr}, ${num}\n${LN}\nItens e valores: veja no painel, pelo código do pedido.${CLIENT_GEO ? '\n🗺️ Mapa: ' + locLink() : ''}`;
+  const txt = `🍔 *NOVO PEDIDO — ${STORE.toUpperCase()}*
+🧾 *Pedido #${oid.slice(-5)}* · ${when}
+${LN}
+👤 *CLIENTE*
+${name}
+📱 ${phTxt}
+${LN}
+📍 *ENTREGA*
+${addr}, ${num}
+${LN}
+Itens e valores: veja no painel, pelo código do pedido.${CLIENT_GEO ? '\n🗺️ Mapa: ' + locLink() : ''}`;
   ORDER = { id: oid, nome: name, fone: '55' + ph, end: addr, num, loc: locLink(), pag: PAYMENT, troco: (PAYMENT === 'dinheiro' && !NOCHG && g2) ? g2 : 0, ant: !IS_OPEN, prazo: PRAZO,
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
   if (PAYMENT === 'pix') WA_MSG += '\n📎 Segue o comprovante do PIX em anexo.';
+  return true;
+}
+function payLabel() { return { dinheiro:'Dinheiro', pix:'PIX', cartao:'Cartão' }[PAYMENT] || PAYMENT || '-'; }
+function buildReview() {
+  const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
+  const ph = phoneDigits(), phTxt = ph.length === 11 ? `(${ph.slice(0,2)}) ${ph.slice(2,7)}-${ph.slice(7)}` : `(${ph.slice(0,2)}) ${ph.slice(2,6)}-${ph.slice(6)}`;
+  const itens = Object.values(CART).map(it => {
+    const extra = it.addons.length ? '<small>+ ' + it.addons.map(a => esc(a.name)).join(', ') + '</small>' : '';
+    const obs = it.note ? '<small>Obs: ' + esc(it.note) + '</small>' : '';
+    return '<div class="line"><div><b>' + esc(it.name) + '</b>' + extra + obs + '<small>' + it.qty + 'x ' + fmt(unit(it)) + '</small></div><b>' + fmt(unit(it) * it.qty) + '</b></div>';
+  }).join('');
+  const sb = cartSub(), dsc = discount(sb);
+  el('reviewBox').innerHTML =
+    '<div class="rv"><b>Entrega</b><span>' + esc(name) + ' · ' + esc(phTxt) + '</span><span>' + esc(addr) + ', ' + esc(num) + '</span></div>' +
+    '<div class="rv"><b>Pagamento</b><span>' + esc(payLabel()) + '</span></div>' +
+    '<div class="rv"><b>Itens</b>' + itens + '</div>' +
+    '<div class="sum"><div><span>Subtotal</span><span>' + fmt(sb) + '</span></div>' +
+    (COUPON ? '<div><span>Desconto (' + esc(COUPON.code) + ')</span><span style="color:#3ddc84">' + (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) + '</span></div>' : '') +
+    '<div><span>Taxa de entrega</span><span>' + fmt(feeNow()) + '</span></div>' +
+    '<div class="tot"><span>Total</span><span>' + fmt(cartTotal()) + '</span></div></div>';
+}
+el('toAddress').onclick = () => {
+  if (!IS_OPEN) return closedMsg();
+  if (!Object.keys(CART).length) return showToast('Sua sacola está vazia.');
+  goStep('stepAddress');
+};
+el('toPay').onclick = () => { if (validate('address')) goStep('stepPay'); };
+el('toReview').onclick = () => { if (!validate('pay')) return; buildReview(); goStep('stepReview'); };
+el('finalBtn').onclick = async () => {
+  if (!await prepareOrder()) return;
   if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); }
   else sendWa();
 };
