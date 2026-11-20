@@ -149,6 +149,9 @@ textarea.field{resize:none}
 .mini span{min-width:22px;text-align:center;font-weight:800}
 .pay{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:14px;background:var(--glass);border:1px solid var(--line);font-weight:700;transition:.2s}
 .pay.sel{border-color:var(--o);background:rgba(255,106,0,.14)}
+.pay > span{display:flex;flex-direction:column;gap:3px}
+.pay small{font-size:12px;font-weight:500;color:var(--muted)}
+.pay-group{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--o2);margin:10px 2px 6px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
 .chip{padding:9px 15px;border-radius:99px;border:1px solid var(--line);background:var(--glass);font-weight:700;transition:.2s}
 .chip.sel{background:var(--o);border-color:var(--o);color:#111}
@@ -297,6 +300,8 @@ body{background:#eef0f3!important;color:var(--text)!important}
 .mini{border-color:#d8dce2!important;background:#fff!important}.mini button{color:var(--o)!important}
 .pay{border-color:#d8dce2!important;background:#fff!important;color:#111!important}
 .pay.sel{border-color:var(--o)!important;background:#fff7f0!important}
+.pay small{color:#666!important}
+.pay-group{color:#c2410c!important}
 .chip{border-color:#d8dce2!important;background:#fff!important;color:#111!important}
 .chip.sel{background:var(--o)!important;border-color:var(--o)!important;color:#fff!important}
 .calc{background:#fff7f0!important;border-color:#fed7aa!important;color:#9a3412!important}
@@ -398,7 +403,6 @@ body{background:#eef0f3!important;color:var(--text)!important}
 
     <div class="chk-actions">
       <button id="toAddress" class="btn primary">Continuar para Endereço</button>
-      <button id="backToMenu" class="btn ghost">Voltar para o cardápio</button>
     </div>
   </div>
 
@@ -422,14 +426,18 @@ body{background:#eef0f3!important;color:var(--text)!important}
 
     <div class="chk-actions">
       <button id="toPay" class="btn primary">Continuar para Pagamento</button>
-      <button class="btn ghost" data-back="stepCart">Voltar</button>
     </div>
   </div>
 
   <!-- Etapa 3: forma de pagamento -->
   <div class="chk-step" id="stepPay" hidden>
     <div class="h3">Forma de pagamento</div>
-    <button class="pay" data-pay="dinheiro">💵 Dinheiro</button>
+
+    <div class="pay-group">Pagamento online</div>
+    <button class="pay" data-pay="pix"><span>💠 PIX<small>Pague agora — confirmação automática</small></span></button>
+
+    <div class="pay-group">Pagamento na entrega</div>
+    <button class="pay" data-pay="dinheiro"><span>💵 Dinheiro<small>Pague ao receber seu pedido</small></span></button>
     <div id="cashChange" hidden>
       <div class="h3" style="margin-top:6px;font-size:15px">Precisa de troco?</div>
       <div class="chips" id="cashChips"></div>
@@ -437,13 +445,11 @@ body{background:#eef0f3!important;color:var(--text)!important}
       <div class="calc" id="cashCalc"></div>
       <div class="err" id="e_cash"></div>
     </div>
-    <button class="pay" data-pay="pix">💠 PIX</button>
-    <button class="pay" data-pay="cartao">💳 CARTÃO</button>
+    <button class="pay" data-pay="cartao"><span>💳 Cartão<small>Pague ao receber seu pedido</small></span></button>
     <div class="err" id="e_pay"></div>
 
     <div class="chk-actions">
       <button id="toReview" class="btn primary">Revisar Pedido</button>
-      <button class="btn ghost" data-back="stepAddress">Voltar</button>
     </div>
   </div>
 
@@ -453,7 +459,6 @@ body{background:#eef0f3!important;color:var(--text)!important}
     <div id="reviewBox"></div>
     <div class="chk-actions">
       <button id="finalBtn" class="btn primary">Ir para o pagamento</button>
-      <button class="btn ghost" data-back="stepPay">Voltar</button>
     </div>
   </div>
   </div>
@@ -464,13 +469,12 @@ body{background:#eef0f3!important;color:var(--text)!important}
   <div class="sheet" style="text-align:center">
     <div style="font-size:40px">💠</div>
     <h2>Pagamento PIX</h2>
-    <p id="pixIntro">Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.</p>
+    <p id="pixIntro">Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente. O botão “Acompanhar pedido” aparece assim que o pagamento for aprovado.</p>
     <div id="pixWorkerBox" hidden>
       <div class="mp-qr" id="pixQr"></div>
       <div class="mp-timer" id="pixTimer"></div>
       <div class="mp-msg" id="pixStatus">Gerando seu QR PIX…</div>
       <button id="btnPixCopy" class="btn primary">Copiar código PIX</button>
-      <button id="btnPixCheck" class="btn ghost">Já paguei, verificar</button>
       <button id="btnPixRetry" class="btn ghost" hidden>Tentar novamente</button>
       <a id="btnTrack" class="btn wa" style="text-decoration:none" hidden>Acompanhar pedido</a>
     </div>
@@ -722,6 +726,33 @@ let CART = {}, PAYMENT = '', WA_MSG = '', currentProd = null, selectedAddons = [
 try { CART = JSON.parse(localStorage.getItem('avl_cart') || '{}'); } catch (e) { CART = {}; }
 const save = () => { try { localStorage.setItem('avl_cart', JSON.stringify(CART)); } catch (e) {} };
 
+/*Guarda a sacola no momento em que o QR PIX e gerado: se o cliente sair e voltar
+  antes de pagar, os itens continuam aqui. Apos a confirmacao o registro e marcado
+  como pago e a sacola e limpa normalmente.*/
+const PIX_PENDING_KEY = 'avl_cart_pix_pending';
+function savePixPending() {
+  try {
+    localStorage.setItem(PIX_PENDING_KEY, JSON.stringify({
+      t: Date.now(), cart: CART, coupon: COUPON || null, order: ORDER || null, paid: false
+    }));
+  } catch (e) {}
+}
+function pixPendingPaid() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PIX_PENDING_KEY) || 'null');
+    if (p) { p.paid = true; localStorage.setItem(PIX_PENDING_KEY, JSON.stringify(p)); }
+  } catch (e) {}
+}
+function restorePixPending() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(PIX_PENDING_KEY) || 'null'); } catch (e) {}
+  if (!p || p.paid || !p.cart || !Object.keys(p.cart).length) return;
+  if (!Object.keys(CART).length) {
+    CART = p.cart; COUPON = p.coupon || null;
+    if (COUPON && el('couponIn')) el('couponIn').value = COUPON.code;
+  }
+}
+
 function showToast(m) {
   const t = document.createElement('div'); t.className = 'toast'; t.textContent = m;
   el('toasts').appendChild(t); setTimeout(() => t.remove(), 2800);
@@ -877,14 +908,12 @@ function goStep(id) {
   const pg = el('cartPage'); pg.scrollTop = 0; const inn = pg.querySelector('.page-in'); if (inn) inn.scrollTop = 0;
   window.scrollTo && window.scrollTo({ top:0, behavior:'instant' });
 }
-document.addEventListener('click', e => { const b = e.target.closest('[data-back]'); if (b) goStep(b.dataset.back); });
 el('hdrBack').onclick = () => { const p = CHK_PREV[CHKSTEP]; if (p) goStep(p); else closeCart(); };
 function openCart() {
   renderCartItems(); goStep('stepCart'); el('cartPage').classList.add('open'); renderLoc();
 }
 function closeCart() { el('cartPage').classList.remove('open'); goStep('stepCart'); }
 el('cartbar').onclick = openCart;
-el('backToMenu').onclick = closeCart;
 
 /* Animações e adicionar rápido */
 const REDUCED = matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -907,6 +936,7 @@ function quickAdd(it, btn) {
 /* Troco inteligente */
 let NOCHG = false, OTHER = false;
 let COUPON = null, CLOUD_BASE = '', ORDER = null;
+restorePixPending();
 /* Cupom: cada aparelho só pode usar cada cupom UMA vez (vale para comuns e especiais).
    Fica guardado no aparelho em localStorage + cookie (se um falhar, o outro segura). 'rev' = versão do cupom:
    se você apagar e criar o mesmo código de novo no painel, vira um cupom novo e o aparelho pode usar outra vez. */
@@ -1269,7 +1299,6 @@ Itens e valores: veja no painel, pelo código do pedido.${CLIENT_GEO ? '\n🗺�
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
-  if (PAYMENT === 'pix') WA_MSG += '\n📎 Segue o comprovante do PIX em anexo.';
   return true;
 }
 function payLabel() { return { dinheiro:'Dinheiro', pix:'PIX', cartao:'Cartão' }[PAYMENT] || PAYMENT || '-'; }
@@ -1301,13 +1330,13 @@ el('toReview').onclick = () => { if (!validate('pay')) return; buildReview(); go
 el('finalBtn').onclick = async () => {
   if (!await prepareOrder()) return;
   if (PAYMENT !== 'pix') return sendWa();
+  savePixPending();
   el('pixModal').classList.add('open');
   await startPixWorker(ORDER);
 };
 el('btnPixCopy').onclick = () => pixCopy();
-el('btnPixCheck').onclick = () => pixCheck(false);
 el('btnPixRetry').onclick = () => { if (PIX_ORDER) startPixWorker(PIX_ORDER); };
-el('btnPixClose').onclick = () => { pixStop(); el('pixModal').classList.remove('open'); };
+el('btnPixClose').onclick = () => { el('pixModal').classList.remove('open'); };
 
 /* Cupom de desconto (criado no painel, guardado em cupons/CODIGO) */
 async function applyCoupon() {
@@ -1357,9 +1386,10 @@ function pixCopy() {
 function pixShowDone(o) {
   if (PIX_SHOWN || !o) return;
   PIX_SHOWN = true; pixStop();
+  if (!el('pixModal').classList.contains('open')) el('pixModal').classList.add('open');
   el('pixTimer').textContent = '✅ Pagamento confirmado';
   el('pixStatus').textContent = 'Pagamento aprovado! Seu pedido já foi enviado ao painel.';
-  el('btnPixCopy').hidden = true; el('btnPixCheck').hidden = true; el('btnPixRetry').hidden = true;
+  el('btnPixCopy').hidden = true; el('btnPixRetry').hidden = true;
   const itens = (o.itens || []).map(i => (i.q || i.qty || 1) + 'x ' + (i.n || i.name || 'item')).join(', ');
   const msg = 'Olá! Pagamento PIX confirmado ✅\n' +
     '🧾 Pedido #' + String(o.id).slice(-5) + '\n' +
@@ -1375,6 +1405,7 @@ function pixShowDone(o) {
   b.textContent = 'Acompanhar pedido #' + String(o.id).slice(-5);
   b.hidden = false;
   if (o.cupom) { try { cupMark(o.cupom, ''); cupPend(cuKey(o.cupom, '', o.fone), ''); } catch (e) {} }
+  pixPendingPaid();
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart();
   if (window.saveClient) saveClient(o);
   ORDER = null;
@@ -1387,7 +1418,7 @@ async function startPixWorker(o) {
   el('pixQr').innerHTML = '';
   el('pixTimer').textContent = '';
   el('pixStatus').textContent = 'Gerando seu QR PIX…';
-  el('btnPixCopy').hidden = true; el('btnPixCheck').hidden = true; el('btnPixCheck').disabled = false; el('btnPixRetry').hidden = true; el('btnTrack').hidden = true;
+  el('btnPixCopy').hidden = true; el('btnPixRetry').hidden = true; el('btnTrack').hidden = true;
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
   let j;
   try {
@@ -1410,7 +1441,7 @@ async function startPixWorker(o) {
   PIX_CODE = j.qr || '';
   el('pixQr').innerHTML = '<img src="data:image/png;base64,' + j.qrBase64 + '" alt="QR Code PIX">';
   el('pixStatus').textContent = 'Escaneie o QR ou copie o código. A confirmação é automática.';
-  el('btnPixCopy').hidden = false; el('btnPixCheck').hidden = false;
+  el('btnPixCopy').hidden = false;
   PIX_COUNT = Math.max(1, Number(j.expira || 1800));
   const tick = () => {
     const m = Math.floor(PIX_COUNT / 60), sg = PIX_COUNT % 60;
@@ -1419,7 +1450,7 @@ async function startPixWorker(o) {
     if (PIX_COUNT < 0) {
       pixStop();
       el('pixTimer').textContent = '⏱ QR expirado — feche e refaça o pedido.';
-      el('btnPixCheck').disabled = true; el('btnPixCopy').hidden = true;
+      el('btnPixCopy').hidden = true;
     }
   };
   tick(); PIX_TIMER = setInterval(tick, 1000);
@@ -1446,7 +1477,7 @@ window.pixCheck = pixCheck;
 ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).addEventListener('input', () => el(i).classList.remove('bad')));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (el('pixModal').classList.contains('open')) { pixStop(); el('pixModal').classList.remove('open'); }
+  if (el('pixModal').classList.contains('open')) { el('pixModal').classList.remove('open'); }
   else if (el('modal').classList.contains('open')) closeModal();
   else closeCart();
 });
@@ -1519,7 +1550,7 @@ document.addEventListener('keydown', e => {
     var o = opened();
     if (!o.length) { pushed = 0; return; }
     pushed = Math.max(0, pushed - 1);
-    if (o[0] === 'pixModal') { pixStop(); g('pixModal').classList.remove('open'); }
+    if (o[0] === 'pixModal') { g('pixModal').classList.remove('open'); }
     else if (o[0] === 'modal') closeModal();
     else closeCart();
   });
