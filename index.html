@@ -9,16 +9,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-.climap{height:130px;width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--glass);margin:2px 0 10px;touch-action:pan-y}
-.climap .leaflet-marker-icon{touch-action:none}
 .locmsg{font-size:12px;line-height:1.4;color:var(--muted);margin:0 2px 8px;min-height:17px}
 .locmsg.ok{color:var(--ok);font-weight:600}
 .locmsg.bad{color:var(--bad);font-weight:600}
-.leaflet-control-attribution{background:rgba(0,0,0,.55)!important;color:#bbb!important;font-size:9px!important}
-.leaflet-control-attribution a{color:#ddd!important}
-.leaflet-bar a{background:#1b1b21!important;color:#f6f2ee!important;border-color:#333!important}
 </style>
 <style>
 :root{--o:#ff6a00;--o2:#ffa04d;--bg:#0b0b0c;--glass:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);--text:#f6f2ee;--muted:#a59f98;--ok:#3ddc84;--bad:#ff5a4f;--font:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif}
@@ -79,7 +73,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:2px 0 2px 4px}
 .name{font-weight:800;font-size:16.5px}
 .desc{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.poster{display:none;width:calc(100% - 36px);margin:4px 18px 16px;padding:0;border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;aspect-ratio:12/5;background:#1b1b1b;box-shadow:0 14px 34px -16px #000;cursor:pointer;transition:transform .18s}.poster:active{transform:scale(.985)}.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.poster{display:none;width:calc(100% - 36px);margin:4px 18px 16px;padding:0;border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;aspect-ratio:11/5;background:#1b1b1b;box-shadow:0 14px 34px -16px #000;cursor:pointer;transition:transform .18s}.poster:active{transform:scale(.985)}.poster img{width:100%;height:100%;object-fit:cover;display:block}
 .was{color:#8d8780;font-weight:600;font-size:13px;margin-right:4px}.pbadge{position:absolute;top:6px;left:6px;z-index:2;background:linear-gradient(135deg,#ffb066,#ff6a00);color:#1a0d00;font-weight:800;font-size:11px;padding:3px 8px;border-radius:99px}
 .price{font-weight:800;color:var(--o2);font-size:16px;margin-top:auto;padding-top:6px}
 .thumb{width:108px;height:108px;border-radius:16px;overflow:hidden;flex:none;background:#1b1b1b;position:relative}
@@ -184,6 +178,108 @@ input,textarea,select{font-size:16px}
 @media(prefers-reduced-motion:reduce){.espp{display:none}.espi{animation:none}}
 </style>
 <noscript><style>html.boot .id h1,html.boot #storeStatus,html.boot .facts,html.boot .banner{opacity:1}</style></noscript>
+
+<style id="previewSkin">
+/* ===== Preview: layout estilo Brendi, mecanismo AVL intacto ===== */
+:root{--o:#ff6a00;--o2:#e35c00;--bg:#f4f5f7;--glass:#fff;--line:#e6e8eb;--text:#16181c;--muted:#7c848f;--ok:#16a34a;--bad:#e11d48}
+html,html.locked{background:#eef0f3!important;color-scheme:light!important}
+body{background:#eef0f3!important;color:var(--text)!important}
+.app{background:#fff!important;box-shadow:0 0 0 1px #e9ebee,0 24px 70px -34px #000;padding-bottom:calc(112px + env(safe-area-inset-bottom))!important}
+.app::before{display:none!important}
+.cover{height:clamp(140px,34vw,190px)!important;background:#222!important}
+.cover::after{background:linear-gradient(transparent 45%,rgba(255,255,255,.12))!important}
+.id{margin-top:-26px!important;padding:14px 16px!important;border-radius:24px 24px 0 0;background:#fff;align-items:center;gap:12px;box-shadow:0 -8px 24px -16px #000}
+.logo{width:60px!important;height:60px!important;border-radius:16px!important;border:0!important;box-shadow:0 3px 12px rgba(0,0,0,.18)!important}
+.id h1{font-size:18px!important;margin:0 0 4px!important;letter-spacing:0!important;color:#111!important}
+.status{font-size:11px!important;padding:3px 10px!important;background:#f1f5f9!important;border:0!important;color:#6b7280!important}
+.status.open{color:#15803d!important}.status.shut{color:var(--bad)!important}
+.facts{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:0!important;padding:0!important;margin:12px 0 0!important;border:1px solid var(--line)!important;border-radius:12px!important;overflow:hidden}
+.facts>span,.facts>div{border:0!important;border-right:1px solid var(--line)!important;border-radius:0!important;background:#fff!important;padding:10px 5px!important;text-align:center!important;font-size:11px!important;line-height:1.35!important;color:#3f4650!important}
+.facts>*:last-child{border-right:0!important}
+.facts b{color:#111!important;font-size:11px!important}
+#helpWa{display:none!important}
+.thanks{margin:18px 16px!important;background:#f8f9fb!important;border:1px solid var(--line)!important}
+.thanks h2,.thanks p{color:var(--text)!important}
+.thanks .social a{background:#fff!important;border-color:var(--line)!important;color:var(--text)!important}
+.banner{margin:0 16px!important;background:#fff7ed!important;border-color:#fed7aa!important;color:#9a3412!important}
+.bar{position:sticky!important;top:0!important;background:#fff!important;border-bottom:1px solid var(--line)!important;padding:8px 16px 0!important;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.search{height:38px!important;border-radius:999px!important;border:1px solid #d8dce2!important;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%237c848f' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='9' r='6'/%3E%3Cpath d='m14 14 4 4'/%3E%3C/svg%3E") 15px center no-repeat!important;padding:9px 16px 9px 42px!important;font-size:13px!important;color:#111!important}
+.search:focus{border-color:var(--o)!important}
+.tabs{gap:0!important;padding:6px 0 0!important}
+.tab{border:0!important;background:transparent!important;border-radius:0!important;padding:10px 14px!important;color:#8b929c!important;font-size:12.5px!important;font-weight:600!important;position:relative}
+.tab+.tab::before{content:"";position:absolute;left:0;top:25%;height:50%;width:1px;background:#d7dbe0}
+.tab.active{background:transparent!important;color:#111!important;font-weight:800!important}
+.tab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--o);border-radius:2px}
+#menuList{padding:0 16px!important}
+.sec{font-size:16px!important;text-align:center!important;margin:22px 0 8px!important;color:#111!important;font-weight:700!important}
+.card{display:flex!important;align-items:flex-start!important;gap:12px!important;width:100%!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:12px 0!important;margin:0!important;text-align:left!important}
+.card:hover{background:#fafbfc!important;border-color:var(--line)!important}
+.card:active{background:#fff7ed!important;transform:none!important}
+.info{padding:0!important;gap:6px!important}
+.name{font-size:13.5px!important;color:#18191c!important;font-weight:700!important;line-height:1.35!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.desc{font-size:11.5px!important;line-height:1.45!important;color:#7c848f!important;-webkit-line-clamp:3!important;margin-top:2px!important}
+.price{margin-top:auto!important;padding-top:10px!important;font-size:13px!important;color:#111!important;font-weight:800!important}
+.price::before{content:"A partir de ";font-size:11px;font-weight:500;color:#8a919b}
+.was{font-size:11px!important;color:#a1a7b0!important}
+.thumb{width:112px!important;height:112px!important;border-radius:12px!important;background:#f1f2f4!important}
+.qadd{display:none!important}
+.pbadge{border-radius:8px!important;font-size:10px!important;top:6px!important;left:6px!important}
+.empty{color:var(--muted)!important}
+#topShelf{margin:0;padding:14px 0 6px;border-bottom:8px solid #f4f5f7}
+#topShelf h2{font-size:16px;font-weight:700;text-align:center;margin:4px 0 12px;color:#111}
+.topScroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 6px;scrollbar-width:none}
+.topScroll::-webkit-scrollbar{display:none}
+.topCard{flex:0 0 150px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;text-align:left;padding:0}
+.topCard img{width:100%;height:132px;object-fit:cover;display:block;background:#f1f2f4}
+.topCard .tc-b{padding:8px 10px 10px;display:block}
+.topCard .tc-t{font-size:12.5px;font-weight:700;color:#18191c;line-height:1.3;min-height:33px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.topCard .tc-l{font-size:10px;color:#8a919b;display:block;margin-top:6px}
+.topCard .tc-p{font-size:12.5px;font-weight:800;color:#111;display:block}
+.topWrap{position:relative;display:block}
+.topBadge{position:absolute;top:6px;left:6px;background:rgba(255,190,120,.96);color:#7c2d12;font-size:9px;font-weight:700;padding:3px 7px;border-radius:8px}
+.poster{width:calc(100% - 32px)!important;margin:12px 16px!important;border-color:var(--line)!important;border-radius:14px!important;background:#f1f2f4!important}
+#waFooter{position:fixed;z-index:60;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:640px;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.05);padding-bottom:env(safe-area-inset-bottom)}
+#waFooter button{height:46px;width:100%;background:#fff;border:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12.5px;font-weight:700;color:#334155}
+#waFooter svg{width:16px;height:16px;fill:#16a34a;flex:none}
+#waFooter .pill{background:#f1f5f9;border-radius:999px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px}
+.cartbar{bottom:calc(58px + env(safe-area-inset-bottom))!important;width:calc(100% - 32px)!important;max-width:608px!important;border-radius:999px!important;background:#fff!important;border:1px solid var(--line)!important;padding:8px 8px 8px 18px!important;box-shadow:0 10px 26px -10px rgba(0,0,0,.24)!important}
+.cartbar small{color:#7c848f!important}.cartbar b{font-size:16px!important;color:#111!important}
+.cartbar .go{background:var(--o)!important;color:#fff!important;border-radius:999px!important;padding:11px 18px!important;font-size:13px!important}
+@keyframes bump{40%{transform:translateX(-50%) scale(1.03)}}
+.sheet-back{background:rgba(15,18,22,.5)!important}
+.sheet{background:#fff!important;border:0!important;border-radius:24px 24px 0 0!important;color:var(--text)!important;box-shadow:0 -10px 40px rgba(0,0,0,.22)}
+.sheet h2{color:var(--text)!important}.sheet p{color:var(--muted)!important}
+.big{color:var(--o)!important}
+.lbl{background:#f7f8fa!important;margin:16px -18px 0!important;padding:11px 18px!important;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:#111!important}
+.addon{border-bottom-color:var(--line)!important;color:var(--text)!important}
+.addon input{border-color:#c8cdd4!important}
+.addon input:checked{background:var(--o)!important;border-color:var(--o)!important}
+.field{background:#fff!important;border:1px solid #d8dce2!important;color:#111!important}
+.field:focus{border-color:var(--o)!important}.field.bad{border-color:var(--bad)!important}
+.err{color:var(--bad)!important}
+.btn.primary{background:linear-gradient(135deg,#ff8a3d,var(--o))!important;color:#fff!important}
+.btn.ghost{background:#fff!important;border:1px solid #d8dce2!important;color:#111!important}
+.btn.wa{background:#16a34a!important;color:#fff!important}
+.btn:disabled{background:#e5e7eb!important;color:#9ca3af!important}
+.qty{border-color:#d8dce2!important;background:#fff!important}.qty button{color:var(--o)!important}
+.page{background:rgba(15,18,22,.5)!important}
+.page-in{background:#fff!important;box-shadow:0 0 40px rgba(0,0,0,.22)}
+.ph{background:#fff!important;border-bottom:1px solid var(--line)!important}.ph h2{color:#111!important}
+.back{background:#f3f4f6!important;color:#111!important}
+.h3{color:#111!important}
+.line{border-bottom-color:var(--line)!important;color:#111!important}.line small{color:var(--muted)!important}
+.mini{border-color:#d8dce2!important;background:#fff!important}.mini button{color:var(--o)!important}
+.pay{border-color:#d8dce2!important;background:#fff!important;color:#111!important}
+.pay.sel{border-color:var(--o)!important;background:#fff7f0!important}
+.chip{border-color:#d8dce2!important;background:#fff!important;color:#111!important}
+.chip.sel{background:var(--o)!important;border-color:var(--o)!important;color:#fff!important}
+.calc{background:#fff7f0!important;border-color:#fed7aa!important;color:#9a3412!important}
+.sum div{color:var(--muted)!important}.sum .tot{color:#111!important;border-top-color:var(--line)!important}
+.pixkey{background:#f8f9fb!important;border-color:#fdba74!important;color:#111!important}
+.toast{background:#18191c!important;color:#fff!important}
+.locmsg{color:var(--muted)!important}.locmsg.ok{color:var(--ok)!important}.locmsg.bad{color:var(--bad)!important}
+.thanks .social img{width:19px!important}
+</style>
 </head>
 <body>
 <div id="toasts" role="status" aria-live="polite"></div>
@@ -211,6 +307,7 @@ input,textarea,select{font-size:16px}
     </div>
   </div>
   <button type="button" class="poster" id="poster" aria-label="Ver promoção"><img id="posterImg" data-pid="_poster" alt="" decoding="async" onerror="this.style.display='none'"></button>
+  <section id="topShelf" hidden><h2>Mais Pedidos</h2><div class="topScroll" id="topScroll"></div></section>
   <section id="menuList" aria-live="polite"></section>
   <section class="thanks">
     <h2>Obrigado por pedir com a gente! ❤️</h2>
@@ -221,6 +318,8 @@ input,textarea,select{font-size:16px}
     </div>
   </section>
 </main>
+
+<div id="waFooter"><button id="waFooterBtn" type="button"><span class="pill"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/></svg>Tirar dúvidas no WhatsApp</span>›</button></div>
 
 <button class="cartbar" id="cartbar" aria-label="Abrir sacola">
   <span><small>Total sem a entrega</small><b id="cartSubtotal">R$ 0,00</b> <small id="cartCount" style="display:inline">0 itens</small></span>
@@ -274,9 +373,8 @@ input,textarea,select{font-size:16px}
     <div id="cliNote" style="font-size:12px;color:var(--muted);margin:0 2px 10px"></div>
 
     <div class="h3">Local da entrega</div>
-    <div id="cliMap" class="climap"></div>
-    <button id="cliGeo" class="btn ghost" style="width:100%;margin:8px 0 0">Usar minha localização</button>
-    <div id="locMsg" class="locmsg">Toque no mapa para marcarmos onde você está.</div>
+    <button id="cliGeo" class="btn ghost" style="width:100%;margin:0 0 8px">Usar minha localização</button>
+    <div id="locMsg" class="locmsg">Opcional: use sua localização para confirmarmos a entrega.</div>
     <div class="err" id="e_loc"></div>
 
     <div class="h3">Pagamento</div>
@@ -330,7 +428,7 @@ const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do pai
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/' + FB_PROJECT + '/databases/(default)/documents';
 let CONFIG = { phone: '5534984405375', fee: 4.99, pixKey: '8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74' };
 let ENT = { fee: null, lat: null, lng: null, raio: 0, restrito: false, areas: [] };
-let CLIENT_GEO = null, CLIMAP = null, CLIMARK = null;
+let CLIENT_GEO = null;
 let OPEN_H = 19, CLOSE_H = 23, FORCE = 'auto', STORE = 'Avalanches'; // valores padrão; o painel online sobrescreve
 const hh = h => String(h).padStart(2, '0') + ':00';
 function applyHours() {
@@ -518,6 +616,15 @@ function showToast(m) {
   el('toasts').appendChild(t); setTimeout(() => t.remove(), 2800);
 }
 
+(function () {
+  const b = el('waFooterBtn');
+  if (b) b.onclick = () => {
+    const n = String(CONFIG.phone || '').replace(/\D/g, '');
+    const u = 'https://wa.me/' + n + '?text=' + encodeURIComponent('Olá! Preciso de ajuda com meu pedido.');
+    window.open(u, '_blank');
+  };
+})();
+
 /* Horário de funcionamento (fuso de Brasília) */
 function closedMsg() { showToast(FORCE === 'fechado' ? 'Estamos fechados no momento.' : 'Estamos fechados agora. Abrimos às ' + hh(OPEN_H) + '.'); }
 function checkOpen() {
@@ -535,7 +642,7 @@ function checkOpen() {
 
 /* Cardápio */
 function card(it) {
-  return `<button class="card" data-id="${esc(it.id)}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"><span class="qadd" data-q="${esc(it.id)}" role="button" aria-label="Adicionar ${esc(it.name)}">+</span></div></button>`;
+  return `<button class="card" data-id="${esc(it.id)}"><div class="info"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.desc)}</div><div class="price">${promoOn(it) ? `<s class="was">${fmt(it.price)}</s> ${fmt(ePrice(it))}` : fmt(it.price)}</div></div><div class="thumb">${promoOn(it) ? `<span class="pbadge">−${Math.round((1 - ePrice(it) / it.price) * 100)}%</span>` : ''}<img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'"></div></button>`;
 }
 function render() {
   const q = el('search').value.trim().toLowerCase();
@@ -549,8 +656,18 @@ function render() {
   });
   else html = list.map(card).join('');
   el('menuList').innerHTML = html;
+  renderTop(list, q);
   document.querySelectorAll('#menuList .card').forEach((c, i) => { c.classList.add('enter'); c.style.animationDelay = Math.min(i, 9) * 50 + 'ms'; });
 }
+function renderTop(list, q) {
+  const show = cat === 'all' && !q && list.length > 0;
+  el('topShelf').hidden = !show;
+  if (!show) { el('topScroll').innerHTML = ''; return; }
+  el('topScroll').innerHTML = list.slice(0, 6).map((it, i) =>
+    `<button class="topCard" data-id="${esc(it.id)}"><span class="topWrap"><img data-pid="${esc(it.id)}" src="${esc(imgSrc(it))}" alt="${esc(it.name)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='logo.jpeg'">${i === 0 ? '<span class="topBadge">🔥 O favorito!</span>' : ''}</span><span class="tc-b"><span class="tc-t">${esc(it.name)}</span><span class="tc-l">${promoOn(it) ? 'Promoção' : 'A partir de'}</span><span class="tc-p">${fmt(promoOn(it) ? ePrice(it) : it.price)}</span></span></button>`
+  ).join('');
+}
+el('topScroll').onclick = e => { const c = e.target.closest('.topCard'); if (c) openProd(ITEMS.find(i => i.id === c.dataset.id)); };
 el('menuList').onclick = e => {
   const q = e.target.closest('.qadd');
   if (q) { quickAdd(ITEMS.find(i => i.id === q.dataset.q), q); return; }
@@ -638,8 +755,7 @@ el('cartItems').onclick = e => {
   if (!Object.keys(CART).length) closeCart();
 };
 function openCart() {
-  renderCartItems(); el('cartPage').classList.add('open'); initCliMap(); renderLoc();
-  setTimeout(() => { try { CLIMAP.invalidateSize(); } catch (e) {} }, 120);
+  renderCartItems(); el('cartPage').classList.add('open'); renderLoc();
 }
 function closeCart() { el('cartPage').classList.remove('open'); }
 el('cartbar').onclick = openCart;
@@ -745,42 +861,14 @@ function areaStatus(lat, lng) {
 }
 function renderLoc() {
   const box = document.getElementById('locMsg'); if (!box) return;
-  if (!CLIENT_GEO) { box.className = 'locmsg'; box.textContent = 'Toque no mapa ou use sua localização para confirmarmos a entrega.'; return; }
+  if (!CLIENT_GEO) { box.className = 'locmsg'; box.textContent = 'Opcional: use sua localização para confirmarmos a entrega.'; return; }
   const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng);
   box.className = 'locmsg ' + (s.ok ? 'ok' : 'bad');
   box.textContent = (s.ok ? '✓ ' : '✕ ') + (s.txt || 'Entregamos nesse local!');
   const err = document.getElementById('e_loc'); if (err && s.ok) err.textContent = '';
 }
-function drawCliAreas() {
-  /* Cliente nao ve circulos de raio/areas: apenas o pino dele */
-  if (!CLIMAP) return;
-  if (CLIMAP._areas) CLIMAP._areas.forEach(a => { try { CLIMAP.removeLayer(a); } catch (e) {} });
-  CLIMAP._areas = [];
-}
-let CLIMARK_TIMER = null;
 function setPin(la, lo, acc) {
   CLIENT_GEO = { lat: la, lng: lo, acc: acc || 0 };
-  if (CLIMARK && CLIMAP) CLIMAP.removeLayer(CLIMARK);
-  if (window.L && CLIMAP) {
-    /* O mapa nao arrasta com o dedo; o pino so solta depois de apertar e segurar. */
-    CLIMARK = L.marker([la, lo], { draggable: false, keyboard: false }).addTo(CLIMAP);
-    const arm = () => {
-      clearTimeout(CLIMARK_TIMER);
-      CLIMARK_TIMER = setTimeout(() => { try { CLIMARK && CLIMARK.dragging.enable(); } catch (e) {} }, 450);
-    };
-    const relax = () => {
-      clearTimeout(CLIMARK_TIMER);
-      setTimeout(() => { if (CLIMARK && !CLIMARK._arrastando) { try { CLIMARK.dragging.disable(); } catch (e) {} } }, 80);
-    };
-    CLIMARK.on('mousedown touchstart', arm);
-    CLIMARK.on('mouseup touchend mouseout', relax);
-    CLIMARK.on('dragstart', () => { CLIMARK._arrastando = true; clearTimeout(CLIMARK_TIMER); });
-    CLIMARK.on('dragend', e => {
-      CLIMARK._arrastando = false;
-      try { CLIMARK.dragging.disable(); } catch (er) {}
-      const p = e.target.getLatLng(); setPin(p.lat, p.lng, 0);
-    });
-  }
   const err = document.getElementById('e_loc'); if (err) err.textContent = '';
   renderLoc();
   fillAddrFromGeo(la, lo);
@@ -816,13 +904,6 @@ async function fillAddrFromGeo(la, lo) {
     apt(road, bairro, a.house_number || '');
   } catch (e) {}
 }
-function initCliMap() {
-  if (!window.L || CLIMAP || !document.getElementById('cliMap')) return;
-  CLIMAP = L.map('cliMap', { scrollWheelZoom: false, zoomControl: false, dragging: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false }).setView([Number(ENT.lat) || -22.8808, Number(ENT.lng) || -43.1940], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(CLIMAP);
-  CLIMAP.on('click', e => setPin(e.latlng.lat, e.latlng.lng));
-  drawCliAreas(); setTimeout(() => { try { CLIMAP.invalidateSize(); } catch (e) {} }, 150);
-}
 const locLink = () => CLIENT_GEO ? ('https://www.google.com/maps/search/?api=1&query=' + CLIENT_GEO.lat.toFixed(6) + '%2C' + CLIENT_GEO.lng.toFixed(6)) : '';
 async function loadAreas() {
   let ok = false;
@@ -846,7 +927,7 @@ async function loadAreas() {
     }
   } catch (e) {}
   if (!Number.isFinite(+ENT.fee) || +ENT.fee < 0) ENT.fee = CONFIG.fee;
-  initCliMap(); drawCliAreas(); renderLoc(); updateCart();
+  renderLoc(); updateCart();
 }
 (function () {
   const b = document.getElementById('cliGeo');
@@ -861,9 +942,8 @@ async function loadAreas() {
       clearTimeout(timer);
       try { navigator.geolocation.clearWatch(wid); } catch (e) {}
       b.disabled = false; b.textContent = txt;
-      if (!melhor) return showToast('Não consegui pegar sua localização. Toque no mapa.');
+      if (!melhor) return showToast('Não consegui pegar sua localização. Você pode digitar o endereço.');
       setPin(melhor.la, melhor.lo, melhor.acc);
-      try { CLIMAP.flyTo([melhor.la, melhor.lo], 16); } catch (e) {}
       showToast('Local obtido (precisão de ~' + Math.round(melhor.acc) + ' m). Confira o endereço.');
     };
     try {
@@ -931,9 +1011,8 @@ function validate() {
   ];
   let first = null;
   checks.forEach(c => { if (c[0]) { fail(c[1], c[2], c[3]); first = first || el(c[2]); } });
-  const needLoc = +ENT.raio > 0 || ENT.restrito || (Array.isArray(ENT.areas) && ENT.areas.length > 0);
-  if (needLoc && !CLIENT_GEO) { fail(null, 'e_loc', 'Marque sua localização no mapa para continuarmos.'); first = first || el('e_loc'); }
-  else if (CLIENT_GEO) { const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng); if (!s.ok) { fail(null, 'e_loc', s.txt); first = first || el('e_loc'); } }
+  /* Localização é opcional: só validamos a área se o cliente optar por usar. */
+  if (CLIENT_GEO) { const s = areaStatus(CLIENT_GEO.lat, CLIENT_GEO.lng); if (!s.ok) { fail(null, 'e_loc', s.txt); first = first || el('e_loc'); } }
   const total = cartTotal();
   const given = parseFloat(el('cashGiven').value);
   if (PAYMENT === 'dinheiro' && !NOCHG && !el('cashGiven').value) { fail(null, 'e_cash', 'Informe se precisa de troco.'); first = first || el('e_cash'); }

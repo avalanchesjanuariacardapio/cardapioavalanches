@@ -564,12 +564,13 @@ const ok=FB.projectId!=='COLE_AQUI';let auth,db;
 if(ok){const app=initializeApp(FB);auth=getAuth(app);db=getFirestore(app)}
 const KEY='avl_admin_v2';
 const IT=[['i_cq','hamburgueres','Cachorro Quente','Pão, salsicha, mortadela, mussarela, batata, milho, molho',8,'cachoro quente na chapa.jpeg'],['i_hb','hamburgueres','Hambúrguer','Pão, carne, batata, alface, tomate, molho especial',12,'logo.jpeg'],['i_xb','hamburgueres','X-Burguer','Pão, carne, mussarela, batata, milho, alface, tomate',15,'xburguer.jpeg'],['i_xs','hamburgueres','X-Salada','Pão, carne, mussarela, presunto, alface, tomate, milho, batata',16,'xburguer.jpeg'],['i_xe','hamburgueres','X-Egg','Pão, carne, mussarela, ovo, presunto, salada, batata',17,'xburguer.jpeg'],['i_xc','hamburgueres','X-Calabresa','Pão, carne, mussarela, calabresa, salada, batata',18,'xburguer.jpeg'],['i_xba','hamburgueres','X-Bacon','Pão, carne, mussarela, bacon, salada, batata',19,'xburguer.jpeg'],['i_fb','hamburgueres','Franburguer','Pão, frango desfiado, mussarela, salada, batata, milho',18,'logo.jpeg'],['i_xtudo','hamburgueres','X-Tudo','Pão, carne, bacon, ovo, presunto, mussarela, calabresa, milho, batata, salada',25,'xtudo.jpeg'],['i_av','hamburgueres','Avalanches','Pão, carne, bacon, frango, ovo, presunto, mussarela, calabresa, cebola roxa, milho, batata, tudo',27,'Avalanche.jpeg'],['b_guarana350','bebidas','Guaraná Lata','350ml',5,'guarana lata.jpg'],['b_coca350','bebidas','Coca-Cola Lata','350ml',5.5,'coca-cola lata.jpg']];
-const DEF={loja:{nome:'Avalanches',phone:'5534984405375',fee:4.99,pixKey:'14421d15-c771-4ab9-8e7f-fd69e987af1a',open:19,close:23,modo:'auto'},
+const DEF={loja:{nome:'Avalanches',phone:'5534984405375',fee:4.99,pixKey:'8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74',open:19,close:23,modo:'auto'},
 cats:[{id:'hamburgueres',name:'Burguers',extras:true},{id:'bebidas',name:'Bebidas',extras:false}],
 items:IT.map(a=>({id:a[0],cat:a[1],name:a[2],desc:a[3],price:a[4],image:a[5],ativo:true})),
 addons:[{id:'a_carne',name:'Carne',price:4},{id:'a_bacon',name:'Bacon',price:4},{id:'a_ovo',name:'Ovo',price:3}]};
 let D;try{D=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!D||!D.items)D=JSON.parse(JSON.stringify(DEF));
+if(D.loja&&D.loja.pixKey==='14421d15-c771-4ab9-8e7f-fd69e987af1a')D.loja.pixKey='8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74';
 {const L0=D.loja||DEF.loja;for(const k in DEF.loja)if(D.loja[k]===undefined)D.loja[k]=DEF.loja[k];D.loja.fee=Number.isFinite(+L0.fee)?+L0.fee:DEF.loja.fee}
 const DEFE={fee:+D.loja.fee||4.99,lat:-22.8808,lng:-43.1940,raio:5,restrito:false,areas:[]};
 let ENT;try{ENT=JSON.parse(localStorage.getItem('avl_ent'))}catch(e){}
@@ -1156,7 +1157,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='cpr'){CPR=v;CUERR='';view()}else if(a=='cpref'){CUERR='';if(CUS[CPR])CUS[CPR].at=0;view()}else if(a=='esp')espSheet();else if(a=='espsave')espSave();else if(a=='espoff')espOff();else if(a=='ntf')askNotif();else if(a=='ntt')testNote();else if(a=='rp'){RP=v;RMORE=50;if(RP=='custom'&&!RA)RA=RB=ymd(0);startRep();relRender()}else if(a=='rmore'){RMORE+=50;relRender()}else if(a=='cf'){CF=v;cliRender()}else if(a=='cx'){CLO.has(v)?CLO.delete(v):CLO.add(v);$('clist').innerHTML=cliList()}else if(a=='cwa'){const c=CL.find(x=>x.k==v);if(c)window.open('https://wa.me/'+c.k+'?text='+encodeURIComponent(cliMsg(c)),'_blank','noopener')}else if(a=='cref'){CLT=0;loadCli()}
  else if(a=='pvd'){$('pr_a').value=v=='-1'?'':ymd(+v);$('pr_e').checked=true;promoPrev()}
  else if(a=='catpromo'){const q=await askText('Desconto em % para TODOS os itens desta categoria (0 remove as promoções):','10');if(q===null)return;const n=+String(q).replace(',','.');if(!(n>=0&&n<=95))return toast('Digite um valor de 0 a 95');let ate='';if(n>0){const d=await askText('Por quantos dias? (0 = sem prazo)','7');if(d===null)return;ate=+d>0?ymd(+d-1):''}D.items.forEach(i=>{if(i.cat==v){if(n>0)i.promo={tipo:'pct',valor:n,ate};else delete i.promo}});save();view();toast(n>0?'Promoção aplicada':'Promoções removidas')}
- else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.4,960,false,r=>{D.loja.poster=r;save();view()});
+ else if(a=='rpo')crop(ps({id:'_poster',image:D.loja.poster}),2.2,960,false,r=>{D.loja.poster=r;save();view()});
  else if(a=='dpo'){if(await askConfirm('Remover o poster do cardápio?')){delete D.loja.poster;delete D.loja.posterItem;save();view()}}
  else if(a=='pod'){$('po_a').value=v=='-1'?'':ymd(+v);$('po_e').checked=true;poSave()}
  else if(a=='en_lock'){const r=$('en_raio'),btn=document.querySelector('[data-a="en_lock"]'),msg=$('en_lock_msg');if(!r)return;const libera=r.disabled;r.disabled=!libera;r.style.opacity=libera?'1':'.45';r.style.cursor=libera?'pointer':'not-allowed';if(btn)btn.textContent=libera?'🔓 Ajustando raio':'🔒 Destravar ajuste';if(msg)msg.textContent=libera?'Ajuste o raio e toque em “Salvar área de entrega”':'A barra está travada para evitar mudanças acidentais'}
@@ -1205,7 +1206,7 @@ document.addEventListener('change',e=>{const t=e.target;
   ZD.code=zcode();zsave();zapRender()}
  if(t.dataset.zatog){const c=CUP.find(x=>x.code==t.dataset.zatog);if(c){c.ativo=t.checked;zapRender();setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)))}}
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
- if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.4,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
+ if(t.id=='po'&&t.files[0]){readF(t.files[0],u=>crop(u,2.2,960,false,r=>{D.loja.poster=r;if(!D.items.some(i=>i.id==D.loja.posterItem))D.loja.posterItem=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
  if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
  if(t.id=='imp'&&t.files[0]){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.items||!j.cats||!j.loja)throw 0;D=j;D.addons=D.addons||[];save();view();toast('Cardápio carregado')}catch(x){toast('Arquivo inválido')}};r.readAsText(t.files[0])}});
 $('back').onclick=e=>{if(e.target==$('back'))closeBack($('back'))};
@@ -1741,7 +1742,7 @@ const pTxt=i=>pOn(i)?brl(i.price)+' → '+brl(pFin(i))+' · promoção'+(i.promo
 function promoPrev(){const e=$('pr_pv');if(!e)return;const p=parseFloat($('s_p').value)||0,v=parseFloat($('pr_v').value)||0,t=$('pr_t').value;if(!$('pr_e').checked||!v){e.textContent='';return}
  const f=t=='pct'?Math.round(p*(100-Math.min(v,100)))/100:Math.min(v,p);e.textContent='De '+brl(p)+' por '+brl(f)+(p>0?' (−'+Math.round((1-f/p)*100)+'%)':'')}
 function posterCard(){const L=D.loja,has=!!L.poster,u=has?ps({id:'_poster',image:L.poster}).replace(/'/g,'%27'):'';
- return `<div class="card"><h3>${ICO.image}Poster do cardápio</h3><p class="sub" style="margin:-6px 0 10px">Aparece no topo do cardápio, sem nome, só quando você adiciona. Ideal: foto horizontal.</p><div class="pic" style="aspect-ratio:12/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
+ return `<div class="card"><h3>${ICO.image}Poster do cardápio</h3><p class="sub" style="margin:-6px 0 10px">Aparece no topo do cardápio, sem nome, só quando você adiciona. Ideal: foto horizontal.</p><div class="pic" style="aspect-ratio:11/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
  <div class="two">${fb('po',ICO.image,has?'Trocar poster':'Adicionar poster',has?'Toque para escolher outra imagem':'Imagem horizontal · toque para escolher')}${has?`<button class="btn" data-a="rpo">${ICO.edit}Ajustar enquadramento</button>`:''}</div>
  ${has?`<label style="margin-top:12px">Ao tocar no poster, abrir o item:<select data-pi>${D.items.map(i=>`<option value="${esc(i.id)}" ${L.posterItem==i.id?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>${poPromo()}<button class="btn full danger" data-a="dpo">Remover poster</button>`:''}</div>`}
 function poPromo(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return '';const pr=it.promo;
@@ -1767,7 +1768,7 @@ document.addEventListener('keydown',e=>{if(e.key=='Enter'&&$('pw')&&document.act
  if(e.key=='Escape'&&document.body.classList.contains('side-open'))toggleSide(false)});
 window.matchMedia&&matchMedia('(min-width:960px)').addEventListener('change',e=>{if(!e.matches)toggleSide(false);else if(user)setChrome(true)});
 async function pull(){
- if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[]}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
+ if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[];if(D.loja&&D.loja.pixKey==='14421d15-c771-4ab9-8e7f-fd69e987af1a')D.loja.pixKey='8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74'}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
 
  try{const x=await getDoc(doc(db,'cardapio','entregas'));if(x.exists()){const e=JSON.parse(x.data().json);if(e&&typeof e==='object'){ENT={...ENT,...e};ENT.areas=Array.isArray(ENT.areas)?ENT.areas:[];try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(z){}}}}catch(e){}
   try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists()){PRAZO=+x.data().prazo||40;try{ES={...ES,...JSON.parse(x.data().esp||'{}')}}catch(e){}}}catch(e){}
