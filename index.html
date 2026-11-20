@@ -54,6 +54,8 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .facts{display:flex;flex-wrap:wrap;gap:8px;padding:16px 18px 18px;color:var(--muted);font-size:13px}
 .facts span{background:var(--glass);border:1px solid var(--line);border-radius:99px;padding:6px 13px}
 .facts b{color:var(--o2)}
+.facts .free-ship{color:#3ddc84;border-color:rgba(61,220,132,.45);background:rgba(61,220,132,.10)}
+.facts .free-ship b,.facts .free-ship span{color:#3ddc84}
 .helpwa{margin:2px 0 0;display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:99px;border:1px solid rgba(255,106,0,.5);background:rgba(255,106,0,.16);color:var(--o2);font:700 12.5px var(--font);text-decoration:none;white-space:nowrap}
 .helpwa svg{width:15px;height:15px;fill:currentColor}
 .thanks{margin:18px 18px 6px;padding:16px 14px 14px;text-align:center;border-radius:16px;background:var(--glass);border:1px solid var(--line)}
@@ -143,14 +145,14 @@ textarea.field{resize:none}
 .chk-actions{width:100%;padding:10px;border-radius:18px;background:rgba(11,11,12,.97);border:1px solid var(--line);box-shadow:0 -8px 26px rgba(0,0,0,.45)}
 .chk-actions .btn{margin:0}
 .chk-actions .btn+.btn{margin-top:6px}
-/* Progresso das etapas: pontos grandes, na barra de baixo acima do botao. */
-.chk-progress{display:flex;align-items:center;margin:0 12px 9px;height:18px}
-.chk-progress .seg{height:5px;flex:1;background:rgba(255,255,255,.16);border-radius:5px;position:relative;overflow:hidden}
+/* Progresso das etapas: bem compacto, linhas fininhas, acima do botao. */
+.chk-progress{display:flex;align-items:center;width:116px;height:10px;margin:0 auto 9px}
+.chk-progress .seg{height:2px;flex:1;background:rgba(255,255,255,.16);border-radius:2px;position:relative;overflow:hidden}
 .chk-progress .seg i{position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--o),var(--o2));transition:width .45s cubic-bezier(.2,.9,.3,1)}
 .chk-progress .seg.on i{width:100%}
-.chk-progress .dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.28);flex:none;transition:background .35s,transform .35s,box-shadow .35s}
-.chk-progress .dot.on{background:var(--o);transform:scale(1.1);box-shadow:0 0 0 5px rgba(255,106,0,.16)}
-.chk-progress .dot.now{background:#fff;box-shadow:0 0 0 6px rgba(255,106,0,.3)}
+.chk-progress .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.28);flex:none;transition:background .35s,transform .35s,box-shadow .35s}
+.chk-progress .dot.on{background:var(--o);transform:scale(1.08);box-shadow:0 0 0 3px rgba(255,106,0,.14)}
+.chk-progress .dot.now{background:#fff;box-shadow:0 0 0 4px rgba(255,106,0,.26)}
 /* Entrada suave de cada etapa (frente ao avancar, atras ao voltar). */
 .chk-step.enter-fwd{animation:chkFwd .36s cubic-bezier(.2,.9,.3,1) both}
 .chk-step.enter-back{animation:chkBack .36s cubic-bezier(.2,.9,.3,1) both}
@@ -315,7 +317,10 @@ body{background:#eef0f3!important;color:var(--text)!important}
 .chk-progress .seg{background:#dfe3e9!important}
 .chk-progress .dot{background:#b9bec7!important}
 .chk-progress .dot.on{background:var(--o)!important}
-.chk-progress .dot.now{background:#fff!important;box-shadow:0 0 0 6px rgba(255,106,0,.32)!important}
+.chk-progress .dot.now{background:#fff!important;box-shadow:0 0 0 4px rgba(255,106,0,.3)!important}
+/* Entrega gratis no topo, sempre verde nos dois temas. */
+.facts .free-ship{color:#15803d!important;border-color:rgba(22,163,74,.45)!important;background:rgba(22,163,74,.12)!important}
+.facts .free-ship b,.facts .free-ship span{color:#15803d!important}
 .ph{background:#fff!important;border-bottom:1px solid var(--line)!important}.ph h2{color:#111!important}
 .back{background:#f3f4f6!important;color:#111!important}
 .h3{color:#111!important}
@@ -348,7 +353,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
         <div class="status" id="storeStatus"><i></i><span>Carregando...</span></div>
       </div>
     </div>
-    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span>Taxa de entrega <b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span><a id="helpWa" class="helpwa" href="https://wa.me/5534984405375?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/><path d="M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z"/></svg>Ajuda</a></div>
+    <div class="facts"><span id="hoursText">Seg a Dom: 19:00 às 23:00</span><span id="feeFact"><span id="feeLabel">Taxa de entrega </span><b id="heroFee">R$ 4,99</b></span><span id="etaChip" style="display:none">Tempo de preparo <b id="etaText"></b></span><a id="helpWa" class="helpwa" href="https://wa.me/5534984405375?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.03.8.81-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78z"/><path d="M16.6 14.8c-.23-.11-1.35-.67-1.56-.74-.2-.08-.35-.11-.5.11s-.57.74-.7.89c-.13.15-.26.17-.49.06-.23-.11-.97-.36-1.85-1.14a7 7 0 0 1-1.28-1.59c.13-.11.28-.26.42-.39.14-.13.18-.22.27-.37.09-.15.05-.28-.02-.39-.08-.11-.5-1.21-.68-1.66-.18-.44-.37-.38-.5-.39h-.43c-.15 0-.39.06-.6.28-.2.22-.79.78-.79 1.9s.81 2.2.92 2.35c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.35-.55 1.54-1.09.19-.54.19-1 .13-1.1-.06-.11-.2-.17-.44-.28z"/></svg>Ajuda</a></div>
   </header>
   <div class="banner" id="banner">Estamos fechados agora. Você já pode montar seu pedido: ele será atendido a partir das <span id="bannerHour">19:00</span>.</div>
 
@@ -586,20 +591,20 @@ async function showLinkCupom(base) {
   const code = linkCupCode();
   if (!/^[A-Z0-9]{3,20}$/.test(code)) return;
   const msg = el('couponMsg');
-  const say = t => { if (msg) { msg.style.color = t.indexOf('Erro') === 0 ? 'var(--bad)' : ''; msg.textContent = t; } };
+  const say = (t, good) => { if (msg) { msg.style.color = good === true ? 'var(--ok)' : (good === false || t.indexOf('Erro') === 0 ? 'var(--bad)' : ''); msg.textContent = t; } };
   try {
     const r = await fetch(base + '/cupons/' + code, { cache: 'no-store' });
-    if (!r.ok) return say('Cupom inválido.');
+    if (!r.ok) return say('Cupom inválido.', false);
     const c = JSON.parse((await r.json()).fields.json.stringValue);
-    if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.');
-    if (c.ativo === false) return say('Este cupom está pausado.');
+    if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.', false);
+    if (c.ativo === false) return say('Este cupom está pausado.', false);
     const today = new Date().toLocaleDateString('sv-SE');
-    if (c.ate && today > c.ate) return say('Este cupom expirou.');
+    if (c.ate && today > c.ate) return say('Este cupom expirou.', false);
     const rev = String(c.rev || '');
     try { const m = JSON.parse(localStorage.getItem('avl_esp_rev') || '{}'); m[code] = rev; localStorage.setItem('avl_esp_rev', JSON.stringify(m)); } catch (e) {}
     const ci = el('couponIn'); if (ci) ci.value = code;
-    if (cupUsed(code)) return say('Erro: este cupom já foi usado neste aparelho/telefone.');
-    if (msg) { msg.style.color = 'var(--ok)'; msg.textContent = 'Cupom ' + code + ' preparado para você. Toque em Aplicar na sacola.'; }
+    if (cupUsed(code)) return say('Erro: este cupom já foi usado neste aparelho/telefone.', false);
+    say('Cupom ' + code + ' preparado para você. Toque em Aplicar na sacola.', true);
   } catch (e) {}
 }
 /* Toda chamada de abertura tem prazo: se a internet travar, o cardapio
@@ -902,13 +907,21 @@ function updateCart() {
   el('cartbar').classList.toggle('show', count > 0);
   el('cartCount').textContent = count + (count > 1 ? ' itens' : ' item');
   el('cartSubtotal').textContent = fmt(sub);
-  if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').style.color = ''; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
+  if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
   el('subtotalText').textContent = fmt(sub);
   const dsc = discount(sub);
   el('discRow').style.display = COUPON ? 'flex' : 'none';
   el('discCode').textContent = COUPON ? '(' + COUPON.code + ')' : '';
   el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) : '';
-  el('feeText').textContent = fmt(feeNow()); el('heroFee').textContent = fmt(taxaAtual());
+  el('feeText').textContent = fmt(feeNow());
+  /* Frete zero: mostra "Entrega grátis" em verde no topo do site. */
+  const freeShip = feeNow() === 0, fact = el('feeFact');
+  if (fact) {
+    fact.classList.toggle('free-ship', freeShip);
+    const lbl = el('feeLabel'), hf = el('heroFee');
+    if (lbl) lbl.textContent = freeShip ? 'Entrega ' : 'Taxa de entrega ';
+    if (hf) hf.textContent = freeShip ? 'grátis' : fmt(taxaAtual());
+  }
   el('totalText').textContent = fmt(cartTotal());
   renderCash();
   save();
@@ -1382,28 +1395,29 @@ el('btnPixClose').onclick = () => { el('pixModal').classList.remove('open'); };
 /* Cupom de desconto (criado no painel, guardado em cupons/CODIGO) */
 async function applyCoupon() {
   const msg = el('couponMsg'), btn = el('couponBtn'), code = el('couponIn').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const say = (t, good) => { msg.textContent = t; msg.style.color = good ? 'var(--ok)' : (t.indexOf('Erro') === 0 ? 'var(--bad)' : ''); };
+  /* null = neutro, true = verde (valido), false = vermelho (invalido). */
+  const say = (t, good) => { msg.textContent = t; msg.style.color = good === true ? 'var(--ok)' : (good === false || t.indexOf('Erro') === 0 ? 'var(--bad)' : ''); };
   el('couponIn').value = code;
-  if (!code) { if (COUPON) { COUPON = null; updateCart(); say('Cupom removido.', true); } else say('Digite o código do cupom.'); return; }
-  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return say('Cupons indisponíveis no momento.');
+  if (!code) { if (COUPON) { COUPON = null; updateCart(); say('Cupom removido.', true); } else say('Digite o código do cupom.', false); return; }
+  if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return say('Cupons indisponíveis no momento.', false);
   if (COUPON) { COUPON = null; updateCart(); }
-  btn.disabled = true; say('Verificando…', true);
+  btn.disabled = true; say('Verificando…');
   try {
     const r = await fetch(FS_BASE + '/cupons/' + code, { cache: 'no-store' });
-    if (r.status === 404) return say('Cupom inválido.');
+    if (r.status === 404) return say('Cupom inválido.', false);
     if (!r.ok) throw 0;
     const c = JSON.parse((await r.json()).fields.json.stringValue);
-    if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.');
-    if (c.ativo === false) return say('Este cupom não está ativo.');
-    if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.');
-    if (cupUsed(code)) return say('Erro: você já usou este cupom neste aparelho.');
-    if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.');
+    if (!['pct', 'fixo', 'frete'].includes(c.tipo)) return say('Cupom inválido.', false);
+    if (c.ativo === false) return say('Este cupom não está ativo.', false);
+    if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.', false);
+    if (cupUsed(code)) return say('Erro: você já usou este cupom neste aparelho.', false);
+    if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.', false);
     // Usa sempre a versão que veio do cupom agora. A avl_esp_rev serve só para mostrar
     // o aviso especial no link; ela nunca aplica desconto sozinha nem deve reaproveitar
     // a versão antiga de um código recriado no painel.
     COUPON = { code, tipo: c.tipo, valor: +c.valor || 0, min: +c.min || 0, ate: c.ate || '', rev: String(c.rev || '') };
     updateCart(); say('Cupom aplicado!', true);
-  } catch (e) { say('Não foi possível validar o cupom agora. Tente de novo.'); }
+  } catch (e) { say('Não foi possível validar o cupom agora. Tente de novo.', false); }
   finally { btn.disabled = false; }
 }
 el('couponBtn').onclick = applyCoupon;
