@@ -8,7 +8,9 @@
 <title>Avalanches — Cardápio Digital</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<!-- Fonte carrega em segundo plano: nao bloqueia a primeira pintura do cardapio. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap"></noscript>
 <style>
 .chk-step[hidden]{display:none!important}
 .rv{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--line)}
@@ -138,6 +140,20 @@ textarea.field{resize:none}
 .chk-actions{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 36px);max-width:564px;z-index:210;padding:10px;border-radius:18px;background:rgba(11,11,12,.97);border:1px solid var(--line);box-shadow:0 -8px 26px rgba(0,0,0,.45)}
 .chk-actions .btn{margin:0}
 .chk-actions .btn+.btn{margin-top:6px}
+/* Progresso das etapas: pontinhos acendem e a barrinha Carrega ate a etapa atual. */
+.chk-progress{display:flex;align-items:center;margin:4px 16px 14px;height:12px}
+.chk-progress .seg{height:3px;flex:1;background:rgba(255,255,255,.16);border-radius:3px;position:relative;overflow:hidden}
+.chk-progress .seg i{position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--o),var(--o2));transition:width .45s cubic-bezier(.2,.9,.3,1)}
+.chk-progress .seg.on i{width:100%}
+.chk-progress .dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.28);flex:none;transition:background .35s,transform .35s,box-shadow .35s}
+.chk-progress .dot.on{background:var(--o);transform:scale(1.15);box-shadow:0 0 0 4px rgba(255,106,0,.14)}
+.chk-progress .dot.now{background:#fff;box-shadow:0 0 0 5px rgba(255,106,0,.26)}
+/* Entrada suave de cada etapa (frente ao avancar, atras ao voltar). */
+.chk-step.enter-fwd{animation:chkFwd .36s cubic-bezier(.2,.9,.3,1) both}
+.chk-step.enter-back{animation:chkBack .36s cubic-bezier(.2,.9,.3,1) both}
+@keyframes chkFwd{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+@keyframes chkBack{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.chk-step.enter-fwd,.chk-step.enter-back{animation:none}.chk-progress .seg i,.chk-progress .dot{transition:none}}
 .ph{position:sticky;top:0;z-index:2;background:rgba(11,11,12,.97);display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 0 12px;border-bottom:1px solid var(--line)}
 .ph h2{margin:0;font:800 20px var(--font)}
 .back{width:40px;height:40px;border-radius:50%;border:0;background:var(--glass);font-size:20px;color:var(--o2)}
@@ -293,6 +309,10 @@ body{background:#eef0f3!important;color:var(--text)!important}
 .page{background:rgba(15,18,22,.5)!important}
 .page-in{background:#fff!important;box-shadow:0 0 40px rgba(0,0,0,.22)}
 .chk-actions{background:#fff!important;border-color:#d8dce2!important;box-shadow:0 -8px 26px rgba(0,0,0,.12)!important}
+.chk-progress .seg{background:#dfe3e9!important}
+.chk-progress .dot{background:#b9bec7!important}
+.chk-progress .dot.on{background:var(--o)!important}
+.chk-progress .dot.now{background:#fff!important;box-shadow:0 0 0 5px rgba(255,106,0,.3)!important}
 .ph{background:#fff!important;border-bottom:1px solid var(--line)!important}.ph h2{color:#111!important}
 .back{background:#f3f4f6!important;color:#111!important}
 .h3{color:#111!important}
@@ -383,6 +403,9 @@ body{background:#eef0f3!important;color:var(--text)!important}
     <div class="ph">
       <button id="hdrBack" class="back" aria-label="Voltar">←</button>
       <h2 id="cartTitle">Sacola</h2>
+    </div>
+    <div class="chk-progress" id="chkProgress" aria-hidden="true">
+      <i class="dot"></i><i class="seg"><i></i></i><i class="dot"></i><i class="seg"><i></i></i><i class="dot"></i><i class="seg"><i></i></i><i class="dot"></i>
     </div>
 
   <div class="chk-step" id="stepCart">
@@ -520,7 +543,7 @@ const revealSlots = () => ['coverImg', 'logoImg'].forEach(id => { const i = docu
 const imgSrc = it => !it.image ? 'logo-app.png' : it.image.startsWith('cloud:') ? (PHOTOS[it.id] || TP) : encodeURI(it.image);
 async function refreshEta() {
   if (!CLOUD_BASE || document.hidden) return;
-  try { const r = await fetch(CLOUD_BASE + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r.ok) { const f = (await r.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || PRAZO; showEta(); } } catch (e) {}
+  try { const r = await fetchFs(CLOUD_BASE + '/cardapio/ao_vivo', 7000); if (r.ok) { const f = (await r.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || PRAZO; showEta(); } } catch (e) {}
 }
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(n => document.addEventListener(n, e => e.preventDefault()));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
@@ -581,17 +604,39 @@ async function showLinkCupom(base) {
     if (msg) { msg.style.color = 'var(--ok)'; msg.textContent = 'Cupom ' + code + ' preparado para você. Toque em Aplicar na sacola.'; }
   } catch (e) {}
 }
+/* Toda chamada de abertura tem prazo: se a internet travar, o cardapio
+   continua aberto pelo cache e a aba nao fica presa em "carregando". */
+async function fetchFs(url, ms) {
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), ms || 7000);
+  try { return await fetch(url, { cache: 'no-store', signal: ctl.signal }); }
+  finally { clearTimeout(to); }
+}
 async function loadCloud(skipEsp) {
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return;
-  const base = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
-  let txt;
+  const base = FS_BASE;
+  let txt = ''; try { txt = localStorage.getItem('avl_cfg_v2') || ''; } catch (e) {}
+  /* Cache primeiro: o cardapio aparece na hora e o fresco so troca se mudou. */
+  if (txt) { CLOUD_BASE = base; try { applyData(JSON.parse(txt)); } catch (e) {} }
+  /* "ao vivo" corre em paralelo com o config (antes esperava um pelo outro). */
+  const vivoP = fetchFs(base + '/cardapio/ao_vivo', 7000).then(r => r.ok ? r.json() : null).catch(() => null);
   try {
-    const r = await fetch(base + '/cardapio/config', { cache: 'no-store' }); if (!r.ok) throw 0;
-    txt = (await r.json()).fields.json.stringValue;
-    try { localStorage.setItem('avl_cfg_v2', txt); } catch (e) {}
-  } catch (e) { txt = localStorage.getItem('avl_cfg_v2'); if (!txt) throw 0; }
-  CLOUD_BASE = base; applyData(JSON.parse(txt));
-  try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp && !skipEsp && !linkCupCode()) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
+    const r = await fetchFs(base + '/cardapio/config', 7000); if (!r.ok) throw 0;
+    const fresh = (await r.json()).fields.json.stringValue;
+    if (fresh && fresh !== txt) {
+      txt = fresh;
+      try { localStorage.setItem('avl_cfg_v2', txt); } catch (e) {}
+      applyData(JSON.parse(fresh));
+    }
+  } catch (e) { if (!txt) throw 0; }
+  CLOUD_BASE = base;
+  const vivo = await vivoP, F = vivo && vivo.fields;
+  if (F) {
+    const f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40;
+    if (F.esp && !skipEsp && !linkCupCode()) {
+      let ep; try { ep = JSON.parse(F.esp.stringValue); } catch (x) {}
+      if (ep) setTimeout(() => showEsp(base, ep), 1000);
+    }
+  }
   showEta(); return base;
 }
 function loadPhotos(base) {
@@ -602,7 +647,7 @@ function loadPhotos(base) {
     const sel = '[data-pid="' + CSS.escape(String(it.id)) + '"]';
     const show = d => { PHOTOS[it.id] = d; document.querySelectorAll(sel).forEach(i => showImg(i, d)); };
     if (c && c.v === v) return show(c.d);
-    fetch(`${base}/fotos/${encodeURIComponent(it.id)}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
+    fetchFs(`${base}/fotos/${encodeURIComponent(it.id)}`, 10000).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
       try { localStorage.setItem('avl_photos_v2', JSON.stringify(cache)); } catch (e) {}
     }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo-app.png' : u); }); });
@@ -887,18 +932,34 @@ el('cartItems').onclick = e => {
   if (!Object.keys(CART).length) closeCart();
 };
 let CHKSTEP = 'stepCart';
+const CHK_STEPS = ['stepCart','stepAddress','stepPay','stepReview'];
 const CHK_TITLES = { stepCart:'Sacola', stepAddress:'Endereço', stepPay:'Pagamento', stepReview:'Resumo do pedido' };
 const CHK_PREV = { stepCart:null, stepAddress:'stepCart', stepPay:'stepAddress', stepReview:'stepPay' };
-function goStep(id) {
+function showChkProgress(id) {
+  const p = el('chkProgress'); if (!p) return;
+  const idx = CHK_STEPS.indexOf(id);
+  p.querySelectorAll('.dot').forEach((d, i) => { d.classList.toggle('on', i <= idx); d.classList.toggle('now', i === idx); });
+  p.querySelectorAll('.seg').forEach((s, i) => s.classList.toggle('on', i < idx));
+}
+function goStep(id, noHistory) {
+  const oldIdx = CHK_STEPS.indexOf(CHKSTEP), idx = CHK_STEPS.indexOf(id);
   CHKSTEP = id;
-  ['stepCart','stepAddress','stepPay','stepReview'].forEach(x => { const e = el(x); if (e) e.hidden = x !== id; });
+  CHK_STEPS.forEach(x => { const e = el(x); if (e) { e.hidden = x !== id; e.classList.remove('enter-fwd','enter-back'); } });
+  const now = el(id);
+  if (now && idx !== oldIdx) {
+    void now.offsetWidth;
+    now.classList.add(idx > oldIdx ? 'enter-fwd' : 'enter-back');
+  }
   const t = el('cartTitle'); if (t) t.textContent = CHK_TITLES[id] || 'Sacola';
+  showChkProgress(id);
   const pg = el('cartPage'); pg.scrollTop = 0; const inn = pg.querySelector('.page-in'); if (inn) inn.scrollTop = 0;
   window.scrollTo && window.scrollTo({ top:0, behavior:'instant' });
+  /* Mantem o historico alinhado para o botao Voltar do celular voltar uma etapa. */
+  if (!noHistory && pg.classList.contains('open') && window.avlBackSync) window.avlBackSync();
 }
 el('hdrBack').onclick = () => { const p = CHK_PREV[CHKSTEP]; if (p) goStep(p); else closeCart(); };
 function openCart() {
-  renderCartItems(); goStep('stepCart'); el('cartPage').classList.add('open'); renderLoc();
+  renderCartItems(); goStep('stepCart'); el('cartPage').classList.add('open'); showChkProgress(CHKSTEP); renderLoc();
 }
 function closeCart() { el('cartPage').classList.remove('open'); goStep('stepCart'); }
 el('cartbar').onclick = openCart;
@@ -1052,7 +1113,7 @@ const locLink = () => CLIENT_GEO ? ('https://www.google.com/maps/search/?api=1&q
 async function loadAreas() {
   let ok = false;
   try {
-    const r = await fetch(FS_BASE + '/cardapio/entregas', { cache: 'no-store' });
+    const r = await fetchFs(FS_BASE + '/cardapio/entregas', 7000);
     if (r.ok) {
       const f = (await r.json()).fields, e = f && f.json && JSON.parse(f.json.stringValue);
       if (e && typeof e === 'object') {
@@ -1080,27 +1141,20 @@ async function loadAreas() {
     if (!navigator.geolocation) return showToast('Seu aparelho não tem localização.');
     const txt = b.textContent;
     b.disabled = true; b.textContent = 'Buscando localização...';
-    let melhor = null, pronto = false, wid = null, timer = null;
-    const fim = () => {
+    let pronto = false, timer = null;
+    /* Uma leitura so, sem watchPosition: nao deixa o GPS "ativo" em segundo plano. */
+    const fim = p => {
       if (pronto) return; pronto = true;
       clearTimeout(timer);
-      try { navigator.geolocation.clearWatch(wid); } catch (e) {}
       b.disabled = false; b.textContent = txt;
-      if (!melhor) return showToast('Não consegui pegar sua localização. Você pode digitar o endereço.');
-      setPin(melhor.la, melhor.lo, melhor.acc);
+      if (!p) return showToast('Não consegui pegar sua localização. Você pode digitar o endereço.');
+      const c = p.coords; setPin(c.latitude, c.longitude, c.accuracy);
     };
     try {
-      wid = navigator.geolocation.watchPosition(
-        p => {
-          const c = p.coords;
-          if (!melhor || c.accuracy < melhor.acc) melhor = { la: c.latitude, lo: c.longitude, acc: c.accuracy };
-          if (melhor.acc <= 20) fim();
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-      );
-    } catch (e) { return fim(); }
-    timer = setTimeout(fim, 8000);
+      timer = setTimeout(() => fim(null), 9000);
+      navigator.geolocation.getCurrentPosition(p => fim(p), () => fim(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+    } catch (e) { return fim(null); }
   };
 })();
 const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);
@@ -1393,6 +1447,8 @@ function pixShowDone(o) {
   b.textContent = 'Acompanhar pedido #' + String(o.id).slice(-5);
   b.hidden = false;
   if (o.cupom) { try { cupMark(o.cupom, ''); cupPend(cuKey(o.cupom, '', o.fone), ''); } catch (e) {} }
+  /* Reforco: se o push do Worker nao chegar, o aviso ao painel sai daqui. */
+  try { notifyPush(o); } catch (e) {}
   pixPendingPaid();
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart();
   if (window.saveClient) saveClient(o);
@@ -1442,7 +1498,9 @@ async function startPixWorker(o) {
     }
   };
   tick(); PIX_TIMER = setInterval(tick, 1000);
-  PIX_POLL = setInterval(() => pixCheck(true), 4000);
+  PIX_POLL = setInterval(() => pixCheck(true), 3000);
+  /* Primeira checagem antes do primeiro intervalo, para nao esperar 3s. */
+  setTimeout(() => pixCheck(true), 1200);
 }
 async function pixCheck(silent) {
   if (!PIX_ORDER || PIX_BUSY || PIX_DONE) return;
@@ -1471,16 +1529,26 @@ document.addEventListener('keydown', e => {
 });
 
 (async () => {
-  setTimeout(revealSlots, 8000);
   const unboot = () => document.documentElement.classList.remove('boot');
-  setTimeout(unboot, 4000);
+  setTimeout(revealSlots, 1500);
+  setTimeout(unboot, 1500);
+  /* Abre na hora com o ultimo cardapio salvo; a rede so atualiza depois. */
+  let cached = '', cacheOk = false;
+  try {
+    cached = localStorage.getItem('avl_cfg_v2') || '';
+    if (cached) { CLOUD_BASE = FS_BASE; applyData(JSON.parse(cached)); cacheOk = true; }
+  } catch (e) {}
+  buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
+  loadAreas(); /* Tambem com prazo: a taxa aparece quando a consulta volta. */
+  if (cacheOk) { render(); updateCart(); unboot(); loadPhotos(FS_BASE); }
   let base; try { base = await loadCloud(); } catch (e) {}
   if (base && linkCupCode()) setTimeout(() => showLinkCupom(base), 900);
   if (!base) revealSlots();
-  loadAreas();
-  buildTabs(); applyHours(); checkOpen(); setInterval(checkOpen, 60000);
-  if (base) { loadPhotos(base); setInterval(refreshEta, 180000); }
+  if (!cacheOk) { buildTabs(); applyHours(); checkOpen(); }
+  let fresh = ''; try { fresh = localStorage.getItem('avl_cfg_v2') || ''; } catch (e) {}
+  if (!cacheOk || fresh !== cached) loadPhotos(base || FS_BASE);
   render(); updateCart(); unboot();
+  if (base || cacheOk) setInterval(refreshEta, 180000);
 })();
 
 </script>
@@ -1519,25 +1587,39 @@ document.addEventListener('keydown', e => {
 })();
 </script>
 <script>
-/* Botão Voltar do celular: fecha item/sacola/Pix em vez de sair do cardápio */
+/* Botão Voltar do celular: volta uma etapa do checkout, depois fecha
+   item/Pix/sacola, e só então sai do cardápio. */
 (function () {
   var LAY = ['pixModal', 'modal', 'cartPage'], pushed = 0, skip = 0, st;
+  var PASSOS = ['stepCart', 'stepAddress', 'stepPay', 'stepReview'];
   function g(i) { return document.getElementById(i); }
   function opened() { return LAY.filter(function (i) { return g(i).classList.contains('open'); }); }
+  function stepIx() { var i = PASSOS.indexOf(CHKSTEP); return i < 0 ? 0 : i; }
+  /* Cada etapa aberta vale um "nível" a mais no histórico. */
+  function nivel() {
+    var d = opened().length;
+    if (g('cartPage').classList.contains('open')) d += stepIx();
+    return d;
+  }
   function sync() {
     if (skip) return;
-    var d = opened().length;
+    var d = nivel();
     while (pushed < d) { pushed++; history.pushState({ avl: pushed }, ''); }
     if (pushed > d) {
       var n = pushed - d; pushed = d; skip = 1; history.go(-n);
       clearTimeout(st); st = setTimeout(function () { if (skip) { skip = 0; sync(); } }, 1000);
     }
   }
+  window.avlBackSync = sync;
   window.addEventListener('popstate', function () {
     if (skip) { skip = 0; clearTimeout(st); sync(); return; }
     var o = opened();
     if (!o.length) { pushed = 0; return; }
     pushed = Math.max(0, pushed - 1);
+    if (o[0] === 'cartPage' && stepIx() > 0) {
+      goStep(PASSOS[stepIx() - 1], true); /* ja veio do historico: nao empurra de novo */
+      return;
+    }
     if (o[0] === 'pixModal') { g('pixModal').classList.remove('open'); }
     else if (o[0] === 'modal') closeModal();
     else closeCart();
