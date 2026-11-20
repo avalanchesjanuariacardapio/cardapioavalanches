@@ -562,15 +562,45 @@ const FB={apiKey:'AIzaSyBcyQom-ShyWdTxQonV5ZvU1sg-BB3xpEU',authDomain:'avalanche
 const ADMIN_UID='JnZJF7q89bRmJ57RSRDRcHaRNbD2';
 const ok=FB.projectId!=='COLE_AQUI';let auth,db;
 if(ok){const app=initializeApp(FB);auth=getAuth(app);db=getFirestore(app)}
+/* Gravação no Firestore com confirmação. O SDK funciona no navegador, mas dentro do
+   WebView do APK ele pode falhar sem aviso; quando isso acontece usamos a REST API
+   com o token do administrador e confirmamos a leitura antes de avisar "no ar". */
+const FS_REST='https://firestore.googleapis.com/v1/projects/'+FB.projectId+'/databases/(default)/documents';
+function fsFields(o){const f={};for(const k in o){const v=o[k];f[k]=typeof v==='number'?(Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v}):{stringValue:String(v)}}return f}
+function fsRef(p){const a=p.split('/');return a.length===1?doc(db,a[0]):doc(db,a[0],a[1])}
+async function fsRestWrite(p,obj){
+ const tk=await auth.currentUser.getIdToken();
+ const mask=Object.keys(obj).map(k=>'&updateMask.fieldPaths='+encodeURIComponent(k)).join('');
+ const r=await fetch(FS_REST+'/'+p+'?key='+encodeURIComponent(FB.apiKey)+mask,{method:'PATCH',headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({fields:fsFields(obj)})});
+ if(!r.ok){let m='';try{m=(await r.json()).error.message}catch(e){}throw new Error(m||('HTTP '+r.status))}
+}
+async function fsSet(p,obj){
+ let sdkOk=true;
+ try{await setDoc(fsRef(p),obj,{merge:true})}catch(e){sdkOk=false}
+ if(!sdkOk)await fsRestWrite(p,obj);
+ const r=await fetch(FS_REST+'/'+p+'?key='+encodeURIComponent(FB.apiKey),{cache:'no-store'});
+ if(!r.ok)throw new Error('Não foi possível confirmar a gravação');
+ const d=await r.json(),g=d.fields||{};
+ for(const k in obj){const f=g[k]||{};const have=f.stringValue!==undefined?f.stringValue:f.integerValue!==undefined?f.integerValue:f.doubleValue!==undefined?String(f.doubleValue):JSON.stringify(f);if(String(have)!==String(obj[k]))throw new Error('A gravação não conferiu: '+p)}
+}
+async function fsDel(p){
+ let sdkOk=true;
+ try{await deleteDoc(fsRef(p))}catch(e){sdkOk=false}
+ if(!sdkOk){const tk=await auth.currentUser.getIdToken();const r=await fetch(FS_REST+'/'+p+'?key='+encodeURIComponent(FB.apiKey),{method:'DELETE',headers:{'Authorization':'Bearer '+tk}});if(!r.ok&&r.status!==404)throw new Error('HTTP '+r.status)}
+ const v=await fetch(FS_REST+'/'+p+'?key='+encodeURIComponent(FB.apiKey),{cache:'no-store'});if(v.status!==404)throw new Error('Não foi possível confirmar a exclusão')
+}
+/* Itens da primeira versão do site (fotos locais) não devem voltar ao ar. */
+const OLD_IMG=/^(cachoro quente na chapa\.jpeg|logo\.jpeg|xburguer\.jpeg|xtudo\.jpeg|Avalanche\.jpeg|guarana lata\.jpg|gurana lata\.jpg|coca-cola lata\.jpg|coca-cola 2l\.jpg|guarana 1l\.jpg|xbacon\.jpg|calafrango\.jpeg)$/i;
+function cleanMenu(d){const a=d.items||[],b=a.filter(i=>!OLD_IMG.test(String(i.image||'')));if(b.length===a.length)return false;d.items=b;return true}
 const KEY='avl_admin_v2';
-const IT=[['i_cq','hamburgueres','Cachorro Quente','Pão, salsicha, mortadela, mussarela, batata, milho, molho',8,'cachoro quente na chapa.jpeg'],['i_hb','hamburgueres','Hambúrguer','Pão, carne, batata, alface, tomate, molho especial',12,'logo.jpeg'],['i_xb','hamburgueres','X-Burguer','Pão, carne, mussarela, batata, milho, alface, tomate',15,'xburguer.jpeg'],['i_xs','hamburgueres','X-Salada','Pão, carne, mussarela, presunto, alface, tomate, milho, batata',16,'xburguer.jpeg'],['i_xe','hamburgueres','X-Egg','Pão, carne, mussarela, ovo, presunto, salada, batata',17,'xburguer.jpeg'],['i_xc','hamburgueres','X-Calabresa','Pão, carne, mussarela, calabresa, salada, batata',18,'xburguer.jpeg'],['i_xba','hamburgueres','X-Bacon','Pão, carne, mussarela, bacon, salada, batata',19,'xburguer.jpeg'],['i_fb','hamburgueres','Franburguer','Pão, frango desfiado, mussarela, salada, batata, milho',18,'logo.jpeg'],['i_xtudo','hamburgueres','X-Tudo','Pão, carne, bacon, ovo, presunto, mussarela, calabresa, milho, batata, salada',25,'xtudo.jpeg'],['i_av','hamburgueres','Avalanches','Pão, carne, bacon, frango, ovo, presunto, mussarela, calabresa, cebola roxa, milho, batata, tudo',27,'Avalanche.jpeg'],['b_guarana350','bebidas','Guaraná Lata','350ml',5,'guarana lata.jpg'],['b_coca350','bebidas','Coca-Cola Lata','350ml',5.5,'coca-cola lata.jpg']];
+const IT=[];
 const DEF={loja:{nome:'Avalanches',phone:'5534984405375',fee:4.99,pixKey:'8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74',open:19,close:23,modo:'auto'},
 cats:[{id:'hamburgueres',name:'Burguers',extras:true},{id:'bebidas',name:'Bebidas',extras:false}],
-items:IT.map(a=>({id:a[0],cat:a[1],name:a[2],desc:a[3],price:a[4],image:a[5],ativo:true})),
+items:[],
 addons:[{id:'a_carne',name:'Carne',price:4},{id:'a_bacon',name:'Bacon',price:4},{id:'a_ovo',name:'Ovo',price:3}]};
 let D;try{D=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!D||!D.items)D=JSON.parse(JSON.stringify(DEF));
-if(D.loja&&D.loja.pixKey==='14421d15-c771-4ab9-8e7f-fd69e987af1a')D.loja.pixKey='8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74';
+if(D.loja&&D.loja.pixKey==='14421d15-c771-4ab9-8e7f-fd69e987af1a')D.loja.pixKey='8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74';cleanMenu(D);
 {const L0=D.loja||DEF.loja;for(const k in DEF.loja)if(D.loja[k]===undefined)D.loja[k]=DEF.loja[k];D.loja.fee=Number.isFinite(+L0.fee)?+L0.fee:DEF.loja.fee}
 const DEFE={fee:+D.loja.fee||4.99,lat:-22.8808,lng:-43.1940,raio:5,restrito:false,areas:[]};
 let ENT;try{ENT=JSON.parse(localStorage.getItem('avl_ent'))}catch(e){}
@@ -1052,7 +1082,7 @@ function enSheet(id){
 }
 function saveEnt(msg){
   try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(e){}
-  if(ok&&db)setDoc(doc(db,'cardapio','entregas'),{json:JSON.stringify(ENT)}).then(()=>{if(msg)toast(msg,'ok')}).catch(x=>toast('Erro ao salvar entregas: '+(x.code||x.message)));
+  if(ok&&db)fsSet('cardapio/entregas',{json:JSON.stringify(ENT)}).then(()=>{if(msg)toast(msg,'ok')}).catch(x=>toast('Erro ao salvar entregas: '+(x.message||x.code)));
 }
 function fld(l,k,type='text',x=''){return `<label>${l}<input data-f="${k}" type="${type}" value="${esc(D.loja[k])}" ${x}></label>`}
 function hours(k){return `<select data-f="${k}">${[...Array(24).keys()].map(h=>`<option value="${h}" ${D.loja[k]==h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select>`}
@@ -1112,8 +1142,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='addadd'){D.addons.push({id:uid('a_'),name:'Novo adicional',price:0,ativo:true});save();view();const l=[...document.querySelectorAll('[data-sort=add] input[data-p=name]')].pop();if(l){l.focus();l.select();l.scrollIntoView({block:'center',behavior:'smooth'})}}
  else if(a=='deladd'){if(await askConfirm('Excluir este adicional?')){D.addons.splice(v,1);save();view()}}
  else if(a=='tgl'){OPENO.has(v)?OPENO.delete(v):OPENO.add(v);view()}
- else if(a=='ext'){const o=ORD.find(x=>x.id==v);updateDoc(doc(db,'pedidos',v),{extra:Math.max(-30,Math.min(120,(o.extra||0)+(+b.dataset.n)))}).catch(x=>toast('Erro: '+(x.code||x.message)))}
- else if(a=='pz'){PRAZO=Math.max(10,Math.min(180,PRAZO+(+v)));setDoc(doc(db,'cardapio','ao_vivo'),{prazo:PRAZO},{merge:true}).catch(x=>toast('Erro: '+(x.code||x.message)));view()}
+ else if(a=='ext'){const o=ORD.find(x=>x.id==v);fsSet('pedidos/'+v,{extra:Math.max(-30,Math.min(120,(o.extra||0)+(+b.dataset.n)))}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='pz'){PRAZO=Math.max(10,Math.min(180,PRAZO+(+v)));fsSet('cardapio/ao_vivo',{prazo:PRAZO}).catch(x=>toast('Erro: '+(x.message||x.code)));view()}
  else if(a=='reframe'){const u=ps(draft);if(!u)return toast('Sem foto para ajustar');crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`})}
  else if(a=='rfc')crop(ps({id:'_capa',image:lp('capa')}),2,900,false,r=>{D.loja.capa=r;save();view()});
  else if(a=='rfp')crop(ps({id:'_perfil',image:lp('perfil')}),1,360,true,r=>{D.loja.perfil=r;save();view()});
@@ -1121,7 +1151,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  if((!w.length||await askConfirm('Atenção: este pedido tem divergências:\n\n'+w.join('\n')+'\n\nValor a cobrar pelo cardápio: '+brl(V(o0).total)+'\n\nAceitar mesmo assim?'))&&(s!='cancelado'||await askConfirm('Cancelar este pedido?'))){if(s=='entrega')dispatchMsg(v);closeBack($('back'));
   avlPararSom();pushDone(v);
   const ref=doc(db,'pedidos',v),f=s=='preparo'&&o0?fixOrder(o0):null,er=x=>toast('Erro: '+(x.code||x.message));
-  (f&&Math.abs(f.total-o0.o.total)>.05?updateDoc(ref,{status:s,json:JSON.stringify(f)}).catch(()=>updateDoc(ref,{status:s})):updateDoc(ref,{status:s})).catch(er)}}
+  (f&&Math.abs(f.total-o0.o.total)>.05?fsSet('pedidos/'+v,{status:s,json:JSON.stringify(f)}).catch(()=>fsSet('pedidos/'+v,{status:s})):fsSet('pedidos/'+v,{status:s})).catch(er)}}
  else if(a=='newc'){cd={_new:true,code:'',tipo:'pct',valor:10,min:0,ate:'',ativo:true};csheet()}
  else if(a=='editc'){cd={...CUP.find(c=>c.code==v)};csheet()}
  else if(a=='tpl'){cread();Object.assign(cd,TPL[v][1]);if(!cd.code)cd.code=gen();csheet()}
@@ -1133,12 +1163,12 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a=='zgen'){zread();ZD.code=zcode();zsave();zapRender()}
  else if(a=='zcopylink'){zread();zclip(zlink(ZD.code),'Link copiado')}
  else if(a=='zagain'){const x=ZH.find(y=>y.code==v);if(x){Object.assign(ZD,x.cfg||{});ZD.code=x.code;zsave();zapRender();toast('Cupom e mensagem recolocados','ok')}}
- else if(a=='zdel'){if(await askConfirm('Excluir o cupom '+v+'? O link enviado deixará de funcionar.'))deleteDoc(doc(db,'cupons',v)).then(()=>{CUP=CUP.filter(c=>c.code!=v);ZH=ZH.filter(x=>x.code!=v);try{localStorage.setItem('avl_zap_hist',JSON.stringify(ZH))}catch(e){}zapRender();toast('Cupom excluído','ok')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='zdel'){if(await askConfirm('Excluir o cupom '+v+'? O link enviado deixará de funcionar.'))fsDel('cupons/'+v).then(()=>{CUP=CUP.filter(c=>c.code!=v);ZH=ZH.filter(x=>x.code!=v);try{localStorage.setItem('avl_zap_hist',JSON.stringify(ZH))}catch(e){}zapRender();toast('Cupom excluído','ok')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
  else if(a=='zwapp')zwapp();
  else if(a=='zcopy')zcopy();
  else if(a=='zshare')zshare();
- else if(a=='cdel'){if(await askConfirm('Excluir este cupom?'))deleteDoc(doc(db,'cupons',cd.code)).then(()=>{CUP=CUP.filter(c=>c.code!=cd.code);closeBack($('back'));view()}).catch(x=>toast('Erro: '+(x.code||x.message)))}
- else if(a=='cdelrow'){if(await askConfirm('Excluir o cupom '+v+'?'))deleteDoc(doc(db,'cupons',v)).then(()=>{CUP=CUP.filter(c=>c.code!=v);ZH=ZH.filter(x=>x.code!=v);try{localStorage.setItem('avl_zap_hist',JSON.stringify(ZH))}catch(e){}view();toast('Cupom excluído','ok')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='cdel'){if(await askConfirm('Excluir este cupom?'))fsDel('cupons/'+cd.code).then(()=>{CUP=CUP.filter(c=>c.code!=cd.code);closeBack($('back'));view()}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ else if(a=='cdelrow'){if(await askConfirm('Excluir o cupom '+v+'?'))fsDel('cupons/'+v).then(()=>{CUP=CUP.filter(c=>c.code!=v);ZH=ZH.filter(x=>x.code!=v);try{localStorage.setItem('avl_zap_hist',JSON.stringify(ZH))}catch(e){}view();toast('Cupom excluído','ok')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
  else if(a=='ord')osheet(v);
  else if(a=='repord')repSheet(v);
  else if(a=='prt')printOrder(v);
@@ -1190,7 +1220,7 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.dataset.d!==undefined){D.addons[t.dataset.d][t.dataset.p]=t.dataset.p=='price'?Math.max(0,+t.value||0):t.value;save()}
  else if(t.dataset.atog!==undefined){const ad=D.addons[t.dataset.atog];if(ad){ad.ativo=t.checked;save();t.closest('.row').classList.toggle('off',!t.checked)}}
  else if(t.dataset.tog){const it=D.items.find(i=>i.id==t.dataset.tog);it.ativo=t.checked;save();const r=t.closest('.row');r.classList.toggle('off',!t.checked);r.querySelector('small').textContent=pTxt(it)+(t.checked?'':' · esgotado')+' · toque para editar'}
- else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)));t.closest('.row').classList.toggle('off',!t.checked)}
+ else if(t.dataset.ctog){const c=CUP.find(x=>x.code==t.dataset.ctog);c.ativo=t.checked;fsSet('cupons/'+c.code,{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.message||x.code)));t.closest('.row').classList.toggle('off',!t.checked)}
  else if(t.id&&t.id.startsWith('c_')&&cd){cread();$('c_p').textContent=''+cdesc(cd)}
  else if(t.id&&(t.id.startsWith('pr_')||t.id=='s_p')&&draft)promoPrev()
  else if(t.id&&t.id.startsWith('po_')&&D.loja.posterItem)poSave()
@@ -1204,7 +1234,7 @@ document.addEventListener('change',e=>{const t=e.target;
  if(t.id=='z_src'){zread();const c=CUP.find(x=>x.code==t.value);
   if(c){ZD.tipo=c.tipo;ZD.valor=c.valor;ZD.min=c.min;ZD.ate=c.ate;ZD.msg=4;ZD.custom=c.msg||'Oi! Separei um desconto especial pra você 🎁 Toque aqui e o cupom {cupom} já aparece: {link}'}
   ZD.code=zcode();zsave();zapRender()}
- if(t.dataset.zatog){const c=CUP.find(x=>x.code==t.dataset.zatog);if(c){c.ativo=t.checked;zapRender();setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.code||x.message)))}}
+ if(t.dataset.zatog){const c=CUP.find(x=>x.code==t.dataset.zatog);if(c){c.ativo=t.checked;zapRender();fsSet('cupons/'+c.code,{json:JSON.stringify(cj(c))}).then(()=>toast(c.ativo?'Cupom ativado':'Cupom pausado')).catch(x=>toast('Erro: '+(x.message||x.code)))}}
  if(t.id=='ph'&&t.files[0]){readF(t.files[0],u=>crop(u,1,560,false,r=>{draft.image=r;$('pv').innerHTML=`<img src="${r}">`}));t.value=''}
  if(/^po\d?$/.test(t.id)&&t.files[0]){const n=t.id.slice(2),k=n?'poster'+n:'poster',ik=n?'posterItem'+n:'posterItem';readF(t.files[0],u=>crop(u,2.2,960,false,r=>{D.loja[k]=r;if(!D.items.some(i=>i.id==D.loja[ik]))D.loja[ik]=D.items[0]?D.items[0].id:'';save();view()}));t.value=''}
  if((t.id=='pf'||t.id=='cp')&&t.files[0]){const k=t.id=='pf'?'perfil':'capa';readF(t.files[0],u=>crop(u,k=='perfil'?1:2,k=='perfil'?360:900,k=='perfil',r=>{D.loja[k]=r;save();view()}));t.value=''}
@@ -1330,7 +1360,7 @@ function crop(src,ar,outW,round,cb){
  cv.onpointerup=cv.onpointercancel=()=>{drag=null};
  ov.querySelector('#cno').onclick=()=>closeBack(ov);
  ov.querySelector('#cok').onclick=()=>{const c=document.createElement('canvas');c.width=outW;c.height=Math.round(outW/ar);c.getContext('2d').drawImage(im,-x/sc,-y/sc,fw/sc,fh/sc,0,0,c.width,c.height);closeBack(ov);cb(c.toDataURL('image/jpeg',.74))}}
-const lp=k=>D.loja[k]||(k=='perfil'?'logo.jpeg':'Avalanche.jpeg');
+const lp=k=>D.loja[k]||'logo-app.png';
 const bgi=k=>ps({id:'_'+k,image:lp(k)}).replace(/'/g,'%27');
 function profCard(){return `<div class="card"><h3>Perfil da loja</h3><div style="position:relative;margin-bottom:48px"><div class="pic" style="height:130px;margin:0;background-image:url('${bgi('capa')}')"></div><div style="position:absolute;left:16px;bottom:-40px;width:84px;height:84px;border-radius:50%;border:3px solid var(--o);background:#222 center/cover url('${bgi('perfil')}')"></div></div><div class="two">${fb('cp',ICO.image,'Foto da capa','Imagem horizontal do cardápio')}${fb('pf',ICO.cli,'Foto de perfil','Imagem quadrada da loja')}</div><div class="two" style="margin-top:8px"><button class="btn" data-a="rfc">Ajustar capa</button><button class="btn" data-a="rfp">Ajustar perfil</button></div></div>`}
 function listen(){if(unsub)return;let first=true;
@@ -1357,14 +1387,14 @@ function csheet(){CURO=null;const c=cd;$('sheet').innerHTML=`<h3>${c._new?'Novo 
  <label>Pedido mínimo em R$ (0 = sem mínimo)<input id="c_m" type="number" min="0" value="${c.min}"></label>
  <label>Validade<input id="c_a" type="date" value="${esc(c.ate||'')}"></label><div class="chp"><button class="btn" data-a="vd" data-v="0">Só hoje</button><button class="btn" data-a="vd" data-v="7">7 dias</button><button class="btn" data-a="vd" data-v="30">30 dias</button><button class="btn" data-a="vd" data-v="-1">Sem validade</button></div>
  <p class="sub" id="c_p">${esc(cdesc(c))}</p><p class="sub">Cada aparelho só pode usar este cupom uma vez.</p><button class="btn pri full" data-a="csave">Salvar cupom</button><button class="btn full" data-a="scancel">Cancelar</button>${c._new?'':'<button class="btn full danger" data-a="cdel">Excluir cupom</button>'}`;openSheet(c._new?'Novo cupom':'Editar cupom')}
-function csave(){cread();const code=cd.code;
+async function csave(){cread();const code=cd.code;
  if(!/^[A-Z0-9]{3,20}$/.test(code))return toast('Código: 3 a 20 letras ou números');
  if(cd.tipo!='frete'&&!(cd.valor>0))return toast('Informe o valor do desconto');
  if(cd.tipo=='pct'&&cd.valor>100)return toast('Porcentagem máxima: 100');
  if(cd._new&&CUP.some(c=>c.code==code))return toast('Esse código já existe');
  if(cd._new)cd.rev=String(Date.now());
  const c={code,...cj(cd)};
- setDoc(doc(db,'cupons',code),{json:JSON.stringify(cj(c))}).then(()=>{CUP=CUP.filter(x=>x.code!=code).concat(c);closeBack($('back'));view();toast('Cupom salvo e já valendo')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ try{await fsSet('cupons/'+code,{json:JSON.stringify(cj(c))});CUP=CUP.filter(x=>x.code!=code).concat(c);closeBack($('back'));view();toast('Cupom salvo e no ar','ok')}catch(x){toast('Erro ao salvar: '+(x.message||x.code),'err')}}
 /* ---------- Chamado WhatsApp ---------- */
 const ZLINK='https://cardapioavalanches.vercel.app';
 const ZMSG=[
@@ -1448,12 +1478,12 @@ const msg=ztext(),c={code:ZD.code,tipo:ZD.tipo,valor:ZD.tipo=='frete'?0:ZD.valor
   rev:antigo&&antigo.rev?String(antigo.rev):(String(Date.now())+Math.random().toString(36).slice(2,6).toUpperCase()),zap:1,msg:msg,tema:'geral',v:Date.now()};
  const json={...cj(c),zap:1,msg:c.msg,tema:'geral',v:c.v};
  try{
-  await setDoc(doc(db,'cupons',c.code),{json:JSON.stringify(json)});
+  await fsSet('cupons/'+c.code,{json:JSON.stringify(json)});
   CUP=CUP.filter(x=>x.code!=c.code).concat(c);
   ZH=[{code:c.code,at:Date.now(),link:zlink(c.code),cfg:{...ZD,code:c.code}},...ZH.filter(x=>x.code!=c.code)].slice(0,12);
   try{localStorage.setItem('avl_zap_hist',JSON.stringify(ZH))}catch(e){}
   return c;
- }catch(x){toast('Erro: '+(x.code||x.message),'err');return null}
+ }catch(x){toast('Erro ao publicar: '+(x.message||x.code),'err');return null}
 }
 async function zwapp(){const c=await zpublish();if(!c)return;window.open('https://wa.me/?text='+encodeURIComponent(ztext()),'_blank','noopener');toast('Cupom publicado e WhatsApp aberto','ok');zapRender()}
 async function zcopy(){const c=await zpublish();if(!c)return;zclip(ztext(),'Mensagem copiada')}
@@ -1494,13 +1524,13 @@ function cupView(){const hoje=ymd(0),row=c=>{const venc=c.ate&&c.ate<hoje;return
  return espCard()+'<button class="btn pri full" style="margin:0 0 14px" data-a="newc">'+ICO.plus+'Novo cupom</button>'+cuPanel()+(CUP.length?lst(ICO.sparkle+'Cupons especiais',CUP.filter(c=>isEspK(c.code)))+lst(ICO.cup+'Cupons comuns',CUP.filter(c=>!isEspK(c.code))):'<div class="card"><p class="sub">Nenhum cupom ainda. Toque em “Novo cupom” e escolha um modelo pronto.</p></div>')}
 const TEMAS={anonovo:['Ano Novo','Feliz Ano Novo! Comece o ano com desconto no seu pedido.'],carnaval:['Carnaval','É Carnaval! Use o cupom e aproveite um desconto.'],mulher:['Dia da Mulher','Hoje o dia é delas! Use o cupom no seu pedido.'],pascoa:['Páscoa','Feliz Páscoa! Um presente em forma de desconto para você.'],maes:['Dia das Mães','Feliz Dia das Mães! Use o cupom e surpreenda quem você ama.'],namorados:['Dia dos Namorados','Dia dos Namorados: peça a dois com desconto!'],junina:['Festa Junina','Arraiá do sabor! Use o cupom e ganhe desconto.'],pais:['Dia dos Pais','Feliz Dia dos Pais! Use o cupom no seu pedido.'],criancas:['Dia das Crianças','Dia das Crianças! Use o cupom e faça a festa.'],halloween:['Halloween','Doce ou desconto? Use o cupom e aproveite!'],blackfriday:['Black Friday','Black Friday: desconto especial só por hoje!'],natal:['Natal','Feliz Natal! Nosso presente: um cupom de desconto para você.'],hamburguer:['Dia do Hambúrguer','Hoje é o nosso dia! Use o cupom no seu hambúrguer.'],aniversario:['Aniversário da loja','Estamos de aniversário e o presente é seu! Use o cupom.'],cliente:['Dia do Cliente','Obrigado por pedir com a gente! Use o cupom de presente.'],copa:['Dia de jogo','Dia de jogo! Use o cupom e peça o lanche da torcida.'],independencia:['7 de Setembro','Feliz 7 de Setembro! Use o cupom e aproveite.'],geral:['Promoção especial','Cupom especial por tempo limitado. Aproveite!']};
 let ES={on:false,code:'',tema:'geral',msg:'',ate:'',v:0,hist:[]};
-const espW=o=>setDoc(doc(db,'cardapio','ao_vivo'),{esp:JSON.stringify(o)},{merge:true});
+const espW=o=>fsSet('cardapio/ao_vivo',{esp:JSON.stringify(o)});
 function espCard(){const e=ES,t=TEMAS[e.tema];return `<div class="card" style="display:flex;align-items:center;gap:10px"><div class="n" style="flex:1"><b>${ICO.sparkle}Cupom especial</b><small class="sub" style="display:block">${e.on&&t?esc(t[0])+' · '+esc(e.code)+' · no ar':'Aviso comemorativo no site (desligado)'}</small></div>${e.on?'<button class="btn" data-a="espoff">Desligar</button>':''}<button class="btn pri" data-a="esp">${e.on?'Editar':'Criar'}</button></div>`}
 function espSheet(){CURO=null;const cs=CUP.filter(c=>c.ativo!==false),e=ES,t=TEMAS[e.tema]||TEMAS.geral,novo=!cs.length;
  $('sheet').innerHTML=`<h3>${ICO.sparkle}Cupom especial</h3><p class="sub">Aparece uma única vez para cada cliente, na primeira vez que ele abre o cardápio, com a animação da data.</p><label>Cupom<select id="e_c">${cs.map(c=>`<option value="${esc(c.code)}" ${c.code==e.code?'selected':''}>${esc(c.code)} · ${esc(cdesc(c))}</option>`).join('')}<option value="__novo" ${novo?'selected':''}>Criar meu próprio desconto…</option></select></label><div id="e_n" style="display:${novo?'block':'none'}"><div class="two"><label>Tipo<select id="e_nt"><option value="pct">% de desconto</option><option value="fixo">R$ de desconto</option><option value="frete">Frete grátis</option></select></label><label>Valor<input id="e_nv" type="number" min="0" step="0.5" value="10"></label></div><label>Pedido mínimo em R$ (0 = sem mínimo)<input id="e_nm" type="number" min="0" value="0"></label><label>Código (opcional, vazio = gerar sozinho)<input id="e_nk" maxlength="20" autocapitalize="characters"></label><p class="sub" id="e_np"></p></div><label>Data comemorativa<select id="e_t">${Object.keys(TEMAS).map(k=>`<option value="${k}" ${k==e.tema?'selected':''}>${esc(TEMAS[k][0])}</option>`).join('')}</select></label><label>Mensagem (até 140 letras)<textarea id="e_m" rows="3" maxlength="140" data-d="${esc(t[1])}">${esc(e.msg||t[1])}</textarea></label><label>Mostrar até (opcional)<input id="e_a" type="date" value="${esc(e.ate||'')}"></label><p class="sub">Para testar no site, abra o endereço com <b>?esp</b> no final. Se criar um desconto próprio, o cupom também vence na data de “Mostrar até”.</p><button class="btn pri full" data-a="espsave">${e.on?'Atualizar e ativar':'Ativar no site'}</button><button class="btn full" data-a="scancel">Fechar</button>`;openSheet('Cupom especial');espPrev()}
 function espPrev(){const s=$('e_c');if(!s)return;const n=s.value=='__novo',b=$('e_n');if(b)b.style.display=n?'block':'none';const p=$('e_np');if(n&&p)p.textContent=''+cdesc({tipo:$('e_nt').value,valor:+$('e_nv').value||0,min:+$('e_nm').value||0,ate:$('e_a').value})}
 ['input','change'].forEach(ev=>document.addEventListener(ev,e=>{const i=e.target.id;if(i=='e_c'||i=='e_nt'||i=='e_nv'||i=='e_nm'||i=='e_a')espPrev()}));
-function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.trim().slice(0,140),a=$('e_a').value;
+async function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.trim().slice(0,140),a=$('e_a').value;
  if(!m)return toast('Escreva a mensagem');if(!TEMAS[t])return;
  let nc=null;
  if(c=='__novo'){const tp=$('e_nt').value,vl=+$('e_nv').value||0,mn=+$('e_nm').value||0;
@@ -1514,9 +1544,12 @@ function espSave(){let c=$('e_c').value;const t=$('e_t').value,m=$('e_m').value.
   nc={code:c,tipo:tp,valor:tp=='frete'?0:vl,min:mn,ate:a,ativo:true,rev:String(Date.now())}}
  else{const cp=CUP.find(x=>x.code==c);if(!cp||cp.ativo===false)return toast('Escolha um cupom ativo')}
  const o={on:true,code:c,tema:t,msg:m,ate:a,v:Date.now(),hist:[...new Set([...(ES.hist||[]),c])].slice(-50)};
- const go=nc?setDoc(doc(db,'cupons',c),{json:JSON.stringify(cj(nc))}).then(()=>{CUP=CUP.filter(x=>x.code!=c).concat(nc)}):Promise.resolve();
- go.then(()=>espW(o)).then(()=>{ES=o;closeBack($('back'));view();toast('Cupom especial no ar')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
-function espOff(){const o={...ES,on:false};espW(o).then(()=>{ES=o;view();toast('Aviso desligado')}).catch(x=>toast('Erro: '+(x.code||x.message)))}
+ try{
+  if(nc){await fsSet('cupons/'+c,{json:JSON.stringify(cj(nc))});CUP=CUP.filter(x=>x.code!=c).concat(nc)}
+  await espW(o);ES=o;closeBack($('back'));view();toast('Cupom especial no ar','ok')
+ }catch(x){toast('Erro ao ativar: '+(x.message||x.code),'err')}
+}
+async function espOff(){const o={...ES,on:false};try{await espW(o);ES=o;view();toast('Aviso desligado','ok')}catch(x){toast('Erro: '+(x.message||x.code),'err')}}
 let AC=null;
 function audio(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch(e){}return AC}
 function ring(force){if(!SOM&&!force)return;const a=audio();if(!a)return;
@@ -1773,7 +1806,7 @@ document.addEventListener('keydown',e=>{if(e.key=='Enter'&&$('pw')&&document.act
  if(e.key=='Escape'&&document.body.classList.contains('side-open'))toggleSide(false)});
 window.matchMedia&&matchMedia('(min-width:960px)').addEventListener('change',e=>{if(!e.matches)toggleSide(false);else if(user)setChrome(true)});
 async function pull(){
- if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[];if(D.loja&&D.loja.pixKey==='14421d15-c771-4ab9-8e7f-fd69e987af1a')D.loja.pixKey='8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74'}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
+ if(!dirty){try{const x=await getDoc(doc(db,'cardapio','config'));if(x.exists()){D=JSON.parse(x.data().json);D.addons=D.addons||[];if(D.loja&&D.loja.pixKey==='14421d15-c771-4ab9-8e7f-fd69e987af1a')D.loja.pixKey='8fc8843a-efe5-4cbc-979b-fcb3b9e6aa74';if(cleanMenu(D)){await fsSet('cardapio/config',{json:JSON.stringify(D)});try{localStorage.setItem(KEY,JSON.stringify(D))}catch(z){}toast('Versão antiga do cardápio removida','ok')}}else dirty=true}catch(e){toast('Sem conexão com a nuvem')}}
 
  try{const x=await getDoc(doc(db,'cardapio','entregas'));if(x.exists()){const e=JSON.parse(x.data().json);if(e&&typeof e==='object'){ENT={...ENT,...e};ENT.areas=Array.isArray(ENT.areas)?ENT.areas:[];try{localStorage.setItem('avl_ent',JSON.stringify(ENT))}catch(z){}}}}catch(e){}
   try{const x=await getDoc(doc(db,'cardapio','ao_vivo'));if(x.exists()){PRAZO=+x.data().prazo||40;try{ES={...ES,...JSON.parse(x.data().esp||'{}')}}catch(e){}}}catch(e){}
@@ -1783,10 +1816,10 @@ async function publish(opt){
   const sil=!!(opt&&opt.silent);
  const b=document.querySelector('[data-a=publish]');if(b){b.disabled=true;b.textContent='Publicando…'}
  try{const out=JSON.parse(JSON.stringify(D));
-  for(let i=0;i<D.items.length;i++){const it=D.items[i];if((it.image||'').startsWith('data:')){const v=Date.now().toString(36)+i;await setDoc(doc(db,'fotos',it.id),{d:it.image,v});PH[it.id]=it.image;it.image='cloud:'+v;out.items[i].image=it.image}}
-  for(const k of ['perfil','capa','poster','poster2','poster3']){const v0=D.loja[k];if((v0||'').startsWith('data:')){const v=Date.now().toString(36)+k;await setDoc(doc(db,'fotos','_'+k),{d:v0,v});PH['_'+k]=v0;D.loja[k]='cloud:'+v;out.loja[k]=D.loja[k]}}
-  await setDoc(doc(db,'cardapio','config'),{json:JSON.stringify(out)});
-   await setDoc(doc(db,'cardapio','entregas'),{json:JSON.stringify(ENT)});
+  for(let i=0;i<D.items.length;i++){const it=D.items[i];if((it.image||'').startsWith('data:')){const v=Date.now().toString(36)+i;await fsSet('fotos/'+it.id,{d:it.image,v});PH[it.id]=it.image;it.image='cloud:'+v;out.items[i].image=it.image}}
+  for(const k of ['perfil','capa','poster','poster2','poster3']){const v0=D.loja[k];if((v0||'').startsWith('data:')){const v=Date.now().toString(36)+k;await fsSet('fotos/_'+k,{d:v0,v});PH['_'+k]=v0;D.loja[k]='cloud:'+v;out.loja[k]=D.loja[k]}}
+  await fsSet('cardapio/config',{json:JSON.stringify(out)});
+   await fsSet('cardapio/entregas',{json:JSON.stringify(ENT)});
   dirty=false;localStorage.removeItem('avl_dirty');try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}if(!sil)toast('Publicado! Já está no ar.')
  }catch(e){toast('Erro ao publicar: '+(e.code||e.message))}
  if(!(opt&&opt.keep))view()}

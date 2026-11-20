@@ -317,7 +317,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
 
 <main class="app">
   <header>
-    <div class="cover"><img id="coverImg" data-pid="_capa" src="Avalanche.jpeg" alt="" onerror="this.style.display='none'"></div>
+    <div class="cover"><img id="coverImg" data-pid="_capa" src="logo-app.png" alt="" onerror="this.style.display='none'"></div>
     <div class="id">
       <img id="logoImg" data-pid="_perfil" src="logo-app.png" class="logo" alt="Logo" onerror="this.onerror=null;this.src='logo-app.png'">
       <div>
@@ -495,25 +495,13 @@ function applyHours() {
   document.getElementById('bannerHour').textContent = hh(OPEN_H);
 }
 
-const DB = [
-{"id":"i_cq","cat":"hamburgueres","name":"Cachorro Quente","desc":"Pão, salsicha, mortadela, mussarela, batata, milho, molho","price":8.0, "image":"cachoro quente na chapa.jpeg"},
-{"id":"i_hb","cat":"hamburgueres","name":"Hambúrguer","desc":"Pão, carne, batata, alface, tomate, molho especial","price":12.0, "image":"logo-app.png"},
-{"id":"i_xb","cat":"hamburgueres","name":"X-Burguer","desc":"Pão, carne, mussarela, batata, milho, alface, tomate","price":15.0, "image":"xburguer.jpeg"},
-{"id":"i_xs","cat":"hamburgueres","name":"X-Salada","desc":"Pão, carne, mussarela, presunto, alface, tomate, milho, batata","price":16.0, "image":"xburguer.jpeg"},
-{"id":"i_xe","cat":"hamburgueres","name":"X-Egg","desc":"Pão, carne, mussarela, ovo, presunto, salada, batata","price":17.0, "image":"xburguer.jpeg"},
-{"id":"i_xc","cat":"hamburgueres","name":"X-Calabresa","desc":"Pão, carne, mussarela, calabresa, salada, batata","price":18.0, "image":"xburguer.jpeg"},
-{"id":"i_xba","cat":"hamburgueres","name":"X-Bacon","desc":"Pão, carne, mussarela, bacon, salada, batata","price":19.0, "image":"xburguer.jpeg"},
-{"id":"i_fb","cat":"hamburgueres","name":"Franburguer","desc":"Pão, frango desfiado, mussarela, salada, batata, milho","price":18.0, "image":"logo-app.png"},
-{"id":"i_xtudo","cat":"hamburgueres","name":"X-Tudo","desc":"Pão, carne, bacon, ovo, presunto, mussarela, calabresa, milho, batata, salada","price":25.0, "image":"xtudo.jpeg"},
-{"id":"i_av","cat":"hamburgueres","name":"Avalanches","desc":"Pão, carne, bacon, frango, ovo, presunto, mussarela, calabresa, cebola roxa, milho, batata, tudo","price":27.0, "image":"Avalanche.jpeg"},
-{"id":"b_guarana350","cat":"bebidas","name":"Guaraná Lata","desc":"350ml","price":5.0, "image":"guarana lata.jpg"},
-{"id":"b_coca350","cat":"bebidas","name":"Coca-Cola Lata","desc":"350ml","price":5.5, "image":"coca-cola lata.jpg"},
-{"id":"a_carne","cat":"adicionais","name":"Carne","price":4.0},
-{"id":"a_bacon","cat":"adicionais","name":"Bacon","price":4.0},
-{"id":"a_ovo","cat":"adicionais","name":"Ovo","price":3.0}
-];
-let ITEMS = DB.filter(i => i.cat !== 'adicionais');
-let ADDONS = DB.filter(i => i.cat === 'adicionais');
+/* O site não tem mais cardápio fixo: tudo vem do painel (Firestore).
+   Os itens/fotos da primeira versão ficam de fora mesmo em cache antigo. */
+const DB = [];
+const OLD_IMG=/^(cachoro quente na chapa\.jpeg|logo\.jpeg|xburguer\.jpeg|xtudo\.jpeg|Avalanche\.jpeg|guarana lata\.jpg|gurana lata\.jpg|coca-cola lata\.jpg|coca-cola 2l\.jpg|guarana 1l\.jpg|xbacon\.jpg|calafrango\.jpeg)$/i;
+try{localStorage.removeItem('avl_cfg');localStorage.removeItem('avl_photos')}catch(e){}
+let ITEMS = [];
+let ADDONS = [];
 let CATS = { hamburgueres: 'Burguers', bebidas: 'Bebidas' }, EXTRA = ['hamburgueres'];
 function buildTabs() {
   cat = 'all';
@@ -600,14 +588,14 @@ async function loadCloud(skipEsp) {
   try {
     const r = await fetch(base + '/cardapio/config', { cache: 'no-store' }); if (!r.ok) throw 0;
     txt = (await r.json()).fields.json.stringValue;
-    try { localStorage.setItem('avl_cfg', txt); } catch (e) {}
-  } catch (e) { txt = localStorage.getItem('avl_cfg'); if (!txt) throw 0; }
+    try { localStorage.setItem('avl_cfg_v2', txt); } catch (e) {}
+  } catch (e) { txt = localStorage.getItem('avl_cfg_v2'); if (!txt) throw 0; }
   CLOUD_BASE = base; applyData(JSON.parse(txt));
   try { const r2 = await fetch(base + '/cardapio/ao_vivo', { cache: 'no-store' }); if (r2.ok) { const F = (await r2.json()).fields, f = F.prazo; PRAZO = +(f.integerValue || f.doubleValue) || 40; if (F.esp && !skipEsp && !linkCupCode()) { let e; try { e = JSON.parse(F.esp.stringValue); } catch (x) {} if (e) setTimeout(() => showEsp(base, e), 1000); } } } catch (e) {}
   showEta(); return base;
 }
 function loadPhotos(base) {
-  let cache = {}; try { cache = JSON.parse(localStorage.getItem('avl_photos') || '{}'); } catch (e) {}
+  let cache = {}; try { cache = JSON.parse(localStorage.getItem('avl_photos_v2') || '{}'); } catch (e) {}
   [...ITEMS, ...LOJAIMGS].forEach(it => {
     if (!(it.image || '').startsWith('cloud:')) return;
     const v = it.image.slice(6), c = cache[it.id];
@@ -616,7 +604,7 @@ function loadPhotos(base) {
     if (c && c.v === v) return show(c.d);
     fetch(`${base}/fotos/${encodeURIComponent(it.id)}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
       const d = j.fields.d.stringValue; show(d); cache[it.id] = { v, d };
-      try { localStorage.setItem('avl_photos', JSON.stringify(cache)); } catch (e) {}
+      try { localStorage.setItem('avl_photos_v2', JSON.stringify(cache)); } catch (e) {}
     }).catch(() => { if (it.id === '_poster') return; document.querySelectorAll(sel).forEach(i => { const u = i.getAttribute('src'); showImg(i, !u || u === TP ? 'logo-app.png' : u); }); });
   });
 }
@@ -709,7 +697,7 @@ function applyData(d) {
   ['poster','poster2','poster3'].forEach(k => { if (l[k]) LOJAIMGS.push({ id: '_' + k, image: l[k] }); });
   CATS = {}; EXTRA = [];
   (d.cats || []).forEach(c => { CATS[c.id] = c.name; if (c.extras) EXTRA.push(c.id); });
-  ITEMS = (d.items || []).filter(i => i.ativo !== false);
+  ITEMS = (d.items || []).filter(i => i.ativo !== false && !OLD_IMG.test(String(i.image || '')));
   { const ci = Object.keys(CATS); ITEMS.sort((a, b) => ci.indexOf(a.cat) - ci.indexOf(b.cat)); }
   ADDONS = (d.addons || []).filter(a => a.ativo !== false);
   setPoster(l);
