@@ -338,6 +338,18 @@ input[type=checkbox]{width:auto;min-height:0;margin:0;padding:0;display:inline-b
 .pic{width:100%;height:190px;border-radius:18px;background:#222 center/cover;display:flex;align-items:center;justify-content:center;
  color:var(--m);margin-bottom:10px;overflow:hidden;border:1px solid var(--l)}
 .pic img{width:100%;height:100%;object-fit:cover}
+/* Posters: cada slot e um bloco fechado, com acoes alinhadas. */
+.po-slot{border:1px solid var(--l);border-radius:14px;background:rgba(255,255,255,.025);padding:12px;margin-top:12px}
+.po-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.po-num{font-size:13.5px;font-weight:750;color:var(--t)}
+.po-state{font-size:10.5px;font-weight:700;color:var(--m);background:var(--s2);border:1px solid var(--l);border-radius:99px;padding:4px 9px;white-space:nowrap}
+.po-slot.on .po-state{color:var(--ok);border-color:rgba(61,220,132,.3);background:rgba(61,220,132,.08)}
+.po-pic{margin:0 0 10px}
+.po-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 0}
+.po-acts .btn{margin:0;padding:0 10px}
+.po-item{margin:12px 0 0!important}
+.po-sec{margin-top:16px;padding-top:14px;border-top:1px solid var(--l)}
+.po-sec h4{margin:0 0 12px;font-size:12px;font-weight:700;color:var(--o2)}
 .oh{display:flex;align-items:center;gap:10px;cursor:pointer}.oh .n{flex:1;min-width:0}.oh b{font-weight:700}
 .toast{position:relative;max-width:100%;background:linear-gradient(135deg,#26262e,#1b1b21);color:var(--t);
  border:1px solid var(--l2);font-size:13.5px;font-weight:650;padding:12px 16px;border-radius:14px;
@@ -1778,13 +1790,13 @@ function posterCard(){const L=D.loja;
  const slots=[['','poster','posterItem','1'],['2','poster2','posterItem2','2'],['3','poster3','posterItem3','3']];
  const cards=slots.map(([n,k,ik,lbl])=>{
   const has=!!L[k],u=has?ps({id:'_'+k,image:L[k]}).replace(/'/g,'%27'):'';
-  return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--l)"><b>Poster ${lbl}</b><div class="pic" style="aspect-ratio:11/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
-  <div class="two">${fb('po'+n,ICO.image,has?'Trocar poster':'Adicionar poster',has?'Toque para escolher outra imagem':'Imagem horizontal · toque para escolher')}${has?`<button class="btn" data-a="rpo" data-v="${n}">${ICO.edit}Ajustar</button><button class="btn danger" data-a="dpo" data-v="${n}">Remover</button>`:''}</div>
-  ${has?`<label style="margin-top:12px">Ao tocar neste poster, abrir o item:<select data-pi="${n}">${D.items.map(i=>`<option value="${esc(i.id)}" ${String(L[ik])==String(i.id)?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>`:''}</div>`;
+  return `<div class="po-slot${has?' on':''}"><div class="po-head"><span class="po-num">Poster ${lbl}</span><span class="po-state">${has?'Ativo':'Vazio'}</span></div><div class="pic po-pic" style="aspect-ratio:11/5;height:auto;background-image:url('${u}')">${has?'':'Sem poster'}</div>
+  ${fb('po'+n,ICO.image,has?'Trocar poster':'Adicionar poster',has?'Toque para escolher outra imagem':'Imagem horizontal · toque para escolher')}${has?`<div class="po-acts"><button class="btn" data-a="rpo" data-v="${n}">${ICO.edit}Ajustar</button><button class="btn danger" data-a="dpo" data-v="${n}">Remover</button></div>`:''}
+  ${has?`<label class="po-item">Ao tocar neste poster, abrir o item:<select data-pi="${n}">${D.items.map(i=>`<option value="${esc(i.id)}" ${String(L[ik])==String(i.id)?'selected':''}>${esc(i.name)}</option>`).join('')}</select></label>`:''}</div>`;
  }).join('');
- return `<div class="card"><h3>${ICO.image}Posters do cardápio (até 3)</h3><p class="sub" style="margin:-6px 0 10px">Aparecem no topo do cardápio. Deslizam sozinhos com suavidade, mas o cliente também pode deslizar. Pontinhos discretos mostram quantos posters existem e qual está visível.</p>${cards}${L.poster?poPromo():''}</div>`}
+ return `<div class="card"><h3>${ICO.image}Posters do cardápio (até 3)</h3><p class="sub" style="margin:-6px 0 12px">Até 3 imagens no topo do cardápio: deslizam sozinhas e o cliente também pode deslizar. Toque em um poster para abrir o item escolhido.</p>${cards}${L.poster?poPromo():''}</div>`}
 function poPromo(){const it=D.items.find(i=>i.id==D.loja.posterItem);if(!it)return '';const pr=it.promo;
- return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--l)"><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="po_e" ${pr?'checked':''}>${ICO.cup}Desconto neste item (preço normal ${brl(it.price)})</label>
+ return `<div class="po-sec"><h4>Desconto do item do Poster 1</h4><label class="chk" style="margin-bottom:10px"><input type="checkbox" id="po_e" ${pr?'checked':''}>${ICO.cup}Desconto neste item (preço normal ${brl(it.price)})</label>
  <div class="two"><label>Tipo<select id="po_t"><option value="pct" ${!pr||pr.tipo=='pct'?'selected':''}>% de desconto</option><option value="fixo" ${pr&&pr.tipo=='fixo'?'selected':''}>Preço promocional (R$)</option></select></label><label>Valor<input id="po_v" type="number" min="0" step="0.5" value="${pr?pr.valor:''}"></label></div>
  <label>Válido até (vazio = sem prazo)<input id="po_a" type="date" value="${esc(pr&&pr.ate||'')}"></label>
  <div class="chp"><button class="btn" data-a="pod" data-v="0">Só hoje</button><button class="btn" data-a="pod" data-v="6">7 dias</button><button class="btn" data-a="pod" data-v="29">30 dias</button><button class="btn" data-a="pod" data-v="-1">Sem prazo</button></div><p class="sub" id="po_pv">${pr?''+esc(pTxt(it)):''}</p></div>`}
