@@ -1062,7 +1062,7 @@ el('confirmBtn').onclick = async () => {
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
-  if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); startMpPix(o); }
+  if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); startMpPix(ORDER); }
   else sendWa();
 };
 el('btnSendPixWa').onclick = sendWa;
