@@ -326,8 +326,7 @@ input,textarea,select{font-size:16px}
       <div class="mp-timer" id="mpTimer"></div>
       <div class="mp-msg" id="mpMsg">Aguardando pagamento…</div>
       <button id="btnMpCopy" class="btn primary">Copiar código PIX</button>
-      <button id="btnMpCheck" class="btn wa">Já paguei — acompanhar pedido</button>
-      <button id="btnMpFallback" class="btn ghost">Prefiro enviar o comprovante</button>
+      <button id="btnMpCheck" class="btn wa">Já paguei, enviar comprovante e pedido</button>
     </div>
     <div id="pixOld">
       <div class="pixkey" id="pixKeyDisplay"></div>
@@ -1064,6 +1063,7 @@ el('confirmBtn').onclick = async () => {
     cupom: COUPON ? COUPON.code : '', desc: dsc, taxa: feeNow(), total: cartTotal(),
     itens: Object.values(CART).map(it => ({ q: it.qty, n: it.name, ex: it.addons.map(a => a.name), obs: it.note || '', p: it.price, ax: it.addons.reduce((a, b) => a + b.price, 0) })) };
   WA_MSG = IS_OPEN ? txt : '⏰ *PEDIDO ANTECIPADO* (loja fechada, atender a partir das ' + OPEN_H + 'h)\n\n' + txt;
+  if (PAYMENT === 'pix') WA_MSG += '\n📎 Segue o comprovante do PIX em anexo.';
   if (PAYMENT === 'pix') { el('pixKeyDisplay').textContent = CONFIG.pixKey; el('pixModal').classList.add('open'); startMpPix(ORDER); }
   else sendWa();
 };
@@ -1127,7 +1127,7 @@ async function startMpPix(o) {
     el('mpBox').hidden = false; el('pixOld').hidden = true;
     el('pixIntro').textContent = 'Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.';
     el('mpMsg').textContent = 'Aguardando pagamento…';
-    el('btnMpCheck').textContent = 'Já paguei — acompanhar pedido';
+    el('btnMpCheck').textContent = 'Já paguei, enviar comprovante e pedido';
     el('btnMpCheck').disabled = false;
     MP_COUNT = Math.max(1, Number(j.expira || 900));
     const tick = () => {
@@ -1195,8 +1195,7 @@ async function mpCheck(silent) {
     if (j && j.pago) {
       MP_DONE = true; mpStop();
       el('mpTimer').textContent = '✅ Pagamento confirmado';
-      el('mpMsg').textContent = 'Pagamento aprovado! Seu pedido já foi enviado à loja.';
-      el('btnMpCheck').textContent = 'Acompanhar pedido no WhatsApp';
+      el('mpMsg').textContent = 'Pagamento aprovado! Envie o comprovante para finalizar.';
       await mpFinish(ORDER);
       return;
     }
@@ -1227,27 +1226,38 @@ async function mpFinish(o) {
     '📱 Telefone: ' + (o.fone || '') + '\n' +
     '📍 Endereço: ' + (o.end || '') + ', ' + (o.num || '') + '\n' +
     '🛒 Itens: ' + itens + '\n' +
-    '💰 Total: ' + fmt(o.total || 0) + '\n\nPor favor, confirmem o recebimento. Obrigado!';
+    '💰 Total: ' + fmt(o.total || 0) + '\n\n📎 Segue o comprovante do PIX em anexo.\nPor favor, confirmem o recebimento. Obrigado!';
   CART = {}; COUPON = null; el('couponIn').value = ''; el('couponMsg').textContent = ''; updateCart();
   ORDER = null;
 }
 let MP_WA = '';
 window.mpCheck = mpCheck; window.mpFinish = mpFinish;
-el('btnMpCheck').onclick = () => {
-  if (MP_DONE && MP_WA) {
+let MP_ENVIANDO = false;
+async function mpEnviarComprovante() {
+  if (MP_ENVIANDO || !ORDER) return;
+  MP_ENVIANDO = true;
+  const btn = el('btnMpCheck'); btn.disabled = true;
+  try {
+    if (!MP_DONE && !MP_WA) await mpCheck(false);
+    if (!MP_DONE && !MP_WA) await mpFinish(ORDER);
+    if (!MP_WA) { showToast('Não conseguimos registrar o pedido. Tente de novo.'); return; }
+    el('mpMsg').textContent = 'Pedido enviado! Anexe o comprovante no WhatsApp.';
     const url = 'https://wa.me/' + CONFIG.phone + '?text=' + encodeURIComponent(MP_WA);
     if (!window.open(url, '_blank')) location.href = url;
-    return;
+    mpStop(); el('pixModal').classList.remove('open'); closeCart();
+    showToast('Pedido enviado! Anexe o comprovante no WhatsApp.');
+  } finally {
+    MP_ENVIANDO = false; btn.disabled = false;
   }
-  mpCheck(false);
-};
+}
+window.mpEnviarComprovante = mpEnviarComprovante;
+el('btnMpCheck').onclick = mpEnviarComprovante;
 el('btnMpCopy').onclick = () => {
   const done = () => showToast('Código PIX copiado');
   if (!MP_CODE) return showToast('Aguarde o QR carregar.');
   if (navigator.clipboard) navigator.clipboard.writeText(MP_CODE).then(done, () => showToast('Copie o código manualmente.'));
   else showToast('Copie o código manualmente.');
 };
-el('btnMpFallback').onclick = () => { mpOld(); showToast('Envie o comprovante para concluir.'); };
 window.copyPix = () => {
   const done = () => showToast('Chave PIX copiada');
   if (navigator.clipboard) navigator.clipboard.writeText(CONFIG.pixKey).then(done, () => showToast('Copie a chave manualmente.'));
