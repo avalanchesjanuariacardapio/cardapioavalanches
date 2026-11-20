@@ -320,6 +320,7 @@ input,textarea,select{font-size:16px}
     <div style="font-size:40px">💠</div>
     <h2>Pagamento PIX</h2>
     <p id="pixIntro">Escaneie o QR ou copie o código. Seu pedido é confirmado automaticamente.</p>
+    <div id="mpTurnstile" style="margin:12px 0"></div>
     <div id="mpBox" hidden>
       <div class="mp-qr" id="mpQr"></div>
       <div class="mp-timer" id="mpTimer"></div>
@@ -337,6 +338,7 @@ input,textarea,select{font-size:16px}
   </div>
 </div>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 const FB_PROJECT = 'avalanches-4a953'; // ID do projeto Firebase (o mesmo do painel)
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/' + FB_PROJECT + '/databases/(default)/documents';
@@ -1102,19 +1104,23 @@ const MP_BASE = 'https://avl-push.marcosolive321-ss.workers.dev';
 function mpStop() { if (MP_TIMER) { clearInterval(MP_TIMER); MP_TIMER = null; } if (MP_POLL) { clearInterval(MP_POLL); MP_POLL = null; } }
 function mpOld() {
   mpStop();
+  el('mpTurnstile').hidden = true;
   el('mpBox').hidden = true; el('pixOld').hidden = false;
   el('pixIntro').textContent = 'Copie a chave, pague no app do seu banco e envie o pedido.';
 }
 async function startMpPix(o) {
   mpStop(); MP_BUSY = false; MP_DONE = false; MP_CODE = '';
+  el('mpTurnstile').hidden = false;
   el('mpBox').hidden = true; el('pixOld').hidden = false;
   el('pixIntro').textContent = 'Gerando seu QR PIX com validade de 15 minutos…';
-  if (!window.mpMakeCharge) {
-    el('pixIntro').textContent = 'Copie a chave, pague no app do seu banco e envie o pedido.';
+  const tk = await mpTurnstileToken();
+  if (!tk) {
+    mpOld();
+    el('pixIntro').textContent = 'Não foi possível confirmar o acesso. Envie o comprovante pelo WhatsApp.';
     return;
   }
   try {
-    const j = await mpMakeCharge(o);
+    const j = await mpMakeCharge(o, tk);
     if (!j || !j.ok || !j.qrBase64) throw new Error('qr');
     MP_CODE = j.qr || '';
     el('mpQr').innerHTML = '<img src="data:image/png;base64,' + j.qrBase64 + '" alt="QR Code PIX">';
@@ -1142,12 +1148,37 @@ async function startMpPix(o) {
     el('mpMsg').textContent = '';
   }
 }
-async function mpMakeCharge(o) {
+let MP_TS_WIDGET = null;
+function mpTurnstileToken() {
+  return new Promise(resolve => {
+    let done = false;
+    const fim = t => { if (!done) { done = true; resolve(t || ''); } };
+    const render = () => {
+      if (!window.turnstile || !window.turnstile.render) return fim('');
+      try {
+        if (MP_TS_WIDGET !== null) { try { window.turnstile.remove(MP_TS_WIDGET); } catch (e) {} MP_TS_WIDGET = null; }
+        MP_TS_WIDGET = window.turnstile.render('#mpTurnstile', {
+          sitekey: '0x4AAAAAAGJnxtqz9bnc-BEV', action: 'pix', size: 'compact',
+          callback: fim, 'error-callback': () => fim(''), 'timeout-callback': () => fim('')
+        });
+      } catch (e) { fim(''); }
+    };
+    if (window.turnstile && window.turnstile.render) render();
+    else {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.onload = render; s.onerror = () => fim('');
+      document.head.appendChild(s);
+    }
+    setTimeout(() => fim(''), 15000);
+  });
+}
+async function mpMakeCharge(o, tk) {
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
   try {
     const r = await fetch(MP_BASE + '/mp-pix', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: o.id, nome: o.nome, fone: o.fone, total: o.total, end: o.end, num: o.num, itens: o.itens }),
+      body: JSON.stringify({ id: o.id, nome: o.nome, fone: o.fone, total: o.total, end: o.end, num: o.num, itens: o.itens, cfTurnstile: tk || '' }),
       signal: ctl.signal
     });
     return await r.json();
