@@ -29,9 +29,11 @@ mais em `/pedidos`: a gravação é feita pelo Worker com a service account. `/o
 
 - Worker: `avl-mp-pix` (URL configurada no Cloudflare; não repetir aqui)
 - Secrets: `MP_TOKEN` (token do Mercado Pago) e `FB_SERVICE_ACCOUNT` (JSON da service account do Firebase). **Nunca** vão para o repositório.
-- KV: `AVL_MP` (`pix:<id>` por 24 h; `chk:<id>` e `push:<id>` são auxiliares)
+- KV: `AVL_MP` (só `pix:<id>`, por 24 h). O controle de consulta ao Mercado Pago e o reenvio do aviso ficam em memória do Worker — o KV **rejeita** `expirationTtl` menor que 60 s, e usar 30 s derrubava o `/status` com erro.
 - Compatibility flag: `global_fetch_strictly_public` (necessária para chamar `avl-push`)
 - Endpoints: `/health`, `/pix`, `/status`, `/order`, `/webhook`
+- `/health?push=1` testa se o Worker alcança o `avl-push` e mostra o motivo se falhar (ex.: `error code: 1042` = falta a compatibility flag `global_fetch_strictly_public`). `GET /status?id=...` mostra `debug.pushErr` quando o aviso ao painel falhou.
+- Confirmação do PIX: `/status` confere no Mercado Pago a cada 3 s (não depende só do webhook nem do cache do KV) e responde sem esperar o push; o push termina em segundo plano (`ctx.waitUntil`) e é reenviado enquanto `pushOk` for falso. O webhook responde 503 se o PIX aprovado for de um pedido ainda invisível no KV, para o Mercado Pago tentar de novo.
 - Monitorar `/health` com alerta no celular buscando `"fb":true`. Se `fb` cair, a gravação falha e o cliente fica sem pedido.
 - Limite: 10 `/pix` e 10 `/order` e 120 `/status` por minuto por IP, em memória do Worker
 - Preço: `/pix` e `/order` conferem item, adicionais, desconto, taxa e total contra `cardapio/config`, `cardapio/entregas` e `cupons`

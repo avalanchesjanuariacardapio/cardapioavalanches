@@ -1526,8 +1526,10 @@ async function startPixWorker(o) {
 async function pixCheck(silent) {
   if (!PIX_ORDER || PIX_BUSY || PIX_DONE) return;
   PIX_BUSY = true;
+  /* Limite de 6 s: sem ele, uma consulta pendurada deixava PIX_BUSY ligado para sempre e a confirmacao nunca vinha. */
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
   try {
-    const r = await fetch(PIX_BASE.replace(/\/+$/, '') + '/status?id=' + encodeURIComponent(PIX_ORDER.id), { cache: 'no-store' });
+    const r = await fetch(PIX_BASE.replace(/\/+$/, '') + '/status?id=' + encodeURIComponent(PIX_ORDER.id), { cache: 'no-store', signal: ctl.signal });
     const j = await r.json();
     if (j && j.pago) {
       PIX_DONE = true;
@@ -1537,10 +1539,16 @@ async function pixCheck(silent) {
     }
   } catch (e) {
     if (!silent) el('pixStatus').textContent = 'Sem conexão. Tente de novo em instantes.';
-  } finally { PIX_BUSY = false; }
+  } finally { clearTimeout(to); PIX_BUSY = false; }
 }
 window.pixCopy = pixCopy;
 window.pixCheck = pixCheck;
+/* Quem paga no app do banco deixa o navegador em segundo plano (o celular pausa os timers).
+   Ao voltar, confere na hora em vez de esperar o proximo ciclo. */
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pixCheck(true); });
+window.addEventListener('pageshow', () => pixCheck(true));
+window.addEventListener('focus', () => pixCheck(true));
+window.addEventListener('online', () => pixCheck(true));
 ['clientAddress', 'houseNumber', 'clientName', 'clientPhone', 'cashGiven'].forEach(i => el(i).addEventListener('input', () => el(i).classList.remove('bad')));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
