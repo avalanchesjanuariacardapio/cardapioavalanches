@@ -43,8 +43,12 @@ mais em `/pedidos`: a gravação é feita pelo Worker com a service account. `/o
 token OAuth2 da service account (`https://www.googleapis.com/auth/datastore`), que é
 autorizado pelo IAM e **ignora** as regras — por isso continua gravando normalmente.
 
-Para publicar: **Firestore Database → Rules → Publish** (ou `firebase deploy --only firestore:rules`
-se o Firebase CLI estiver logado). Publique só depois de confirmar `/health` com `fb: true`.
+Regras já publicadas via Firebase Rules API com a service account em 21/11/2026:
+release `projects/avalanches-4a953/releases/cloud.firestore`, ruleset
+`projects/avalanches-4a953/rulesets/5cf647fa-9f21-4d4c-9760-1c250a4a9c05`.
+Confirmação: criação pública em `/pedidos` retorna `403 PERMISSION_DENIED`.
+Se alterar `firestore.rules`, publique de novo pelo console (**Firestore Database → Rules → Publish**)
+ou com `firebase deploy --only firestore:rules`.
 
 `/cupom_usos` continua com criação pública porque é o site que registra o uso do cupom por
 telefone no checkout; fechar isso quebraria a validação de cupom.
@@ -66,7 +70,7 @@ valores — base64 grande deixa o cardápio lento no 4G.
 3. `gradlew assembleRelease` + `sign_apk.ps1` — gera e assina o APK.
 4. `git add/commit/push` em `avl-deploy`.
 5. Deploy Pages com `manifest:'{}'`, `_worker.js` e `_headers` (o `_headers` não muda).
-6. Publicar `firestore.rules` no console do Firebase.
+6. Se `firestore.rules` mudou, publicar no console do Firebase.
 
 O `site-lean-worker.js` busca os arquivos no repositório GitHub (cache de 60 s), o que
 reduz o `_worker.js` de ~1,9 MB para ~2 KB. A versão antiga, com tudo em base64, fica em
