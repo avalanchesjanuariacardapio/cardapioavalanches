@@ -1290,7 +1290,7 @@ function fixOrder(o){const d=o.o,r2=x=>Math.round(x*100)/100;let sub=0;const ite
 /* Pedido em andamento: usa o valor recalculado. Pedido já encerrado: usa o que ficou gravado. */
 function V(o){return NEXT[o.status]?(fixOrder(o)||o.o):o.o}
 function ocard(o){const d=V(o),n=NEXT[o.status],tot=((d.prazo||PRAZO)+(o.extra||0))*6e4,q=d.itens.reduce((a,i)=>a+i.q,0),mins=Math.max(0,Math.round((Date.now()-o.t)/6e4)),e=esc(o.id);
- return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${chk(o).length?' · <span style="color:var(--bad);font-weight:700">'+ICO.alert+' conferir</span>':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}</div>`}
+ return `<div class="oc st-${esc(o.status)}" data-a="ord" data-v="${e}"><div class="o1"><b>#${esc(o.id.slice(-5))}</b><span>${ST[o.status]||esc(o.status)}</span>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div><div class="o2">${esc(d.nome)} · ${q} ${q==1?'item':'itens'}${chk(o).length?' · <span style="color:var(--bad);font-weight:700">'+ICO.alert+' conferir</span>':''}</div><div class="o3"><span>${esc(PG[d.pag]||d.pag)} · há ${mins} min${pixAlerta(o,d)}</span><b>${brl(d.total)}</b></div>${n?`<button class="btn pri full" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button>`:''}</div>`}
 /* Tela inicial: visão do dia + atalhos. Tudo derivado de ORD (já carregado em tempo real). */
 function homeHTML(){
  const hoje=ymd(0),deHoje=o=>new Date(+o.t||0).toLocaleDateString('sv-SE')===hoje;
@@ -1338,7 +1338,7 @@ function osheet(id){const o=ORD.find(x=>x.id==id);if(!o)return;CURO=id;NOVHIDE=t
  $('sheet').innerHTML=`<div class="oh" style="cursor:default"><div class="n"><h3 style="margin:0">#${esc(o.id.slice(-5))} · ${esc(d.nome)}</h3><small>${ST[o.status]||esc(o.status)}${d.ant?'':''}</small></div>${n?`<span class="clk" data-dl="${dl(o)}" data-tot="${tot}"></span>`:''}</div>
  <div class="blk"><b>Itens</b>${d.itens.map(i=>`<div class="it"><b>${i.q}x</b> ${esc(i.n)}${i.ex.length?`<small>+ ${esc(i.ex.join(', '))}</small>`:''}${i.obs?`<small>${esc(i.obs)}</small>`:''}</div>`).join('')}</div>
  <div class="blk"><b>Entrega</b><div>${esc(d.end)}, ${esc(d.num)}</div><div class="chp" style="margin:10px 0 0">${d.loc?`<a class="btn" href="${esc(d.loc)}" target="_blank" rel="noopener">${ICO.map}Mapa</a>`:''}${w?`<a class="btn" href="https://wa.me/${w}" target="_blank" rel="noopener">${ICO.phone}WhatsApp</a><a class="btn" href="tel:+${w}">${ICO.phone}Ligar</a>`:''}</div></div>
- <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div>${d.pag=='dinheiro'?(d.troco>0?(d.troco>=d.total?`<div class="it" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,106,0,.1);border:1px solid rgba(255,106,0,.3)"><div>Cliente paga com <b>${brl(d.troco)}</b></div><div style="font-weight:800;font-size:16px;color:var(--o2)">Levar ${brl(Math.round((d.troco-d.total)*100)/100)} de troco</div></div>`:`<div class="it" style="color:var(--bad);font-weight:700">Atenção: o valor para troco (${brl(d.troco)}) é menor que o total. Confirmar com o cliente.</div>`):`<div class="it" style="margin-top:6px">Sem troco: valor exato</div>`):''}${Math.abs(d.total-o.o.total)>.05?`<div class="it" style="color:var(--bad);font-weight:700">O cliente enviou ${brl(o.o.total)}. Cobre ${brl(d.total)}.</div>`:''}</div>
+ <div class="blk"><b>Pagamento</b><div>${esc(PG[d.pag]||d.pag)}${pixAlerta(o,d)}${d.troco?' · troco para '+brl(d.troco):''}${d.cupom?` · cupom ${esc(d.cupom)} (−${brl(d.desc)})`:''}</div><div class="tot">Total ${brl(d.total)}</div>${d.pag=='dinheiro'?(d.troco>0?(d.troco>=d.total?`<div class="it" style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,106,0,.1);border:1px solid rgba(255,106,0,.3)"><div>Cliente paga com <b>${brl(d.troco)}</b></div><div style="font-weight:800;font-size:16px;color:var(--o2)">Levar ${brl(Math.round((d.troco-d.total)*100)/100)} de troco</div></div>`:`<div class="it" style="color:var(--bad);font-weight:700">Atenção: o valor para troco (${brl(d.troco)}) é menor que o total. Confirmar com o cliente.</div>`):`<div class="it" style="margin-top:6px">Sem troco: valor exato</div>`):''}${Math.abs(d.total-o.o.total)>.05?`<div class="it" style="color:var(--bad);font-weight:700">O cliente enviou ${brl(o.o.total)}. Cobre ${brl(d.total)}.</div>`:''}</div>
  ${(()=>{const w=chk(o);return w.length?`<div class="blk"><b style="color:var(--bad)">${ICO.alert}Conferir antes de aceitar</b>${w.map(x=>`<div class="it" style="color:var(--bad)">${esc(x)}</div>`).join('')}</div>`:''})()}
  <button class="btn full" data-a="prt" data-v="${e}" style="margin:2px 0 12px">${ICO.receipt}Emitir nota</button>
  ${n?`<div class="chp"><button class="btn" data-a="ext" data-v="${e}" data-n="-5">−5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="5">+5 min</button><button class="btn" data-a="ext" data-v="${e}" data-n="10">+10 min</button>${o.extra?`<span class="sub" style="align-self:center">ajuste: ${o.extra>0?'+':''}${o.extra} min</span>`:''}</div><button class="btn pri full big" data-a="st" data-v="${e}" data-s="${n[0]}">${n[1]}</button><button class="btn full danger" data-a="st" data-v="${e}" data-s="cancelado">Cancelar pedido</button>`:''}<button class="btn full" data-a="scancel">Fechar</button>`;
@@ -1386,7 +1386,7 @@ function listen(){if(unsub)return;let first=true;
     if(!tt||Date.now()-tt<300000)pushNovo(x);
     orderNote(x);
   }})}}
-  first=false;nav();nov();if(tab=='pedidos'||tab=='cup'||tab=='home')view();if(CURO&&$('back').classList.contains('open'))osheet(CURO)},e=>toast('Erro nos pedidos: '+(e.code||e.message)))}
+  first=false;nav();nov();if(tab=='pedidos'||tab=='cup'||tab=='home')view();if(CURO&&$('back').classList.contains('open'))osheet(CURO);verPix(ORD)},e=>toast('Erro nos pedidos: '+(e.code||e.message)))}
 const TPL=[['10% de desconto',{tipo:'pct',valor:10,min:0}],['Frete grátis',{tipo:'frete',valor:0,min:0}],['R$ 5 off acima de R$ 30',{tipo:'fixo',valor:5,min:30}],['Primeira compra 15%',{tipo:'pct',valor:15,min:0}]];
 const ymd=n=>new Date(Date.now()+n*864e5).toLocaleDateString('sv-SE');
 const cj=c=>({tipo:c.tipo,valor:+c.valor||0,min:+c.min||0,ate:c.ate||'',ativo:c.ativo!==false,rev:String(c.rev||'')});
@@ -1592,6 +1592,24 @@ function alertNew(){
 /* ===== Relatórios e faturamento ===== */
 const mo=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const PG={dinheiro:'Dinheiro',pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito',cartao:'Cartão'};
+/* O Worker PIX é a fonte da verdade: só um pedido que ele registrou tem /status.
+   Pedidos PIX gravados direto no banco não aparecem lá e são sinalizados no painel. */
+const PIX_STATUS='https://avl-mp-pix.marcosolive321-ss.workers.dev/status?id=';
+const PIXV=new Map();
+const pixAlerta=(o,d)=>d.pag=='pix'&&PIXV.get(o.id)===false?' · <span style="color:var(--bad);font-weight:700">PIX não confirmado</span>':'';
+async function verPix(list){
+ const alvo=list.filter(o=>o.o.pag==='pix'&&NEXT[o.status]&&Date.now()-o.t<86400000&&!PIXV.has(o.id));
+ if(!alvo.length)return;
+ let mudou=false;
+ await Promise.all(alvo.map(async o=>{
+  try{
+   const r=await fetch(PIX_STATUS+encodeURIComponent(o.id),{cache:'no-store'});
+   const j=await r.json();
+   PIXV.set(o.id,r.ok&&j.ok?!!j.pago:false);mudou=true;
+  }catch(e){}
+ }));
+ if(mudou&&(tab=='pedidos'||tab=='home'))view();
+}
 /* ===== Nota do cliente (80mm, padrão NFC-e, sem valor fiscal) ===== */
 const foneBR=s=>{let n=String(s||'').replace(/\D/g,'');if(n.length>11&&n.startsWith('55'))n=n.slice(2);return n.length==11?`(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`:n.length==10?`(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`:n};
 function ticketHTML(o){

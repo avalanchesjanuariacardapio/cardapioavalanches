@@ -2,10 +2,19 @@
 <html lang="pt-BR" class="boot">
 <head>
 <meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'none'">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="light dark"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Cardápio digital da Avalanches. Escolha seu lanche e envie o pedido pelo WhatsApp.">
 <title>Avalanches — Cardápio Digital</title>
+<link rel="icon" type="image/png" href="logo-app.png">
+<link rel="apple-touch-icon" href="logo-app.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://avl-painel.pages.dev/">
+<meta property="og:title" content="Avalanches — Cardápio Digital">
+<meta property="og:description" content="Escolha seu lanche e envie o pedido pelo WhatsApp.">
+<meta property="og:image" content="https://avl-painel.pages.dev/logo-app.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Fonte carrega em segundo plano: nao bloqueia a primeira pintura do cardapio. -->
@@ -344,7 +353,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
 
 <main class="app">
   <header>
-    <div class="cover"><img id="coverImg" data-pid="_capa" src="logo-app.png" alt="" onerror="this.style.display='none'"></div>
+    <div class="cover"><img id="coverImg" data-pid="_capa" src="logo-app.png" alt="Capa do cardápio da Avalanches" onerror="this.style.display='none'"></div>
     <div class="id">
       <img id="logoImg" data-pid="_perfil" src="logo-app.png" class="logo" alt="Logo" onerror="this.onerror=null;this.src='logo-app.png'">
       <div>
@@ -383,7 +392,7 @@ body{background:#eef0f3!important;color:var(--text)!important}
 <div class="sheet-back" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="sheet">
     <button id="itemBack" class="back item-back" onclick="closeModal()" aria-label="Voltar">←</button>
-    <img class="hero-img" id="modalImg" alt="">
+    <img class="hero-img" id="modalImg" alt="Imagem do item">
     <h2 id="modalTitle"></h2>
     <p id="modalDesc"></p>
     <div class="big">R$ <span id="modalPrice">0,00</span></div>
@@ -548,8 +557,6 @@ async function refreshEta() {
   if (!CLOUD_BASE || document.hidden) return;
   try { const r = await fetchFs(CLOUD_BASE + '/cardapio/ao_vivo', 7000); if (r.ok) { const f = (await r.json()).fields.prazo; PRAZO = +(f.integerValue || f.doubleValue) || PRAZO; showEta(); } } catch (e) {}
 }
-['gesturestart', 'gesturechange', 'gestureend'].forEach(n => document.addEventListener(n, e => e.preventDefault()));
-document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 const ESPT = { anonovo: ['🎆 ✨ 🥂', 'u', 'Feliz Ano Novo!'], carnaval: ['🎭 🎊 🎉', 'd', 'Bom Carnaval!'], mulher: ['🌷 💜 ✨', 'd', 'Dia da Mulher'], pascoa: ['🥚 🐰 🍫', 'd', 'Feliz Páscoa!'], maes: ['🌸 💐 🌷', 'd', 'Feliz Dia das Mães!'], namorados: ['❤️ 💕 💘', 'u', 'Dia dos Namorados'], junina: ['🔥 🎈 🌽', 'u', 'Festa Junina'], pais: ['⭐ 🏆 👔', 'd', 'Feliz Dia dos Pais!'], criancas: ['🎈 🧸 🍭', 'u', 'Dia das Crianças'], halloween: ['🎃 🦇 👻', 'd', 'Feliz Halloween!'], blackfriday: ['🏷️ 💥 🔥', 'd', 'Black Friday'], natal: ['🎄 ❄️ ⭐', 'd', 'Feliz Natal!'], hamburguer: ['🍔 🍟 🧀', 'd', 'Dia do Hambúrguer'], aniversario: ['🎂 🎉 🎈', 'u', 'É aniversário da loja!'], cliente: ['🎁 ⭐ ✨', 'u', 'Dia do Cliente'], copa: ['⚽ 🏆 💚', 'd', 'Dia de jogo!'], independencia: ['💚 💛 ⭐', 'd', 'Feliz 7 de Setembro!'], geral: ['✨ 🎉 🎁', 'u', 'Cupom especial'] };
 async function showEsp(base, e) {
   try {
@@ -700,7 +707,7 @@ function setPoster(l) {
   if (vp) {
     vp.innerHTML = arr.map((s, i) => {
       const p = posterImg(s);
-      return `<button type="button" class="poster-slide" data-p="${i}" aria-label="${s.item ? 'Ver ' + esc(s.item.name) : 'Promoção'}"><img data-pid="${esc(s.id)}" src="${esc(p.src)}" alt="" decoding="async" class="${p.ready ? 'ready' : ''}"></button>`;
+      return `<button type="button" class="poster-slide" data-p="${i}" aria-label="${s.item ? 'Ver ' + esc(s.item.name) : 'Promoção'}"><img data-pid="${esc(s.id)}" src="${esc(p.src)}" alt="${s.item ? esc(s.item.name) : 'Promoção da Avalanches'}" decoding="async" class="${p.ready ? 'ready' : ''}"></button>`;
     }).join('');
     vp.scrollLeft = 0;
   }
@@ -1332,7 +1339,7 @@ async function prepareOrder() {
     ORDER_CP = { code: COUPON.code, rev: COUPON.rev };
   }
   const name = clean(el('clientName').value, 80), addr = clean(el('clientAddress').value, 160), num = clean(el('houseNumber').value, 100);
-  const oid = 'P' + Date.now().toString(36).toUpperCase(), sb = cartSub(), dsc = discount(sb), g2 = parseFloat(el('cashGiven').value);
+  const oid = 'P' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 8).toUpperCase(), sb = cartSub(), dsc = discount(sb), g2 = parseFloat(el('cashGiven').value);
   const phTxt = ph.length === 11 ? `(${ph.slice(0, 2)}) ${ph.slice(2, 7)}-${ph.slice(7)}` : `(${ph.slice(0, 2)}) ${ph.slice(2, 6)}-${ph.slice(6)}`;
   const LN = '━━━━━━━━━━━━━━━━━━', payName = { dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão' }[PAYMENT] || PAYMENT;
   const when = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });

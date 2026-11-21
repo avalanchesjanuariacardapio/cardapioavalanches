@@ -1,0 +1,20 @@
+{
+  "name": "Avalanches — Cardápio Digital",
+  "short_name": "Avalanches",
+  "description": "Cardápio digital da Avalanches. Escolha seu lanche e envie o pedido pelo WhatsApp.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b0c",
+  "theme_color": "#ffffff",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "logo-app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

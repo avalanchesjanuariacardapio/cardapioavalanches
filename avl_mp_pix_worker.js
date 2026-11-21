@@ -23,6 +23,74 @@ const cleanId = id => String(id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 2
 const txt = (v, n) => String(v == null ? '' : v).slice(0, n);
 const money = v => Math.round(Number(v) * 100) / 100;
 
+/* Limite de abuso em memoria por IP. Nao gera escrita no KV e barra robos
+   antes da chamada ao Mercado Pago. Cada isolamento tem sua propria memoria:
+   e uma protecao best-effort, nao um limite global. */
+const HITS = new Map();
+function rateOk(req, rota, agora) {
+  const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '?';
+  const max = rota === '/pix' ? 10 : 120;
+  const k = rota + '|' + ip, e = HITS.get(k);
+  if (!e || agora - e.t > 60000) {
+    if (HITS.size > 5000) HITS.clear();
+    HITS.set(k, { n: 1, t: agora });
+    return true;
+  }
+  if (e.n >= max) return false;
+  e.n++;
+  return true;
+}
+
+/* Confere o preco enviado pelo navegador contra o cardapio publicado.
+   Se o cardapio nao puder ser lido, libera o pedido para nao parar a loja. */
+const fsGet = p => fetch(FS_BASE + p).then(r => r.ok ? r.json() : null).catch(() => null);
+const fsJson = d => { try { return JSON.parse(d.fields.json.stringValue); } catch (e) { return null; } };
+function precoItem(it, hoje) {
+  const p = +it.price || 0, pr = it.promo;
+  if (!pr || !(+pr.valor > 0) || (pr.ate && hoje > pr.ate)) return [p];
+  const promo = pr.tipo === 'fixo' ? Math.min(+pr.valor, p) : Math.round(p * (100 - Math.min(+pr.valor, 100))) / 100;
+  return promo === p ? [p] : [p, promo];
+}
+async function precoValido(o) {
+  try {
+    const cfgDoc = await fsGet('/cardapio/config');
+    const cfg = cfgDoc && fsJson(cfgDoc);
+    if (!cfg || !Array.isArray(cfg.items)) return true;
+    const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    const precos = new Map(), addons = new Map();
+    cfg.items.forEach(i => { if (i && i.name) precos.set(String(i.name).toLowerCase(), precoItem(i, hoje)); });
+    (cfg.addons || []).forEach(a => { if (a && a.name) addons.set(String(a.name).toLowerCase(), +a.price || 0); });
+
+    const itens = Array.isArray(o.itens) ? o.itens : [];
+    if (!itens.length) return false;
+    for (const it of itens) {
+      const aceitos = precos.get(String(it.n || '').toLowerCase());
+      if (!aceitos) return true; /* item fora do cardapio atual: nao bloqueia */
+      const p = +it.p || 0;
+      if (!aceitos.some(x => Math.abs(x - p) < 0.011)) return false;
+      const ax = (Array.isArray(it.ex) ? it.ex : []).reduce((s, x) => s + (addons.get(String(x).toLowerCase()) || 0), 0);
+      if (Math.abs(ax - (+it.ax || 0)) > 0.011) return false;
+    }
+
+    /* Desconto so existe com cupom, e nunca pode passar do limite dele. */
+    let maxDesc = 0;
+    if (o.cupom) {
+      const cd = await fsGet('/cupons/' + encodeURIComponent(o.cupom));
+      const cupom = cd && fsJson(cd);
+      if (!cupom) return true; /* cupom revogado entre checkout e pagamento: nao bloqueia */
+      const sub = itens.reduce((s, it) => s + (+it.q || 0) * ((+it.p || 0) + (+it.ax || 0)), 0);
+      const v = +cupom.valor || 0;
+      maxDesc = cupom.tipo === 'pct' ? Math.round(sub * Math.min(v, 100)) / 100
+        : cupom.tipo === 'fixo' ? Math.min(v, sub) : 0;
+    }
+    if ((+o.desc || 0) > maxDesc + 0.011) return false;
+
+    const sub = itens.reduce((s, it) => s + (+it.q || 0) * ((+it.p || 0) + (+it.ax || 0)), 0);
+    const esperado = money(sub - (+o.desc || 0) + (+o.taxa || 0));
+    return Math.abs(esperado - money(o.total)) <= 0.05;
+  } catch (e) { return true; }
+}
+
 async function mpGet(paymentId, token) {
   if (!token) return null;
   const r = await fetch(MP_API + '/' + encodeURIComponent(paymentId), {
@@ -133,6 +201,7 @@ export default {
     }
 
     if (path === '/status' && req.method === 'GET') {
+      if (!rateOk(req, '/status', Date.now())) return json({ ok: false, erro: 'muitas_tentativas' }, 429);
       const id = cleanId(url.searchParams.get('id'));
       if (!id) return json({ ok: false, erro: 'id' }, 400);
       const raw = await env.AVL_MP.get('pix:' + id);
@@ -175,6 +244,7 @@ export default {
     }
 
     if (path === '/pix' && req.method === 'POST') {
+      if (!rateOk(req, '/pix', Date.now())) return json({ ok: false, erro: 'muitas_tentativas' }, 429);
       if (!env.MP_TOKEN) return json({ ok: false, erro: 'token_nao_configurado' }, 500);
       let b;
       try { b = await req.json(); } catch (e) { return json({ ok: false, erro: 'json' }, 400); }
@@ -199,6 +269,8 @@ export default {
         prazo: txt(b.prazo, 80),
         troco: Number(b.troco) || 0
       };
+
+      if (!await precoValido(order)) return json({ ok: false, erro: 'preco' }, 400);
 
       const payload = {
         transaction_amount: total,
@@ -244,7 +316,7 @@ export default {
         t: Date.now()
       };
       await env.AVL_MP.put('pix:' + id, JSON.stringify(st), { expirationTtl: 86400 });
-      if (st.paymentId) await env.AVL_MP.put('pay:' + st.paymentId, id, { expirationTtl: 86400 });
+      /* O indice pay: nao era lido em lugar nenhum e gastava a 2a escrita do KV. */
 
       return json({ ok: true, qr: st.qr, qrBase64: st.qrBase64, paymentId: st.paymentId, expira: st.expira, id });
     }
