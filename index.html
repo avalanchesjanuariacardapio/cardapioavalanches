@@ -113,7 +113,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 .cartbar{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(160%);width:calc(100% - 28px);max-width:572px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(28,28,29,.97);border:1px solid rgba(255,106,0,.5);border-radius:20px;box-shadow:0 14px 40px rgba(0,0,0,.6);padding:10px 10px 10px 18px;color:var(--text);text-align:left;z-index:150;transition:transform .45s cubic-bezier(.2,.9,.3,1)}
 .cartbar.show{transform:translateX(-50%)}
 .cartbar small{display:block;color:var(--muted);font-size:12px}
-.cartbar b{font-size:18px}
+.cartbar b{font-size:18px;display:inline-block}
 .cartbar .go{background:var(--o);color:#111;font-weight:800;padding:14px 22px;border-radius:14px}
 .sheet-back{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:flex-end;justify-content:center}
 .sheet-back.open{opacity:1;pointer-events:auto}
@@ -904,16 +904,23 @@ el('addCart').onclick = () => {
   const id = currentProd.id + selectedAddons.map(a => a.id).join('') + (note ? '|' + note : '');
   if (CART[id]) CART[id].qty += qty;
   else CART[id] = { name: currentProd.name, price: ePrice(currentProd), qty, addons: [...selectedAddons], note };
-  const r = el('addCart').getBoundingClientRect(); closeModal(); updateCart(); showToast('Adicionado à sacola'); fly(r.left + r.width / 2, r.top + r.height / 2);
+  const r = el('addCart').getBoundingClientRect(); closeModal(); updateCart(true); showToast('Adicionado à sacola'); fly(r.left + r.width / 2, r.top + r.height / 2, () => syncCartBar(true));
 };
 
 /* Sacola */
-function updateCart() {
+function syncCartBar(hit) {
+  let sub = 0, count = 0;
+  for (const k in CART) { sub += unit(CART[k]) * CART[k].qty; count += CART[k].qty; }
+  const p = el('cartSubtotal');
+  el('cartCount').textContent = count + (count > 1 ? ' itens' : ' item');
+  p.textContent = fmt(sub);
+  if (hit && p.animate) p.animate([{ transform: 'scale(1)', textShadow: 'none' }, { transform: 'scale(1.18)', textShadow: '0 0 14px rgba(255,106,0,.85)', offset: .4 }, { transform: 'scale(1)', textShadow: 'none' }], { duration: 420, easing: 'cubic-bezier(.2,.9,.3,1)' });
+}
+function updateCart(skipBar) {
   let sub = 0, count = 0;
   for (const k in CART) { sub += unit(CART[k]) * CART[k].qty; count += CART[k].qty; }
   el('cartbar').classList.toggle('show', count > 0);
-  el('cartCount').textContent = count + (count > 1 ? ' itens' : ' item');
-  el('cartSubtotal').textContent = fmt(sub);
+  if (!skipBar) syncCartBar(false);
   if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
   el('subtotalText').textContent = fmt(sub);
   const dsc = discount(sub);
@@ -983,20 +990,29 @@ el('cartbar').onclick = openCart;
 
 /* Animações e adicionar rápido */
 const REDUCED = matchMedia('(prefers-reduced-motion:reduce)').matches;
-function fly(x, y) {
-  const bar = el('cartbar');
-  bar.classList.remove('bump'); void bar.offsetWidth; bar.classList.add('bump');
-  if (REDUCED) return;
+function fly(x, y, onArrive) {
+  const bar = el('cartbar'), price = el('cartSubtotal');
+  bar.classList.remove('bump');
+  if (REDUCED) { void bar.offsetWidth; bar.classList.add('bump'); if (onArrive) onArrive(); return; }
+  /* Alvo = centro do preço na posicao final da barra (a entrada ainda pode estar correndo). */
+  const pr = price.getBoundingClientRect(), br = bar.getBoundingClientRect();
+  const bottom = parseFloat(getComputedStyle(bar).bottom) || 0;
+  const tx = pr.left + pr.width / 2;
+  const ty = innerHeight - bottom - bar.offsetHeight + (pr.top + pr.height / 2 - br.top);
+  bar.classList.add('bump');
   const d = document.createElement('div'); d.className = 'fly'; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d);
-  const dx = innerWidth / 2 - 90 - x, dy = innerHeight - 48 - y;
-  d.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.35)`, opacity: .5 }], { duration: 650, easing: 'cubic-bezier(.45,-.15,.7,.6)' }).onfinish = () => d.remove();
+  const dx = tx - x, dy = ty - y;
+  let done = false;
+  const arrive = () => { if (done) return; done = true; d.remove(); if (onArrive) onArrive(); };
+  d.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.35)`, opacity: .5 }], { duration: 650, easing: 'cubic-bezier(.45,-.15,.7,.6)' }).onfinish = arrive;
+  setTimeout(arrive, 760);
 }
 function quickAdd(it, btn) {
   if (!IS_OPEN) return closedMsg();
   if (CART[it.id]) CART[it.id].qty++;
   else CART[it.id] = { name: it.name, price: ePrice(it), qty: 1, addons: [], note: '' };
-  updateCart(); showToast(it.name + ' adicionado');
-  const r = btn.getBoundingClientRect(); fly(r.left + r.width / 2, r.top + r.height / 2);
+  updateCart(true); showToast(it.name + ' adicionado');
+  const r = btn.getBoundingClientRect(); fly(r.left + r.width / 2, r.top + r.height / 2, () => syncCartBar(true));
 }
 
 /* Troco inteligente */
