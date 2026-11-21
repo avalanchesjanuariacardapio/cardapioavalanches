@@ -53,7 +53,7 @@ function precoItem(it, hoje) {
 }
 async function precoValido(o) {
   try {
-    const cfgDoc = await fsGet('/cardapio/config');
+    const [cfgDoc, entDoc] = await Promise.all([fsGet('/cardapio/config'), fsGet('/cardapio/entregas')]);
     const cfg = cfgDoc && fsJson(cfgDoc);
     if (!cfg || !Array.isArray(cfg.items)) return true;
     const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
@@ -72,18 +72,25 @@ async function precoValido(o) {
       if (Math.abs(ax - (+it.ax || 0)) > 0.011) return false;
     }
 
-    /* Desconto so existe com cupom, e nunca pode passar do limite dele. */
-    let maxDesc = 0;
+    /* Cupom, desconto e taxa: so o cardapio publicado define os limites. */
+    let maxDesc = 0, freteGratis = false;
     if (o.cupom) {
       const cd = await fsGet('/cupons/' + encodeURIComponent(o.cupom));
       const cupom = cd && fsJson(cd);
       if (!cupom) return true; /* cupom revogado entre checkout e pagamento: nao bloqueia */
-      const sub = itens.reduce((s, it) => s + (+it.q || 0) * ((+it.p || 0) + (+it.ax || 0)), 0);
+      freteGratis = cupom.tipo === 'frete';
+      const sub0 = itens.reduce((s, it) => s + (+it.q || 0) * ((+it.p || 0) + (+it.ax || 0)), 0);
       const v = +cupom.valor || 0;
-      maxDesc = cupom.tipo === 'pct' ? Math.round(sub * Math.min(v, 100)) / 100
-        : cupom.tipo === 'fixo' ? Math.min(v, sub) : 0;
+      maxDesc = freteGratis ? 0 : cupom.tipo === 'pct' ? Math.round(sub0 * Math.min(v, 100)) / 100
+        : cupom.tipo === 'fixo' ? Math.min(v, sub0) : 0;
     }
     if ((+o.desc || 0) > maxDesc + 0.011) return false;
+
+    const ent = entDoc && fsJson(entDoc);
+    let taxaCfg = +((cfg.loja || {}).fee) || 0;
+    if (ent && ent.fee !== null && ent.fee !== undefined && ent.fee !== '' && Number.isFinite(+ent.fee) && +ent.fee >= 0) taxaCfg = +ent.fee;
+    if (freteGratis) { if ((+o.taxa || 0) !== 0) return false; }
+    else if (Math.abs((+o.taxa || 0) - taxaCfg) > 0.011) return false;
 
     const sub = itens.reduce((s, it) => s + (+it.q || 0) * ((+it.p || 0) + (+it.ax || 0)), 0);
     const esperado = money(sub - (+o.desc || 0) + (+o.taxa || 0));
