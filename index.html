@@ -353,6 +353,8 @@ body{background:#eef0f3!important;color:var(--text)!important}
 /* Cabeçalho (← Voltar + título) da sacola/etapas: fixo no topo, não rola com o conteúdo */
 #cartPage .page-in{padding-top:calc(65px + env(safe-area-inset-top))}
 #cartPage .ph{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;box-sizing:border-box;padding-left:18px;padding-right:18px;z-index:215}
+/* Seta de voltar do produto: gruda no topo do modal enquanto você rola */
+.sheet .item-back{position:sticky;top:calc(12px + env(safe-area-inset-top, 0px));display:block;margin:-6px 0 -34px -6px;z-index:5;left:auto}
 </style>
 <div id="toasts" role="status" aria-live="polite"></div>
 
