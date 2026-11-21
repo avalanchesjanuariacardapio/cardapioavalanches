@@ -35,8 +35,8 @@ service cloud.firestore {
       allow create: if id.size() <= 80
         && request.resource.data.keys().hasOnly(['t', 'o'])
         && request.resource.data.t is int
-        && request.resource.data.t > request.time.toMillis() - 600000
-        && request.resource.data.t < request.time.toMillis() + 600000
+        && request.resource.data.t > request.time.toMillis() - 21600000
+        && request.resource.data.t < request.time.toMillis() + 21600000
         && request.resource.data.o is string
         && request.resource.data.o.size() <= 20;
       allow list, update, delete: if isAdmin();

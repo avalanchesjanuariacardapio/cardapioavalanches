@@ -17,6 +17,18 @@ const ROTAS = {
   '/icon-512.png': 'icon-512.png', '/icon-180.png': 'icon-180.png', '/icon.svg': 'icon.svg'
 };
 
+/* Cabecalhos de seguranca. O _headers NAO e aplicado quando um Worker responde,
+   entao eles ficam aqui. geolocation=(self) e necessario: o cardapio usa a localizacao do cliente. */
+const SEG = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "frame-ancestors 'none'",
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), payment=()',
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+};
+const NOINDEX = new Set(['admin.html', 'ativar.html']);
+
 export default {
   async fetch(req) {
     const u = new URL(req.url);
@@ -31,6 +43,8 @@ export default {
       const ext = arquivo.slice(arquivo.lastIndexOf('.'));
       return new Response(r.body, {
         headers: {
+          ...SEG,
+          ...(NOINDEX.has(arquivo) ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
           'Content-Type': TIPOS[ext] || 'application/octet-stream',
           'Cache-Control': 'no-cache',
           'Service-Worker-Allowed': '/'

@@ -93,6 +93,10 @@ function rateOk(req, rota, agora) {
 /* Confere o preco enviado pelo navegador contra o cardapio publicado.
    Se o cardapio nao puder ser lido, libera o pedido para nao parar a loja. */
 const fsGet = p => fetch(FS_BASE + p).then(r => r.ok ? r.json() : null).catch(() => null);
+/* Versao que diferencia 'nao existe' (404) de falha de rede. */
+const fsGetS = p => fetch(FS_BASE + p).then(async r => r.ok ? { s: 200, d: await r.json() } : { s: r.status }).catch(() => ({ s: 0 }));
+/* Defesa extra: o valor aprovado no Mercado Pago tem de ser o valor do pedido. */
+const valorOk = (p, st) => !!st && !!st.order && Math.abs(Number(p.transaction_amount) - Number(st.order.total)) < 0.011;
 const fsJson = d => { try { return JSON.parse(d.fields.json.stringValue); } catch (e) { return null; } };
 function precoItem(it, hoje) {
   const p = +it.price || 0, pr = it.promo;
@@ -113,8 +117,11 @@ async function precoValido(o) {
     const itens = Array.isArray(o.itens) ? o.itens : [];
     if (!itens.length) return false;
     for (const it of itens) {
+      /* Quantidade: inteiro de 1 a 50. Antes, um item com q negativo abatia o total. */
+      const q = +it.q;
+      if (!Number.isInteger(q) || q < 1 || q > 50) return false;
       const aceitos = precos.get(String(it.n || '').toLowerCase());
-      if (!aceitos) return true; /* item fora do cardapio atual: nao bloqueia */
+      if (!aceitos) return false; /* item que nao existe no cardapio: antes passava com qualquer preco */
       const p = +it.p || 0;
       if (!aceitos.some(x => Math.abs(x - p) < 0.011)) return false;
       const ax = (Array.isArray(it.ex) ? it.ex : []).reduce((s, x) => s + (addons.get(String(x).toLowerCase()) || 0), 0);
@@ -124,9 +131,10 @@ async function precoValido(o) {
     /* Cupom, desconto e taxa: so o cardapio publicado define os limites. */
     let maxDesc = 0, freteGratis = false;
     if (o.cupom) {
-      const cd = await fsGet('/cupons/' + encodeURIComponent(o.cupom));
-      const cupom = cd && fsJson(cd);
-      if (!cupom) return true; /* cupom revogado entre checkout e pagamento: nao bloqueia */
+      const cd = await fsGetS('/cupons/' + encodeURIComponent(o.cupom));
+      if (cd.s !== 200 && cd.s !== 404) return true; /* falha de rede/leitura: nao para a loja */
+      /* Cupom inexistente (404): desconto maximo = 0. Antes, um codigo falso liberava qualquer desconto. */
+      const cupom = (cd.s === 200 ? fsJson(cd.d) : null) || { tipo: 'nenhum', valor: 0 };
       freteGratis = cupom.tipo === 'frete';
       const sub0 = itens.reduce((s, it) => s + (+it.q || 0) * ((+it.p || 0) + (+it.ax || 0)), 0);
       const v = +cupom.valor || 0;
@@ -271,7 +279,7 @@ export default {
         if (Date.now() - last > 4000) {
           await env.AVL_MP.put('chk:' + id, String(Date.now()), { expirationTtl: 30 });
           const p = await mpGet(st.paymentId, env.MP_TOKEN);
-          if (isApprovedPix(p)) {
+          if (isApprovedPix(p) && valorOk(p, st)) {
             const r = await confirmPayment(id, st, env);
             if (r.ok) {
               const fresh = await env.AVL_MP.get('pix:' + id);
@@ -428,6 +436,7 @@ export default {
       if (!raw) return json({ ok: true, pedido_nao_encontrado: true });
 
       const st = JSON.parse(raw);
+      if (!valorOk(p, st)) return json({ ok: true, valor_diferente: true });
       const r = await confirmPayment(id, st, env);
       return json(r, r.ok ? 200 : 500);
     }
