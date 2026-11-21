@@ -1241,14 +1241,17 @@ function validate(step) {
 }
 
 async function postOrder(o) {
+  /* O Worker grava com a service account; o navegador nao escreve no Firestore.
+     PIX nao passa por aqui: so o webhook pode registrar como pago. */
   if (!FB_PROJECT || FB_PROJECT === 'COLE_AQUI') return false;
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
   try {
-    const r = await fetch(FS_BASE + '/pedidos?documentId=' + encodeURIComponent(o.id), {
+    const r = await fetch(PIX_BASE.replace(/\/+$/, '') + '/order', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
-      body: JSON.stringify({ fields: { t: { integerValue: String(Date.now()) }, status: { stringValue: 'novo' }, extra: { integerValue: '0' }, json: { stringValue: JSON.stringify(o) } } })
+      body: JSON.stringify(o)
     });
-    return r.ok;
+    const j = await r.json().catch(() => null);
+    return r.ok && !!(j && j.ok);
   } catch (e) { return false; }
   finally { clearTimeout(to); }
 }
