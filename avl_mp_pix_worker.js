@@ -26,16 +26,16 @@ const money = v => Math.round(Number(v) * 100) / 100;
 /* Service account do Firebase: o Worker assina um JWT RS256 e troca por um
    token OAuth2. O JSON fica só no secret FB_SERVICE_ACCOUNT e nunca sai daqui.
    Se o secret falhar, escreve sem Authorization (comportamento antigo). */
-let FB_TOKEN = { value: '', exp: 0, who: '' };
+let FB_TOKEN = { value: '', exp: 0, who: '', scope: '' };
 const b64u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
-async function fbToken(env) {
+async function fbToken(env, scope = 'https://www.googleapis.com/auth/datastore') {
   const raw = env.FB_SERVICE_ACCOUNT;
   if (!raw) return '';
   let sa;
   try { sa = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return ''; }
   if (!sa.client_email || !sa.private_key) return '';
   const agora = Date.now();
-  if (FB_TOKEN.value && FB_TOKEN.who === sa.client_email && agora < FB_TOKEN.exp) return FB_TOKEN.value;
+  if (FB_TOKEN.value && FB_TOKEN.who === sa.client_email && FB_TOKEN.scope === scope && agora < FB_TOKEN.exp) return FB_TOKEN.value;
   try {
     const pem = String(sa.private_key).replace(/\\n/g, '\n').replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
     const der = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
@@ -45,7 +45,7 @@ async function fbToken(env) {
     const now = Math.floor(agora / 1000);
     const claim = b64u(enc.encode(JSON.stringify({
       iss: sa.client_email,
-      scope: 'https://www.googleapis.com/auth/datastore',
+      scope,
       aud: sa.token_uri || 'https://oauth2.googleapis.com/token',
       iat: now,
       exp: now + 3600
@@ -60,7 +60,7 @@ async function fbToken(env) {
     if (!r.ok) return '';
     const j = await r.json();
     if (!j.access_token) return '';
-    FB_TOKEN = { value: j.access_token, exp: agora + Math.max(60, (+j.expires_in || 3600) - 60) * 1000, who: sa.client_email };
+    FB_TOKEN = { value: j.access_token, exp: agora + Math.max(60, (+j.expires_in || 3600) - 60) * 1000, who: sa.client_email, scope };
     return FB_TOKEN.value;
   } catch (e) { return ''; }
 }
