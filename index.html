@@ -742,7 +742,8 @@ function applyData(d) {
   const wl = document.getElementById('waLink'); if (wl) wl.href = `https://wa.me/${n}`;
   const wn = document.getElementById('waNumber'); if (wn) wn.textContent = fmt;
   OPEN_H = Number.isFinite(+l.open) ? +l.open : OPEN_H; CLOSE_H = Number.isFinite(+l.close) ? +l.close : CLOSE_H;
-  FORCE = l.modo || 'auto'; STORE = l.nome || STORE;
+  /* Nunca força "aberto": a loja só abre dentro do horário do painel. Só o "fechado" manual é respeitado. */
+  FORCE = l.modo === 'fechado' ? 'fechado' : 'auto'; STORE = l.nome || STORE;
   document.querySelector('.id h1').textContent = STORE; document.title = STORE + ' — Cardápio Digital';
   LOJAIMGS = [];
   [['perfil', 'logoImg'], ['capa', 'coverImg']].forEach(([k, id]) => {
@@ -816,7 +817,7 @@ function showToast(m) {
 function closedMsg() { showToast(FORCE === 'fechado' ? 'Estamos fechados no momento.' : 'Estamos fechados agora. Abrimos às ' + hh(OPEN_H) + '.'); }
 function checkOpen() {
   const h = +new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()) % 24;
-  IS_OPEN = FORCE === 'aberto' ? true : FORCE === 'fechado' ? false : OPEN_H < CLOSE_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
+  IS_OPEN = FORCE === 'fechado' ? false : OPEN_H < CLOSE_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
   const b = el('storeStatus');
   b.className = 'status ' + (IS_OPEN ? 'open' : 'shut');
   b.querySelector('span').textContent = IS_OPEN ? 'Aberto agora' : 'Fechado';
