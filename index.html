@@ -1266,7 +1266,7 @@ function notifyNtfy(o) {
   } catch (e) {}
 }
 /* Aviso push no app do painel (servidor gratuito). O endereço fica salvo no cardápio pelo painel. */
-let PUSH_URL = 'https://avl-push.marcosolive321-ss.workers.dev';
+let PUSH_URL = 'https://avl-push.avalanches.workers.dev';
 async function pushServer() {
   if (PUSH_URL) return PUSH_URL;
   try {
@@ -1433,7 +1433,7 @@ el('couponIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pre
 /* ===== PIX via Mercado Pago (webhook confirma e avisa o painel) =====
    Quem grava o pedido, usa o cupom e dispara o push e o Worker.
    Aqui so mostramos o QR, consultamos o status e abrimos o WhatsApp. */
-const PIX_BASE = 'https://avl-mp-pix.marcosolive321-ss.workers.dev';
+const PIX_BASE = 'https://avl-mp-pix.avalanches.workers.dev';
 let PIX_TIMER = null, PIX_POLL = null, PIX_BUSY = false, PIX_DONE = false;
 let PIX_CODE = '', PIX_COUNT = 1800, PIX_ORDER = null, PIX_SHOWN = false;
 function pixStop() {

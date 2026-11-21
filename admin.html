@@ -627,7 +627,7 @@ const ps=it=>{const u=it.image||'';return u.startsWith('data:')?zq(u):u.startsWi
 const brl=v=>'R$ '+Number(v||0).toFixed(2).replace('.',',');
 /* Sinais para o servico nativo: o painel reenvia o pedido novo ao feed e
    avisa quando ele foi aceito/cancelado, mesmo com o WebView suspenso. */
-const PUSH_URL='https://avl-push.marcosolive321-ss.workers.dev';
+const PUSH_URL='https://avl-push.avalanches.workers.dev';
 async function pushSignal(path,body){
   let to;
   try{
@@ -1594,7 +1594,7 @@ const mo=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,m
 const PG={dinheiro:'Dinheiro',pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito',cartao:'Cartão'};
 /* O Worker PIX é a fonte da verdade: só um pedido que ele registrou tem /status.
    Pedidos PIX gravados direto no banco não aparecem lá e são sinalizados no painel. */
-const PIX_STATUS='https://avl-mp-pix.marcosolive321-ss.workers.dev/status?id=';
+const PIX_STATUS='https://avl-mp-pix.avalanches.workers.dev/status?id=';
 const PIXV=new Map();
 const pixAlerta=(o,d)=>d.pag=='pix'&&PIXV.get(o.id)===false?' · <span style="color:var(--bad);font-weight:700">PIX não confirmado</span>':'';
 async function verPix(list){

@@ -5,7 +5,7 @@
    global_fetch_strictly_public para chamar o Worker de push. */
 
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/avalanches-4a953/databases/(default)/documents';
-const PUSH_URL = 'https://avl-push.marcosolive321-ss.workers.dev';
+const PUSH_URL = 'https://avl-push.avalanches.workers.dev';
 const MP_API = 'https://api.mercadopago.com/v1/payments';
 
 const CORS = {

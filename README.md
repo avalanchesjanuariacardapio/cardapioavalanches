@@ -27,7 +27,7 @@ Pedidos em dinheiro/cartão usam `POST /order` no mesmo Worker. O navegador **n�
 mais em `/pedidos`: a gravação é feita pelo Worker com a service account. `/order` recusa
 `pag: 'pix'` — PIX sem webhook confirmado não entra no painel.
 
-- Worker: `avl-mp-pix` (`https://avl-mp-pix.marcosolive321-ss.workers.dev`)
+- Worker: `avl-mp-pix` (`https://avl-mp-pix.avalanches.workers.dev`)
 - Secrets: `MP_TOKEN` (token do Mercado Pago) e `FB_SERVICE_ACCOUNT` (JSON da service account do Firebase). **Nunca** vão para o repositório.
 - KV: `AVL_MP` (`pix:<id>` por 24 h; `chk:<id>` e `push:<id>` são auxiliares)
 - Compatibility flag: `global_fetch_strictly_public` (necessária para chamar `avl-push`)
