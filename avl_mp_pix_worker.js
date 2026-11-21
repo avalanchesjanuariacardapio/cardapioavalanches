@@ -23,13 +23,62 @@ const cleanId = id => String(id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 2
 const txt = (v, n) => String(v == null ? '' : v).slice(0, n);
 const money = v => Math.round(Number(v) * 100) / 100;
 
+/* Service account do Firebase: o Worker assina um JWT RS256 e troca por um
+   token OAuth2. O JSON fica só no secret FB_SERVICE_ACCOUNT e nunca sai daqui.
+   Se o secret falhar, escreve sem Authorization (comportamento antigo). */
+let FB_TOKEN = { value: '', exp: 0, who: '' };
+const b64u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+async function fbToken(env) {
+  const raw = env.FB_SERVICE_ACCOUNT;
+  if (!raw) return '';
+  let sa;
+  try { sa = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return ''; }
+  if (!sa.client_email || !sa.private_key) return '';
+  const agora = Date.now();
+  if (FB_TOKEN.value && FB_TOKEN.who === sa.client_email && agora < FB_TOKEN.exp) return FB_TOKEN.value;
+  try {
+    const pem = String(sa.private_key).replace(/\\n/g, '\n').replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+    const der = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey('pkcs8', der, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+    const enc = new TextEncoder();
+    const head = b64u(enc.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+    const now = Math.floor(agora / 1000);
+    const claim = b64u(enc.encode(JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/datastore',
+      aud: sa.token_uri || 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600
+    })));
+    const sign = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, enc.encode(head + '.' + claim));
+    const jwt = head + '.' + claim + '.' + b64u(sign);
+    const r = await fetch(sa.token_uri || 'https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=' + encodeURIComponent(jwt)
+    });
+    if (!r.ok) return '';
+    const j = await r.json();
+    if (!j.access_token) return '';
+    FB_TOKEN = { value: j.access_token, exp: agora + Math.max(60, (+j.expires_in || 3600) - 60) * 1000, who: sa.client_email };
+    return FB_TOKEN.value;
+  } catch (e) { return ''; }
+}
+
+async function fsWrite(p, body, env) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = await fbToken(env);
+  if (token) headers.Authorization = 'Bearer ' + token;
+  return fetch(FS_BASE + p, { method: 'POST', headers, body: JSON.stringify(body) });
+}
+
 /* Limite de abuso em memoria por IP. Nao gera escrita no KV e barra robos
    antes da chamada ao Mercado Pago. Cada isolamento tem sua propria memoria:
    e uma protecao best-effort, nao um limite global. */
 const HITS = new Map();
 function rateOk(req, rota, agora) {
   const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '?';
-  const max = rota === '/pix' ? 10 : 120;
+  const max = rota === '/pix' || rota === '/order' ? 10 : 120;
   const k = rota + '|' + ip, e = HITS.get(k);
   if (!e || agora - e.t > 60000) {
     if (HITS.size > 5000) HITS.clear();
@@ -110,7 +159,7 @@ async function mpGet(paymentId, token) {
 
 const isApprovedPix = p => !!p && String(p.status) === 'approved' && String(p.payment_method_id) === 'pix';
 
-async function postFirestore(id, o) {
+async function postFirestore(id, o, env) {
   const body = {
     fields: {
       t: { integerValue: String(Date.now()) },
@@ -120,34 +169,33 @@ async function postFirestore(id, o) {
     }
   };
   try {
-    const r = await fetch(FS_BASE + '/pedidos?documentId=' + encodeURIComponent(id), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-    });
+    const r = await fsWrite('/pedidos?documentId=' + encodeURIComponent(id), body, env);
     /* 409 = pedido ja gravado por outra rota; nao pode travar a confirmacao. */
     return r.ok || r.status === 409;
   } catch (e) { return false; }
 }
 
-async function claimCupom(o) {
+async function claimCupom(o, env) {
   if (!o || !o.cupom || !o.fone) return;
   const key = txt(o.cupom, 60) + '_' + txt(o.fone, 20);
   if (key.length > 80) return;
   try {
-    await fetch(FS_BASE + '/cupom_usos?documentId=' + encodeURIComponent(key), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { t: { integerValue: String(Date.now()) }, o: { stringValue: txt(o.id, 20) } } })
-    });
+    await fsWrite('/cupom_usos?documentId=' + encodeURIComponent(key), {
+      fields: { t: { integerValue: String(Date.now()) }, o: { stringValue: txt(o.id, 20) } }
+    }, env);
   } catch (e) {}
 }
 
 /* Aviso ao painel/APK. Antes era ctx.waitUntil() com erro silencioso:
    se a chamada falhava, o pedido ficava pago mas sem notificacao.
    Agora e await com retries e marca pushOk no estado do PIX. */
-async function pushPanel(o, env) {
+async function pushPanel(o, env, pago = true) {
+  const PG = { dinheiro: 'Dinheiro', pix: 'PIX', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão' };
+  const fim = pago ? 'Pagamento PIX confirmado.' : 'Pagamento: ' + (PG[String(o.pag || '').toLowerCase()] || 'a combinar') + '.';
   const payload = {
     id: String(o.id),
     title: 'Novo pedido #' + String(o.id).slice(-5) + (o.ant ? ' (antecipado)' : ''),
-    body: txt(o.nome, 60) + ' · R$ ' + money(o.total).toFixed(2).replace('.', ',') + '. Pagamento PIX confirmado. Abra o painel para ver os detalhes.',
+    body: txt(o.nome, 60) + ' · R$ ' + money(o.total).toFixed(2).replace('.', ',') + '. ' + fim + ' Abra o painel para ver os detalhes.',
     url: 'https://avl-painel.pages.dev/admin.html',
     force: 1,
     icon: 'https://avl-painel.pages.dev/logo-app.png'
@@ -183,9 +231,9 @@ async function confirmPayment(id, st, env) {
     }
     return { ok: true, ja_registrado: true, pago: true, push: !!st.pushOk };
   }
-  const saved = await postFirestore(id, st.order);
+  const saved = await postFirestore(id, st.order, env);
   if (!saved) return { ok: false, erro: 'firestore' };
-  await claimCupom(st.order);
+  await claimCupom(st.order, env);
   st.pago = true;
   st.registered = true;
   st.paidAt = Date.now();
@@ -204,7 +252,9 @@ export default {
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
     if (path === '/health') {
-      return json({ ok: true, token: !!env.MP_TOKEN, kv: !!env.AVL_MP });
+      /* fb informa apenas se o token foi obtido; nunca devolve o token nem o JSON. */
+      const fb = !!(await fbToken(env));
+      return json({ ok: true, token: !!env.MP_TOKEN, kv: !!env.AVL_MP, fb });
     }
 
     if (path === '/status' && req.method === 'GET') {
@@ -326,6 +376,42 @@ export default {
       /* O indice pay: nao era lido em lugar nenhum e gastava a 2a escrita do KV. */
 
       return json({ ok: true, qr: st.qr, qrBase64: st.qrBase64, paymentId: st.paymentId, expira: st.expira, id });
+    }
+
+    /* Pedidos dinheiro/cartao tambem passam pelo Worker: assim a criacao publica
+       no Firestore pode ser negada sem quebrar o cardapio. PIX NAO entra aqui —
+       ele so existe depois que o webhook confirma o pagamento. */
+    if (path === '/order' && req.method === 'POST') {
+      if (!rateOk(req, '/order', Date.now())) return json({ ok: false, erro: 'muitas_tentativas' }, 429);
+      let b;
+      try { b = await req.json(); } catch (e) { return json({ ok: false, erro: 'json' }, 400); }
+      const id = cleanId(b.id), total = money(b.total);
+      const pag = String(b.pag || '').toLowerCase();
+      if (!id || !(total > 0) || !['dinheiro', 'credito', 'debito', 'cartao'].includes(pag)) {
+        return json({ ok: false, erro: 'pedido_invalido' }, 400);
+      }
+      const order = {
+        id,
+        nome: txt(b.nome, 80),
+        fone: txt(b.fone, 20),
+        end: txt(b.end, 160),
+        num: txt(b.num, 100),
+        pag,
+        itens: Array.isArray(b.itens) ? b.itens.slice(0, 60) : [],
+        cupom: txt(b.cupom, 40),
+        desc: Number(b.desc) || 0,
+        taxa: Number(b.taxa) || 0,
+        total,
+        ant: !!b.ant,
+        loc: txt(b.loc, 300),
+        prazo: txt(b.prazo, 80),
+        troco: Number(b.troco) || 0
+      };
+      if (!await precoValido(order)) return json({ ok: false, erro: 'preco' }, 400);
+      if (!await postFirestore(id, order, env)) return json({ ok: false, erro: 'firestore' }, 500);
+      await claimCupom(order, env);
+      const push = await pushPanel(order, env, false);
+      return json({ ok: true, id, push });
     }
 
     if (path === '/webhook' && req.method === 'POST') {
