@@ -349,6 +349,11 @@ body{background:#eef0f3!important;color:var(--text)!important}
 </style>
 </head>
 <body>
+<style id="fixHdr">
+/* Cabeçalho (← Voltar + título) da sacola/etapas: fixo no topo, não rola com o conteúdo */
+#cartPage .page-in{padding-top:calc(65px + env(safe-area-inset-top))}
+#cartPage .ph{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;box-sizing:border-box;padding-left:18px;padding-right:18px;z-index:215}
+</style>
 <div id="toasts" role="status" aria-live="polite"></div>
 
 <main class="app">
@@ -1658,9 +1663,12 @@ document.addEventListener('keydown', e => {
   function opened() { return LAY.filter(function (i) { return g(i).classList.contains('open'); }); }
   function stepIx() { var i = PASSOS.indexOf(CHKSTEP); return i < 0 ? 0 : i; }
   /* Cada etapa aberta vale um "nível" a mais no histórico. */
+  function esp() { return document.querySelector('.espb.on'); }   /* popup de cupom especial */
   function nivel() {
     var d = opened().length;
     if (g('cartPage').classList.contains('open')) d += stepIx();
+    if (esp()) d++;
+    if (typeof cat !== 'undefined' && cat !== 'all') d++;          /* categoria aberta (Burguers, Bebidas...) */
     return d;
   }
   function sync() {
@@ -1675,8 +1683,20 @@ document.addEventListener('keydown', e => {
   window.avlBackSync = sync;
   window.addEventListener('popstate', function () {
     if (skip) { skip = 0; clearTimeout(st); sync(); return; }
-    var o = opened();
-    if (!o.length) { pushed = 0; return; }
+    var o = opened(), e = esp();
+    if (e) {                                                        /* 1º: fecha o popup de cupom */
+      pushed = Math.max(0, pushed - 1);
+      var fb = e.querySelector('.btn.ghost'); if (fb) fb.click(); else e.classList.remove('on');
+      return;
+    }
+    if (!o.length) {
+      if (typeof cat !== 'undefined' && cat !== 'all') {            /* sem tela aberta: sai da categoria e volta para "Tudo" */
+        pushed = Math.max(0, pushed - 1);
+        var all = document.querySelector('#tabs .tab[data-cat="all"]'); if (all) all.click();
+        return;
+      }
+      pushed = 0; return;
+    }
     pushed = Math.max(0, pushed - 1);
     if (o[0] === 'cartPage' && stepIx() > 0) {
       goStep(PASSOS[stepIx() - 1], true); /* ja veio do historico: nao empurra de novo */
@@ -1688,6 +1708,9 @@ document.addEventListener('keydown', e => {
   });
   var mo = new MutationObserver(sync);
   LAY.forEach(function (i) { mo.observe(g(i), { attributes: true, attributeFilter: ['class'] }); });
+  mo.observe(g('tabs'), { attributes: true, subtree: true, childList: true, attributeFilter: ['class'] });
+  mo.observe(document.body, { childList: true });                    /* popup de cupom entra/sai do body */
+  new MutationObserver(sync).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
 })();
 
 /* Barra de status acompanha o cardápio: cor da capa no topo, cor do fundo ao rolar, escurece com telas abertas */
