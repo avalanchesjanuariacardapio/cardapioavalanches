@@ -83,7 +83,9 @@ copie `site-worker-full.js` para `_worker.js` e faça o deploy novamente.
 ## Checklist de segurança externo
 
 - **GitHub:** repositório público, `main` protegida (exigir PR). Nunca commitar senhas.
-  Se `avl2026` aparecer no histórico do Git, a senha do keystore está comprometida: troque-a.
+  A senha antiga (`avl2026`) apareceu no histórico do Git e foi trocada. O keystore foi
+  recriado, então o certificado do APK mudou: **desinstale a versão antiga antes de instalar
+  a nova**. A senha nova fica fora do repositório, em `Documents/avl-keystore-senha.txt`.
 - **Firebase Authentication:** desativar criação pública de contas (o painel só faz login;
   não cria usuários). A chave de API do `admin.html` é pública por natureza — não restringir
   por domínio sem testar o login do app Android.
