@@ -905,7 +905,7 @@ el('addCart').onclick = () => {
   const note = el('note').value.trim();
   const id = currentProd.id + selectedAddons.map(a => a.id).join('') + (note ? '|' + note : '');
   if (CART[id]) CART[id].qty += qty;
-  else CART[id] = { name: currentProd.name, price: ePrice(currentProd), qty, addons: [...selectedAddons], note };
+  else CART[id] = { name: currentProd.name, price: ePrice(currentProd), promo: promoOn(currentProd), qty, addons: [...selectedAddons], note };
   const r = el('addCart').getBoundingClientRect(); closeModal(); updateCart(true); showToast('Adicionado à sacola'); fly(r.left + r.width / 2, r.top + r.height / 2, () => syncCartBar(true));
 };
 
@@ -923,12 +923,12 @@ function updateCart(skipBar) {
   for (const k in CART) { sub += unit(CART[k]) * CART[k].qty; count += CART[k].qty; }
   el('cartbar').classList.toggle('show', count > 0);
   if (!skipBar) syncCartBar(false);
-  if (COUPON && sub < COUPON.min) { COUPON = null; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
+  if (COUPON && (COUPON.tipo === 'frete' ? sub : elegSub()) < COUPON.min) { COUPON = null; el('couponMsg').style.color = 'var(--bad)'; el('couponMsg').textContent = 'Cupom removido: o pedido ficou abaixo do mínimo.'; }
   el('subtotalText').textContent = fmt(sub);
   const dsc = discount(sub);
   el('discRow').style.display = COUPON ? 'flex' : 'none';
   el('discCode').textContent = COUPON ? '(' + COUPON.code + ')' : '';
-  el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc)) : '';
+  el('discText').textContent = COUPON ? (COUPON.tipo === 'frete' ? 'Frete grátis' : '− ' + fmt(dsc) + (elegSub() < sub ? ' (só itens sem promoção)' : '')) : '';
   el('feeText').textContent = fmt(feeNow());
   const freeShip = feeNow() === 0, hf = el('heroFee'), lbl = el('feeLabel');
   if (lbl) lbl.textContent = freeShip ? 'Entrega grátis' : 'Taxa de entrega';
@@ -1012,7 +1012,7 @@ function fly(x, y, onArrive) {
 function quickAdd(it, btn) {
   if (!IS_OPEN) return closedMsg();
   if (CART[it.id]) CART[it.id].qty++;
-  else CART[it.id] = { name: it.name, price: ePrice(it), qty: 1, addons: [], note: '' };
+  else CART[it.id] = { name: it.name, price: ePrice(it), promo: promoOn(it), qty: 1, addons: [], note: '' };
   updateCart(true); showToast(it.name + ' adicionado');
   const r = btn.getBoundingClientRect(); fly(r.left + r.width / 2, r.top + r.height / 2, () => syncCartBar(true));
 }
@@ -1193,7 +1193,9 @@ async function loadAreas() {
   };
 })();
 const cartSub = () => Object.values(CART).reduce((a, it) => a + unit(it) * it.qty, 0);
-const discount = sub => !COUPON ? 0 : COUPON.tipo === 'pct' ? Math.round(sub * Math.min(COUPON.valor, 100)) / 100 : COUPON.tipo === 'fixo' ? Math.min(COUPON.valor, sub) : 0;
+/* Cupom de % ou valor fixo NÃO vale para itens que já estão em promoção: só desconta sobre os demais. */
+const elegSub = () => Object.values(CART).reduce((a, it) => it.promo ? a : a + unit(it) * it.qty, 0);
+const discount = () => { const base = elegSub(); return !COUPON ? 0 : COUPON.tipo === 'pct' ? Math.round(base * Math.min(COUPON.valor, 100)) / 100 : COUPON.tipo === 'fixo' ? Math.min(COUPON.valor, base) : 0; };
 const taxaAtual = () => ENT.fee !== null && ENT.fee !== undefined && ENT.fee !== '' && Number.isFinite(+ENT.fee) && +ENT.fee >= 0 ? +ENT.fee : CONFIG.fee;
 const feeNow = () => COUPON && COUPON.tipo === 'frete' ? 0 : taxaAtual();
 const cartTotal = () => { const sb = cartSub(); return Math.max(0, sb - discount(sb)) + feeNow(); };
@@ -1437,7 +1439,8 @@ async function applyCoupon() {
     if (c.ativo === false) return say('Este cupom não está ativo.', false);
     if (c.ate && new Date().toLocaleDateString('sv-SE') > c.ate) return say('Este cupom expirou.', false);
     if (cupUsed(code)) return say('Erro: você já usou este cupom neste aparelho.', false);
-    if (cartSub() < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + '.', false);
+    if (c.tipo !== 'frete' && Object.keys(CART).length && elegSub() === 0) return say('Este cupom não vale para itens que já estão em promoção.', false);
+    if ((c.tipo === 'frete' ? cartSub() : elegSub()) < (+c.min || 0)) return say('Este cupom vale para pedidos a partir de ' + fmt(c.min) + (c.tipo !== 'frete' ? ' em itens sem promoção.' : '.'), false);
     // Usa sempre a versão que veio do cupom agora. A avl_esp_rev serve só para mostrar
     // o aviso especial no link; ela nunca aplica desconto sozinha nem deve reaproveitar
     // a versão antiga de um código recriado no painel.
