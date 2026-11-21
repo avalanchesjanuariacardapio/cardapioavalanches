@@ -10,6 +10,7 @@ Site do cardápio para clientes (`index.html`) e painel administrativo (`admin.h
 - `sw.js`, `admin.webmanifest`, `manifest.webmanifest` — service worker e manifestos
 - `_worker.js` — Worker do Cloudflare Pages (enxuto; gerado a partir de `site-lean-worker.js`)
 - `avl_mp_pix_worker.js` — cópia do Worker do PIX implantado em `avl-mp-pix`
+- `firestore.rules` — regras do Firestore (publicar no console do Firebase)
 
 ## PIX
 
@@ -22,23 +23,31 @@ O **webhook é a única fonte da verdade**. O painel nunca marca um PIX como pag
 própria: `verPix()` consulta `/status` e sinaliza “PIX não confirmado” quando o pedido não
 existe no Worker.
 
+Pedidos em dinheiro/cartão usam `POST /order` no mesmo Worker. O navegador **não escreve**
+mais em `/pedidos`: a gravação é feita pelo Worker com a service account. `/order` recusa
+`pag: 'pix'` — PIX sem webhook confirmado não entra no painel.
+
 - Worker: `avl-mp-pix` (`https://avl-mp-pix.marcosolive321-ss.workers.dev`)
-- Secret: `MP_TOKEN` (token do Mercado Pago — **nunca** vai para o repositório)
+- Secrets: `MP_TOKEN` (token do Mercado Pago) e `FB_SERVICE_ACCOUNT` (JSON da service account do Firebase). **Nunca** vão para o repositório.
 - KV: `AVL_MP` (`pix:<id>` por 24 h; `chk:<id>` e `push:<id>` são auxiliares)
 - Compatibility flag: `global_fetch_strictly_public` (necessária para chamar `avl-push`)
-- Rotas: `/health`, `/pix`, `/status`, `/webhook`
-- Limite: 10 `/pix` e 120 `/status` por minuto por IP, em memória do Worker
-- Preço: `/pix` confere item, adicionais, desconto e total contra `cardapio/config` e `cupons`
+- Rotas: `/health`, `/pix`, `/status`, `/order`, `/webhook`
+- Limite: 10 `/pix` e 10 `/order` e 120 `/status` por minuto por IP, em memória do Worker
+- Preço: `/pix` e `/order` conferem item, adicionais, desconto, taxa e total contra `cardapio/config`, `cardapio/entregas` e `cupons`
 - O ID do pedido tem 15 caracteres (`P` + hora em base 36 + 6 aleatórios)
+- `/health` devolve `fb: true` quando o token OAuth da service account foi obtido (nunca devolve o token)
 
-### Risco que ainda depende de configuração externa
+## Regras do Firestore
 
-As regras do Firestore hoje permitem criação pública em `/pedidos` (o site e o Worker usam
-a mesma API REST sem login). Isso é necessário para o Worker gravar o pedido. Para eliminar
-de vez a criação de pedidos falsos direto no banco, o Worker precisa gravar com **conta de
-serviço do Firebase** (chave privada como secret) e as regras passam a negar `create` público.
-Enquanto isso não é feito, o painel sinaliza PIX não confirmado e o dono confere antes de
-aceitar.
+`firestore.rules` já está preparado para negar `create` público em `/pedidos`. O Worker usa
+token OAuth2 da service account (`https://www.googleapis.com/auth/datastore`), que é
+autorizado pelo IAM e **ignora** as regras — por isso continua gravando normalmente.
+
+Para publicar: **Firestore Database → Rules → Publish** (ou `firebase deploy --only firestore:rules`
+se o Firebase CLI estiver logado). Publique só depois de confirmar `/health` com `fb: true`.
+
+`/cupom_usos` continua com criação pública porque é o site que registra o uso do cupom por
+telefone no checkout; fechar isso quebraria a validação de cupom.
 
 Para reduzir vazamento de dados pela rota `/status`, o ID do pedido é aleatório; o CORS ainda
 é `*` por causa do APK. Se quiser restringir, use um domínio próprio do Worker e libere
@@ -57,6 +66,7 @@ valores — base64 grande deixa o cardápio lento no 4G.
 3. `gradlew assembleRelease` + `sign_apk.ps1` — gera e assina o APK.
 4. `git add/commit/push` em `avl-deploy`.
 5. Deploy Pages com `manifest:'{}'`, `_worker.js` e `_headers` (o `_headers` não muda).
+6. Publicar `firestore.rules` no console do Firebase.
 
 O `site-lean-worker.js` busca os arquivos no repositório GitHub (cache de 60 s), o que
 reduz o `_worker.js` de ~1,9 MB para ~2 KB. A versão antiga, com tudo em base64, fica em

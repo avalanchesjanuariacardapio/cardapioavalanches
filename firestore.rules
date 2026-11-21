@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // SEGURANÇA: só o UID cadastrado abaixo é administrador.
+    // Isso é importante porque o cadastro por e-mail/senha é público: qualquer
+    // pessoa pode criar uma conta no projeto. Sem o UID fixo, ela viraria admin.
+    // O UID NÃO é credencial — sabendo ele, ninguém consegue entrar sem a senha.
+    // Pegue o UID na tela "Configure o acesso admin" do painel e cole aqui
+    // e também em ADMIN_UID no admin.html. Depois publique as regras.
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'JnZJF7q89bRmJ57RSRDRcHaRNbD2';
+    }
+
+    // Pedidos: criação SOMENTE pelo Worker avl-mp-pix, usando a service account
+    // (FB_SERVICE_ACCOUNT). Token de service account ignora estas regras e é
+    // autorizado pelo IAM do Google. O navegador não escreve mais aqui.
+    // PIX só entra depois que o webhook confirma o pagamento no Mercado Pago.
+    match /pedidos/{id} {
+      allow create: if false;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Cupons: o site consulta um código por vez; ninguém lista todos.
+    match /cupons/{code} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // Uso de cupom: 1 documento por cupom + versão + telefone (id = CODIGO_VERSAO_TELEFONE).
+    // O site só consegue CRIAR (nunca alterar nem apagar); por isso o 2º uso do mesmo telefone é barrado.
+    // Este precisa continuar público — o Worker não faz essa validação no checkout.
+    match /cupom_usos/{id} {
+      allow get: if true;
+      allow create: if id.size() <= 80
+        && request.resource.data.keys().hasOnly(['t', 'o'])
+        && request.resource.data.t is int
+        && request.resource.data.t > request.time.toMillis() - 600000
+        && request.resource.data.t < request.time.toMillis() + 600000
+        && request.resource.data.o is string
+        && request.resource.data.o.size() <= 20;
+      allow list, update, delete: if isAdmin();
+    }
+
+    // Cardápio e tempo de preparo: leitura pública, escrita só do painel.
+    match /cardapio/{doc} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // Fotos: leitura pública por id, escrita só do painel.
+    match /fotos/{id} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // Todo o resto fica fechado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
