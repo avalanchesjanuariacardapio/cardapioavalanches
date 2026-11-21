@@ -2,6 +2,7 @@
    Em vez de embutir 1,9 MB em base64, busca os arquivos publicados no repo.
    A URL do repo é fixa; o cache do Cloudflare evita uma ida ao GitHub em cada acesso. */
 const BASE = 'https://raw.githubusercontent.com/avalanchesjanuariacardapio/cardapioavalanches/main/';
+const VER = '84697e5'; /* muda a cada publicacao para furar o cache do raw.githubusercontent */
 const TIPOS = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -38,7 +39,7 @@ export default {
     const arquivo = ROTAS[p];
     if (!arquivo) return new Response('Não encontrado', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     try {
-      const r = await fetch(BASE + arquivo, { cf: { cacheTtl: 60 }, headers: { 'User-Agent': 'avl-painel' } });
+      const r = await fetch(BASE + arquivo + '?v=' + VER, { cf: { cacheTtl: 60 }, headers: { 'User-Agent': 'avl-painel' } });
       if (!r.ok) return new Response('Não encontrado', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       const ext = arquivo.slice(arquivo.lastIndexOf('.'));
       return new Response(r.body, {
