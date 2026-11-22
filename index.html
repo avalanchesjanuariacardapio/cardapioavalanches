@@ -48,7 +48,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
 :focus-visible{outline:2px solid var(--o2);outline-offset:2px}
 .app{max-width:600px;margin:0 auto;background:var(--bg);min-height:100vh;padding-bottom:calc(28px + var(--cb-h,56px) + env(safe-area-inset-bottom));position:relative;overflow:hidden}
 /* Espaço extra quando a barra da meta aparece: o ultimo item nunca fica escondido */
-body.meta-on .app{padding-bottom:calc(78px + var(--cb-h,56px) + env(safe-area-inset-bottom))}
+body.meta-on .app{padding-bottom:calc(100px + var(--cb-h,56px) + env(safe-area-inset-bottom))}
 .app::before{content:"";position:absolute;left:0;right:0;top:0;height:560px;background:radial-gradient(420px 420px at 100% 28%,rgba(255,106,0,.17),transparent 70%);pointer-events:none}
 .cover{height:calc(clamp(96px,27vw,132px) + env(safe-area-inset-top,0px));background:radial-gradient(circle at 80% 20%,rgba(255,106,0,.55),transparent 55%),linear-gradient(135deg,#1c1c1c,#050505);position:relative;overflow:hidden}
 .cover img{width:100%;height:100%;object-fit:cover;display:block;animation:zoom 1.6s ease-out both}
@@ -244,8 +244,8 @@ input,textarea,select{font-size:16px}
 :root{--o:#ff6a00;--o2:#e35c00;--bg:#f4f5f7;--glass:#fff;--line:#e6e8eb;--text:#16181c;--muted:#7c848f;--ok:#16a34a;--bad:#e11d48}
 html,html.locked{background:#eef0f3!important;color-scheme:light!important}
 body{background:#eef0f3!important;color:var(--text)!important}
-.app{background:#fff!important;box-shadow:0 0 0 1px #e9ebee,0 24px 70px -34px #000;padding-bottom:calc(74px + var(--cb-h,56px) + env(safe-area-inset-bottom))!important}
-body.meta-on .app{padding-bottom:calc(124px + var(--cb-h,56px) + env(safe-area-inset-bottom))!important}
+.app{background:#fff!important;box-shadow:0 0 0 1px #e9ebee,0 24px 70px -34px #000;padding-bottom:calc(84px + var(--cb-h,56px) + env(safe-area-inset-bottom))!important}
+body.meta-on .app{padding-bottom:calc(146px + var(--cb-h,56px) + env(safe-area-inset-bottom))!important}
 .app::before{display:none!important}
 .cover{height:clamp(140px,34vw,190px)!important;background:#222!important}
 .cover::after{background:linear-gradient(transparent 45%,rgba(255,255,255,.12))!important}
