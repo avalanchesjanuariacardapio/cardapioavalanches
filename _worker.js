@@ -1,8 +1,8 @@
 /* AVL — Worker enxuto do Cloudflare Pages.
    Em vez de embutir 1,9 MB em base64, busca os arquivos publicados no repo.
    O BASE usa o commit exato: muda a cada publicacao para furar o cache do raw.githubusercontent. */
-const BASE = 'https://raw.githubusercontent.com/avalanchesjanuariacardapio/cardapioavalanches/995ecaf/';
-const VER = '995ecaf'; /* muda a cada publicacao para furar o cache do raw.githubusercontent */
+const BASE = 'https://raw.githubusercontent.com/avalanchesjanuariacardapio/cardapioavalanches/285e362/';
+const VER = '285e362'; /* muda a cada publicacao para furar o cache do raw.githubusercontent */
 const TIPOS = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
